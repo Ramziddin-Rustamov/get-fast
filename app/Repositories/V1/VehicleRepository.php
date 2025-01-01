@@ -35,6 +35,7 @@ class VehicleRepository
     public function create(array $data)
     {
         $vehicle = new Vehicle();
+        $vehicle->user_id = $data['user_id'];
         $vehicle->make = $data['make'];
         $vehicle->model = $data['model'];
         $vehicle->year = $data['year'];

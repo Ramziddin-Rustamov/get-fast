@@ -9,17 +9,13 @@ class TripStoreRequest extends FormRequest
     /**
      * Determine if the user is authorized to make this request.
      */
-    public function authorize(): bool
+    public function authorize()
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
-    public function rules(): array
+    
+    public function rules()
     {
         return [
             'driver_id' => 'required|exists:users,id',
@@ -30,7 +26,7 @@ class TripStoreRequest extends FormRequest
             'end_time' => 'nullable|date',
             'price_per_seat' => 'required|numeric|min:0',
             'total_seats' => 'required|integer|min:1',
-            'available_seats' => 'required|integer|min:1|max:total_seats',
+            'available_seats' => 'required|integer',
         ];
     }
 }

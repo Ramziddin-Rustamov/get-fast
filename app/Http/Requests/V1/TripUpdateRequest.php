@@ -30,7 +30,7 @@ class TripUpdateRequest extends FormRequest
             'end_time' => 'nullable|date',
             'price_per_seat' => 'sometimes|numeric|min:0',
             'total_seats' => 'sometimes|integer|min:1',
-            'available_seats' => 'sometimes|integer|min:1|max:total_seats',
+            'available_seats' => 'sometimes|integer|min:1',
         ];
     }
 }

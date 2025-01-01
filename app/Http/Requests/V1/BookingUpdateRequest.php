@@ -17,8 +17,6 @@ class BookingUpdateRequest extends FormRequest
             'trip_id' => 'sometimes|exists:trips,id',
             'user_id' => 'sometimes|exists:users,id',
             'seats_booked' => 'sometimes|integer|min:1',
-            'total_price' => 'sometimes|numeric|min:0',
-            'status' => 'sometimes|in:pending,confirmed,cancelled',
         ];
     }
 }

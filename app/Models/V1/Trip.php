@@ -23,9 +23,9 @@ class Trip extends Model
 
     public function driver()
     {
-        return $this->belongsTo(User::class, 'driver_id');
-    }   
-
+        return $this->belongsTo(User::class, 'driver_id')->where('role', 'driver');
+    }
+     
     public function vehicle()
     {
         return $this->belongsTo(Vehicle::class);

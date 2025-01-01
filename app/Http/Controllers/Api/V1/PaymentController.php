@@ -47,4 +47,5 @@ class PaymentController extends Controller
         $this->paymentService->deletePayment($id);
         return response()->json(['message' => 'Payment deleted successfully'], 200);
     }
+
 }

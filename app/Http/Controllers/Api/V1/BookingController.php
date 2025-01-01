@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api\V1;
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\BookingUpdateRequest;
 use App\Http\Requests\V1\BookingStoreRequest;
 use App\Http\Resources\V1\BookingResource;
@@ -43,4 +43,6 @@ class BookingController extends Controller
     {
         return  $this->bookingService->deleteBooking($id);
     }
+
+    
 }

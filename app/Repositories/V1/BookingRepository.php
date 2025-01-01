@@ -3,6 +3,8 @@ namespace App\Repositories\V1;
 
 use App\Models\V1\Booking;
 use App\Http\Resources\V1\BookingResource;
+use App\Models\User;
+use App\Models\V1\Trip;
 
 class BookingRepository 
 {
@@ -32,13 +34,13 @@ class BookingRepository
 
     public function createBooking(array $data)
     {
-       $booking = Booking::create([
-           'trip_id' => $data['trip_id'],
-           'user_id' => $data['user_id'],
-           'seats_booked' => $data['seats_booked'],
-           'total_price' => $data['total_price'],
-           'status' => $data['status'],
-       ]);
+        $booking = Booking::create([
+            'trip_id' => $data['trip_id'],
+            'user_id' => $data['user_id'],
+            'seats_booked' => $data['seats_booked'],
+            'total_price' => $data['total_price'],
+            'status' => $data['status'],
+        ]);
        return response()->json(new BookingResource($booking));
     }
 

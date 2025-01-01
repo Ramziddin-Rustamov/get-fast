@@ -9,7 +9,7 @@ class BookingStoreRequest extends FormRequest
     /**
      * Determine if the user is authorized to make this request.
      */
-    public function authorize(): bool
+    public function authorize()
     {
         return true;
     }
@@ -25,8 +25,6 @@ class BookingStoreRequest extends FormRequest
             'trip_id' => 'required|exists:trips,id',
             'user_id' => 'required|exists:users,id',
             'seats_booked' => 'required|integer|min:1',
-            'total_price' => 'required|numeric|min:0',
-            'status' => 'required|in:pending,confirmed,cancelled',
         ];
     }
 }

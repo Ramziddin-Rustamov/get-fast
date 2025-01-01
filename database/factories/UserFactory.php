@@ -25,20 +25,15 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
+            'phone' => fake()->unique()->phoneNumber(), 
+            'password' => static::$password ??= Hash::make('password'), // Parolni yashirish
+            'region' => fake()->city(), // Foydalanuvchi uchun region generatsiyasi
+            'district' => fake()->city(), // Optional: tuman
+            'village' => fake()->city(), // Optional: qishloq
+            'home' => fake()->address(), // Optional: uy manzili
+            'role' => fake()->randomElement(['client', 'driver', 'admin']), // Random role
             'remember_token' => Str::random(10),
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
-    }
 }
