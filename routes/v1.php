@@ -41,6 +41,10 @@ Route::prefix('review')->group(function () {
     Route::delete('/{id}', [App\Http\Controllers\Api\V1\ReviewController::class, 'destroy']);
 });
 
+Route::get('regions', [App\Http\Controllers\Api\V1\RegionController::class, 'index']);
+Route::get('districts', [App\Http\Controllers\Api\V1\DistrictsController::class, 'index']);
+Route::get('quarters', [App\Http\Controllers\Api\V1\QuarterController::class, 'index']);
+
 
 
 
