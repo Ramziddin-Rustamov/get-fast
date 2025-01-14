@@ -15,11 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('phone')->unique();
-            $table->string('password');
             $table->string('image')->nullable()->default('default.jpg');
-            $table->string('region')->unique();
-            $table->string('district')->nullable();
-            $table->string('village')->nullable();
+            $table->string('region_id')->nullable();
+            $table->string('district_id')->nullable();
+            $table->string('quarter_id')->nullable();
             $table->string('home')->nullable();
             $table->enum('role', ['client', 'driver', 'admin'])->default('client');
             $table->rememberToken();

@@ -1,8 +1,26 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\PaymentController;
 
+
+Route::post('login', [AuthController::class, 'login']);
+Route::post('register', [AuthController::class, 'register']);
+
+
+
+Route::middleware('auth:driver')->group(function () {
+    Route::get('/driver-data', function () {
+        return 'Only accessible by drivers!';
+    });
+});
+
+Route::middleware('auth:client')->group(function () {
+    Route::get('/client-data', function () {
+        return 'Only accessible by clients!';
+    });
+});
 
 Route::prefix('vehicles')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'index']);

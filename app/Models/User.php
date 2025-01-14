@@ -14,18 +14,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 class User extends Authenticatable
 {
     use HasFactory;
-
+    public $timestamps = false;
     protected $fillable = [
-        'name', 'phone', 'password', 'image', 'region', 'district', 'village', 'home', 'role'
+        'name', 'phone', 'image', 'region_id', 'district_id', 'quarter_id', 'home', 'role'
     ];
 
-    /**
-     * The attributes that should be hidden for arrays.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
-        'password', 'remember_token',
+        'remember_token',
     ];
 
     protected static function booted()
@@ -39,6 +34,16 @@ class User extends Authenticatable
                 ]);
             }
         });
+    }
+
+    public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims()
+    {
+        return [];
     }
 
     public function balance()
@@ -101,6 +106,10 @@ class User extends Authenticatable
     {
         return $this->hasManyThrough(Vehicle::class, Booking::class, 'user_id', 'driver_id');
     }
+
+
+    
+
 
 
     
