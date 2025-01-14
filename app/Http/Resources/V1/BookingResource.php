@@ -32,6 +32,11 @@ class BookingResource extends JsonResource
             : null;
         return [
             'id' => $this->id,
+            'seats_booked' => $this->seats_booked,
+            'total_price' => $this->total_price,
+            'status' => $this->status,
+            'created_at' => $this->created_at->format('Y-m-d H:i:s'),
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
             'trip' => [
                 'id' => $this->trip->id,
                 'start_location' => $this->trip->start_location,
@@ -53,11 +58,7 @@ class BookingResource extends JsonResource
                 'role' => $this->trip->driver->role,
                 'phone' => $this->trip->driver->phone
             ] : null, // Driver mavjud bo'lmasa null
-            'seats_booked' => $this->seats_booked,
-            'total_price' => $this->total_price,
-            'status' => $this->status,
-            'created_at' => $this->created_at->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
+        
         ];
     }
 }

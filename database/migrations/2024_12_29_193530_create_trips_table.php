@@ -22,6 +22,7 @@ return new class extends Migration
             $table->decimal('price_per_seat', 8, 2);
             $table->integer('total_seats');
             $table->integer('available_seats');
+            $table->enum('status', ['active', 'completed', 'cancelled','expired'])->default('active');
             $table->timestamps();
         });
     }

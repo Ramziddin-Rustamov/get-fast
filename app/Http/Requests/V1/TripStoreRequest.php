@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Requests\V1;
-
+use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
 
 class TripStoreRequest extends FormRequest
@@ -22,7 +22,14 @@ class TripStoreRequest extends FormRequest
             'vehicle_id' => 'required|exists:vehicles,id',
             'start_location' => 'required|string',
             'end_location' => 'required|string',
-            'start_time' => 'required|date',
+            'start_time' => ['required', 'date', function ($attribute, $value, $fail) {
+            $start_time = Carbon::parse($value);
+            $now = Carbon::now();
+            $limit = $now->addHours(48);
+                if ($start_time->lessThan($now) || $start_time->greaterThan($limit)) {
+                    $fail('Start time must be within the next 48 hours.');
+                }
+            }],
             'end_time' => 'nullable|date',
             'price_per_seat' => 'required|numeric|min:0',
             'total_seats' => 'required|integer|min:1',

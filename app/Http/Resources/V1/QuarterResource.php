@@ -11,8 +11,6 @@ class QuarterResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
-            'district_id' => $this->district_id,
-            'district_name' => $this->district->name ?? null,
         ];
     }
 }

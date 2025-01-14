@@ -19,17 +19,9 @@ class TripRepository
 
     public function getAllTrips()
     {
-        return Trip::where('available_seats', '>', 0)->paginate(10);
+        return Trip::where('available_seats', '>', 0)->where('status', 'active')->paginate(10);
     }    
 
-/*************  ✨ Codeium Command ⭐  *************/
-    /**
-     * Get a trip by its id
-     *
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
-     */
-/******  4b90415f-4546-443c-92f6-d3b2568121cd  *******/
     public function getTripById($id)
     {
         $trip  =  Trip::find($id);

@@ -12,4 +12,9 @@ class DistrictsController extends Controller
     {
         return DistrictResource::collection(District::all());
     }
+
+    public function getRegion($id)
+    {
+        return  DistrictResource::collection(District::where('region_id', $id)->get());
+    }
 }

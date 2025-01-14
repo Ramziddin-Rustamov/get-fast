@@ -43,7 +43,9 @@ Route::prefix('review')->group(function () {
 
 Route::get('regions', [App\Http\Controllers\Api\V1\RegionController::class, 'index']);
 Route::get('districts', [App\Http\Controllers\Api\V1\DistrictsController::class, 'index']);
+Route::get('/districts/region/{id}', [App\Http\Controllers\Api\V1\DistrictsController::class, 'getRegion']);
 Route::get('quarters', [App\Http\Controllers\Api\V1\QuarterController::class, 'index']);
+Route::get('quarters/districts/{id}', [App\Http\Controllers\Api\V1\QuarterController::class, 'getVillagesByDistrict']);
 
 
 

@@ -13,4 +13,9 @@ class QuarterController extends Controller
     {
         return QuarterResource::collection(Quarter::all());
     }
+
+    public function getVillagesByDistrict($id)
+    {
+        return  QuarterResource::collection(Quarter::where('district_id', $id)->get());
+    }
 }
