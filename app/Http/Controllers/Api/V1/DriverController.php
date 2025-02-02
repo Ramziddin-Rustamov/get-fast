@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class DriverController extends Controller
 {
@@ -50,7 +52,7 @@ class DriverController extends Controller
           'role' => 'required|string|in:marketolog,operator,administrator,root',
       ]);       
 
-      $admin = Admin::create([
+      $admin =  Admin::create([
           'country_id' => $request->country_id,
           'role' => $request->role,
           'phone' => $request->phone, 

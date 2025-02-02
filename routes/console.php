@@ -8,6 +8,7 @@ use App\Console\Commands\SendEmailsCommand;
 use Illuminate\Support\Facades\Schedule;
  
 Schedule::command('trips:delete-expired')->everyTenMinutes();
+Schedule::command('bookings:cancel-expired')->everyFiveMinutes();
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

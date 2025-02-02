@@ -5,8 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\PaymentController;
 
 
-Route::post('login', [AuthController::class, 'login']);
-Route::post('register', [AuthController::class, 'register']);
+// Route::post('login', [AuthController::class, 'login']);
+// Route::post('register', [AuthController::class, 'register']);
 
 
 
@@ -48,7 +48,7 @@ Route::prefix('booking')->group(function () {
     Route::post('add-card', [App\Http\Controllers\Api\V1\PaymeeController::class, 'addCard']);
     Route::post('book-trip', [App\Http\Controllers\Api\V1\PaymeeController::class, 'bookTrip']);
     Route::post('process-payment', [App\Http\Controllers\Api\V1\PaymeeController::class, 'processPayment']);
-    Route::get('payment-status/{bookingId}', [App\Http\Controllers\Api\V1\PaymeeController::class,'checkPaymentStatus']);
+    Route::post('/check-payment-status', [App\Http\Controllers\Api\V1\PaymeeController::class, 'checkPaymentStatus']);
 
 
 Route::prefix('review')->group(function () {
