@@ -13,12 +13,18 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->string('paycom_transaction_id');
-            $table->bigInteger('paycom_time');
-            $table->dateTime('paycom_time_datetime');
-            $table->decimal('amount', 10, 2);
-            $table->integer('state');
-            $table->unsignedBigInteger('booking_id');
+            $table->string('paycom_transaction_id',25)->nullable();
+            $table->string('paycom_time', 13)->nullable();
+            $table->string('paycom_time_datetime',255)->nullable();
+            $table->dateTime('create_time')->nullable();
+            $table->dateTime('perform_time')->nullbable();
+            $table->string('cancel_time',13)->nullable();
+            $table->decimal('amount', 10, 2)->nullable();
+           $table->tinyInteger('state')->nullable();
+            $table->tinyInteger('reason')->nullable();
+            $table->text('reciever')->nullable();
+            $table->unsignedBigInteger('booking_id')->nullable();
+            $table->string('perform_time_unix', 13)->nullable();
             $table->timestamps();
 
             $table->foreign('booking_id')->references('id')->on('bookings')->onDelete('cascade');

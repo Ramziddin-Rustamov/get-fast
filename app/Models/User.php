@@ -16,7 +16,7 @@ class User extends Authenticatable
     use HasFactory;
     public $timestamps = false;
     protected $fillable = [
-        'name', 'phone', 'image', 'region_id', 'district_id', 'quarter_id', 'home', 'role'
+        'name', 'phone', 'image', 'region_id', 'district_id', 'quarter_id', 'home', 'role','password',
     ];
 
     protected $hidden = [
