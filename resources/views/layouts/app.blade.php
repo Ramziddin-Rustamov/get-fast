@@ -49,6 +49,25 @@
                                 </li>
                             @endif
                         @else
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('drivers.index') }}">{{ __('Drivers') }}</a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('clients.index') }}">{{ __('Clients') }}</a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('admins.index') }}">{{ __('Admins') }}</a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('orders.index') }}">{{ __('Orders') }}</a>
+                        </li>
+                        
+
+
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                     {{ Auth::user()->name }}

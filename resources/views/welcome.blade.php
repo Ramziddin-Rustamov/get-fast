@@ -12,7 +12,7 @@
     <header class="row align-items-center pb-3">
 
       <div class="col-md-4 text-center">
-        <h1 class="h3">Laravel</h1>
+        <h1 class="h3">{{ config('app.name', 'Laravel') }}</h1>
       </div>
       <div class="col-md-8 text-center text-md-end">
         @if (Route::has('login'))
