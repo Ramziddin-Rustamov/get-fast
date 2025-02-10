@@ -12,6 +12,9 @@
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha384-qIgtX3TJL3zI6AOMsBoC3RnUedbLgPoLm1fIxSkKpTME4xD9FfJpLzQ2Np9nXKFN" crossorigin="anonymous">
+
 
     <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
@@ -37,34 +40,40 @@
                     <ul class="navbar-nav ms-auto">
                         <!-- Authentication Links -->
                         @guest
-                            @if (Route::has('login'))
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('login') }}">{{ __('Login') }}</a>
-                                </li>
-                            @endif
-
-                            @if (Route::has('register'))
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('register') }}">{{ __('Register') }}</a>
-                                </li>
-                            @endif
                         @else
 
+                        @can('admin')
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('drivers.index') }}">{{ __('Drivers') }}</a>
+                            <a class="nav-link  {{ request()->routeIs('drivers.index') ? 'active bg-success rounded' : '' }}" href="{{ route('drivers.index') }}">
+                                {{ __('Drivers') }}
+                            </a>
                         </li>
                         
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('clients.index') }}">{{ __('Clients') }}</a>
+                            <a class="nav-link {{ request()->routeIs('clients.index') ? 'active bg-success rounded' : '' }}" href="{{ route('clients.index') }}">
+                                {{ __('Clients') }}
+                            </a>
                         </li>
                         
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('admins.index') }}">{{ __('Admins') }}</a>
+                            <a class="nav-link {{ request()->routeIs('admins.index') ? 'active bg-success rounded' : '' }}" href="{{ route('admins.index') }}">
+                                {{ __('Admins') }}
+                            </a>
                         </li>
                         
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('orders.index') }}">{{ __('Orders') }}</a>
+                            <a class="nav-link {{ request()->routeIs('orders.index') ? 'active bg-success rounded' : '' }}" href="{{ route('orders.index') }}">
+                                {{ __('Orders') }}
+                            </a>
+                        </li>   
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('driver-payments.index') ? 'active bg-success rounded' : '' }}" href="{{ route('driver-payments.index') }}">
+                                {{ __('Driver Payment History') }}
+                            </a>
                         </li>
+                        
+                        @endauth
+                        
                         
 
 
@@ -90,10 +99,17 @@
                 </div>
             </div>
         </nav>
-
-        <main class="py-4">
+ 
+        <main class="py-4  container">
             @yield('content')
         </main>
     </div>
+    
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    @vite(['resources/sass/app.scss', 'resources/js/app.js'])
+    @yield('scripts')
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 </body>
 </html>

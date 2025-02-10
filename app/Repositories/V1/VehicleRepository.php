@@ -43,7 +43,6 @@ class VehicleRepository
         $vehicle->seats = $data['seats'];
         $vehicle->save();
         return response()->json(new VehicleResource($vehicle));
-
     }
 
     public function update($id, array $data)

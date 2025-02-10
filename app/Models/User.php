@@ -6,6 +6,10 @@ namespace App\Models;
 
 use App\Models\V1\Balance;
 use App\Models\V1\Booking;
+use App\Models\V1\Region;
+use App\Models\V1\District;
+use App\Models\V1\Quarter;
+
 use App\Models\V1\Trip;
 use App\Models\V1\Vehicle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -48,7 +52,7 @@ class User extends Authenticatable
 
     public function balance()
     {
-        return $this->hasOne(Balance::class);
+        return $this->hasOne(Balance::class,'user_id','id');
     }
 
 
@@ -72,7 +76,7 @@ class User extends Authenticatable
         return $this->hasMany(Trip::class, 'driver_id');
     }
 
-    public function driverVehicles()
+    public function myVehicle()
     {
         return $this->hasMany(Vehicle::class, 'user_id');
     }
@@ -105,6 +109,21 @@ class User extends Authenticatable
     public function userDriverVehicles()
     {
         return $this->hasManyThrough(Vehicle::class, Booking::class, 'user_id', 'driver_id');
+    }
+
+    public function region()
+    {
+        return $this->belongsTo(Region::class);
+    }
+
+    public function district()
+    {
+        return $this->belongsTo(District::class);
+    }
+
+    public function quarter()
+    {
+        return $this->belongsTo(Quarter::class);
     }
 
 

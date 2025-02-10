@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Services\V1\ReviewService;
 use App\Http\Resources\V1\ReviewResource;
 use App\Http\Requests\V1\ReviewStoreRequest;
 use App\Http\Requests\V1\ReviewUpdateRequest;
+use App\Services\V1\ReviewService;
 
 class ReviewController extends Controller
 {
