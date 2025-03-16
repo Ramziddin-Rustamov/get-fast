@@ -3,34 +3,77 @@
 namespace App\Http\Controllers\Auth\Clients;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Models\V1\Region;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Hash;
 
 class ClientAuthController extends Controller
 {
-    public function login()
-    {
-        return view('auth.login');
-    }
-
 
     public function register()
     {
         return view('auth.client.register');
     }
 
-    public function createClient(Request $request)
+    public function registerClient(Request $request)
     {
-        // 
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|unique:users,phone',
+        ]);
+    
+        $randomCode =  99999; //rand(1000, 9999); // Tasodifiy 4 xonali kod yaratamiz
+    
+        // Foydalanuvchini yaratish va bazaga saqlash
+        $user = new User();
+        $user->name = $request->name;
+        $user->role = 'client';
+        $user->phone = $request->phone;
+        $user->password = Hash::make($request->phone);
+        $user->save();
+    
+        // Keshga kod va foydalanuvchini saqlash
+        Cache::put("verify_code_{$user->id}", $randomCode, now()->addMinutes(1)); // ⬅️ Kod 1 daqiqa ichida tasdiqlanishi kerak
+        Cache::put("user_data_{$user->id}", $user, now()->addMinutes(1));
+    
+        // ⬇️ 1 daqiqa ichida tasdiqlanmasa, foydalanuvchini bazadan o‘chirish
+        dispatch(function () use ($user) {
+            if (!Cache::has("verify_code_{$user->id}")) {
+                $user->delete();
+            }
+        })->delay(now()->addMinutes(1));
+    
+        return view('auth.verify', [
+            'user_id' => $user->id
+        ]);
     }
 
-    public function loginClient()
+    public function registerExtra()
     {
-        // 
+        $region = Region::all();
+        return view('auth.client.extra-info',[
+            'regions' => $region
+        ]);
     }
 
-    public function verifyClient()
+    public function registerExtraPost(Request $request)
     {
-        // 
+       $user = User::find(Auth::user()->id);
+       $user->region_id = $request->region_id;
+       $user->district_id = $request->district_id;
+       $user->quarter_id = $request->quarter_id;
+       $user->home = $request->home;
+       $user->save();
+       return  view('welcome');
+    }
+
+
+    public function profileInformation()
+    {
+        $client = User::where('id', Auth::user()->id)->where('role', 'client')->first();
+        return view('auth.client.profile',compact('client'));
     }
 }

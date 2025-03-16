@@ -13,9 +13,9 @@
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
     <!-- FontAwesome 6 -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha384-qIgtX3TJL3zI6AOMsBoC3RnUedbLgPoLm1fIxSkKpTME4xD9FfJpLzQ2Np9nXKFN" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha384-qIgtX3TJL3zI6AOMsBoC3RnUedbLgPoLm1fIxSkKpTME4xD9FfJpLzQ2Np9nXKFN" crossorigin="anonymous">
 
-
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 </head>
@@ -72,28 +72,51 @@
                             </a>
                         </li>
                         
-                        @endauth
-                        
-                        
+                        @endauth       
+                        <li class="nav-item dropdown">
+                            <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                {{ Auth::user()->name }}
+                            </a>
 
+                            <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
 
-                            <li class="nav-item dropdown">
-                                <a id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                    {{ Auth::user()->name }}
+                                {{-- Sozlamalar --}}
+                                <a class="dropdown-item  {{ request()->routeIs('home') ? 'active bg-success rounded' : '' }}" href="{{ route('home') }}" >
+                                    {{ __('Sozlamalar') }}
+                                </a>
+                                <div class="dropdown-divider"></div>
+
+                                  {{-- Sozlamalar --}}
+                                @can('driver')
+                                <a class="dropdown-item  {{ request()->routeIs('profile.index.driver') ? 'active bg-success rounded' : '' }}" href="{{ route('profile.index.driver') }}" >
+                                    {{ __('Ma\'lumotlarim') }}
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                @endcan
+
+                                @can('client')
+                                <a class="dropdown-item" href="{{ route('profile.index.client') }}" >
+                                    {{ __('Ma\'lumotlarim') }}
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                @endcan
+
+                                
+                                
+                                <a class="dropdown-item" href="{{ route('auth.logout.post') }}"
+                                onclick="event.preventDefault();
+                                                document.getElementById('logout-form').submit();">
+                                    {{ __('Chiqish') }}
                                 </a>
 
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                    <a class="dropdown-item" href="{{ route('logout') }}"
-                                       onclick="event.preventDefault();
-                                                     document.getElementById('logout-form').submit();">
-                                        {{ __('Logout') }}
-                                    </a>
+                                <form id="logout-form" action="{{ route('auth.logout.post') }}" method="POST" class="d-none">
+                                    @csrf
+                                </form>
 
-                                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                                        @csrf
-                                    </form>
-                                </div>
-                            </li>
+                                <!-- Pastdan ajratuvchi chiziq -->
+
+                            </div>
+                        </li>
                         @endguest
                     </ul>
                 </div>
@@ -110,6 +133,6 @@
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
     @yield('scripts')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
