@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\V1\Region;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use App\Models\User;
+use App\Models\V1\Vehicle;
 
 class AuthController extends Controller
 {
@@ -16,34 +17,75 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function verifiyPage()
+    public function loginUser(Request $request)
     {
-        return view('auth.verify');
+        $request->validate([
+            'phone' => 'required|string|exists:users,phone',
+        ]);
+
+        $randomCode = 99999;
+        $user = User::where('phone', $request->phone)->first();
+
+        Cache::put("verify_code_{$request->phone}", $randomCode, now()->addMinutes(3));
+        Cache::put("user_data_{$user->id}", $user, now()->addMinutes(3));
+
+        return redirect()->route('auth.verify.index', [
+            'user_id' => $user->id,
+            'phone' => $request->phone
+        ]);
+    }
+
+    public function verifiyPage(Request $request)
+    {
+        return view('auth.verify', [
+            'user_id' => $request->user_id,
+            'phone' => $request->phone,
+        ]);
     }
 
     public function verify(Request $request)
     {
-        $verificationCode = Cache::get("verify_code_{$request->user_id}");
+
+
+        $request->validate([
+            'code' => 'required|string',
+        ]);
+
+        $verificationCode = Cache::get("verify_code_{$request->phone}");
         $userData = Cache::get("user_data_{$request->user_id}");
-
-        $code = $request->code;
-        if(is_null($code) || $code != $verificationCode){
-            return back()->with('message',"Your given code is invalid ");
+        if (is_null($verificationCode) || $request->code != $verificationCode) {
+            return back()->with('message', "Your given code is invalid.");
         }
-        Auth::login($userData);
         $userData->save();
-        if($userData->role == 'driver'){
-            return redirect()->route('driver.auth.register.vehicle.index');
+        Auth::login($userData);
+        
+        Cache::forget("verify_code_{$request->phone}");
+        Cache::forget("user_data_{$request->user_id}");
+
+        if (Auth::guard('driver_web')->check()) {
+            if (Vehicle::where('user_id', $userData->id)->count() == 0) {
+                return redirect()->route('driver.auth.register.vehicle.index');
+            }
+            return redirect()->route('home');
         }
 
-        if($userData->role == 'client'){
-            return redirect()->route('client.auth.register.extra-info.index');
+        if (Auth::guard('client_web')->check()) {
+            if ($userData->region_id == null || $userData->district_id == null || $userData->quarter_id == null || $userData->home == null) {
+                return redirect()->route('client.auth.register.extra-info.index');
+            }
+            return redirect()->route('home');
         }
+
+        if (Auth::guard('admin')->check()) {
+            return redirect()->route('admins.index');
+        }
+
+        return back()->with('message', "User role not found.");
     }
 
-    public function logout(){
+    public function logout()
+    {
         Auth::logout();
         return view('welcome');
     }
-
 }

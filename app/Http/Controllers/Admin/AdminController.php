@@ -1,22 +1,23 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Controllers\Controller;
 
 class AdminController extends Controller
 {
     public function index()
     {
         $admins = User::where('role', 'admin')->get();
-        return view('admins.index', compact('admins'));
+        return view('admin-views.admins.index', compact('admins'));
     }
 
     public function create()
     {
-        return view('admins.create');
+        return view('admin-views.admins.create');
     }
 
     public function store(Request $request)
@@ -49,12 +50,12 @@ class AdminController extends Controller
 
     public function show(User $admin)
     {
-        return view('admins.show', compact('admin'));
+        return view('admin-views.admins.show', compact('admin'));
     }
 
     public function edit(User $admin)
     {
-        return view('admins.edit', compact('admin'));
+        return view('admin-views.admins.edit', compact('admin'));
     }
 
     public function update(Request $request, User $admin)
@@ -84,9 +85,9 @@ class AdminController extends Controller
         return redirect()->route('admins.index')->with('success', 'Admin updated successfully.');
     }
 
-    public function destroy(User $admin)
-    {
-        $admin->delete();
-        return redirect()->route('admins.index')->with('success', 'Admin deleted successfully.');
-    }
+    // public function destroy(User $admin)
+    // {
+    //     $admin->delete();
+    //     return redirect()->route('admins.index')->with('success', 'Admin deleted successfully.');
+    // }
 }

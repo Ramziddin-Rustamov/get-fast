@@ -3,21 +3,28 @@
 @section('content')
 <div class="container">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        @auth
+        <div class="col-md-12">
             <div class="card">
-                <div class="card-header">{{ __('Boshqa sahifaga') }}</div>
 
                 <div class="card-body">
-                    @if (session('status'))
-                        <div class="alert alert-success" role="alert">
-                            {{ session('status') }}
-                        </div>
-                    @endif
+                 
+                        @can('admin')
+                            <h4 class="text-center">{{ __('Admin') }}</h4>
+                        @endcan
 
-                    {{ __('Siz muaffayatli ro\'yhatdan o\'tdingiz') }}
+                        @can('driver_web')
+                        <h4 class="text-success">{{ __('Driver') }}</h4>
+                            <a href="{{ route('profile.index.driver') }}" class="btn btn-primary">Ma'lumotlarim</a>
+                        @endcan
+
+                        @can('client_web')
+                            <a href="{{ route('profile.index.client') }}" class="btn btn-primary">Ma'lumotlarim</a>
+                        @endcan
                 </div>
             </div>
         </div>
+        @endauth
     </div>
 </div>
 @endsection

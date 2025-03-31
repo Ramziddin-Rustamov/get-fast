@@ -45,6 +45,16 @@ return [
             'driver' => 'jwt',
             'provider' => 'users',
         ],
+        // for seesions
+
+        'driver_web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
+        'client_web' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
         'admin' => [
             'driver' => 'session',
             'provider' => 'users',

@@ -1,22 +1,23 @@
 <?php
+namespace App\Http\Controllers\Admin;
 
-namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User as Client;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Controllers\Controller;
 
 class ClientController extends Controller
 {
     public function index()
     {
         $clients = Client::where('role', 'client')->get();
-        return view('clients.index', compact('clients'));
+        return view('admin-views.clients.index', compact('clients'));
     }
 
     public function create()
     {
-        return view('clients.create');
+        return view('admin-views.clients.create');
     }
 
     public function store(Request $request)
@@ -49,12 +50,12 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
-        return view('clients.show', compact('client'));
+        return view('admin-views.clients.show', compact('client'));
     }
 
     public function edit(Client $client)
     {
-        return view('clients.edit', compact('client'));
+        return view('admin-views.clients.edit', compact('client'));
     }
 
     public function update(Request $request, Client $client)

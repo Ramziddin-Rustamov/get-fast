@@ -33,21 +33,13 @@ class ClientAuthController extends Controller
         $user->role = 'client';
         $user->phone = $request->phone;
         $user->password = Hash::make($request->phone);
-        $user->save();
     
         // Keshga kod va foydalanuvchini saqlash
-        Cache::put("verify_code_{$user->id}", $randomCode, now()->addMinutes(1)); // ⬅️ Kod 1 daqiqa ichida tasdiqlanishi kerak
-        Cache::put("user_data_{$user->id}", $user, now()->addMinutes(1));
-    
-        // ⬇️ 1 daqiqa ichida tasdiqlanmasa, foydalanuvchini bazadan o‘chirish
-        dispatch(function () use ($user) {
-            if (!Cache::has("verify_code_{$user->id}")) {
-                $user->delete();
-            }
-        })->delay(now()->addMinutes(1));
-    
-        return view('auth.verify', [
-            'user_id' => $user->id
+        Cache::put("verify_code_{$user->phone}", $randomCode, now()->addMinutes(3)); // ⬅️ Kod 1 daqiqa ichida tasdiqlanishi kerak
+        Cache::put("user_data_{$user->id}", $user, now()->addMinutes(3));
+        return redirect()->route('auth.verify.index', [
+            'user_id' => $user->id,
+            'phone' => $request->phone
         ]);
     }
 
@@ -69,6 +61,7 @@ class ClientAuthController extends Controller
        $user->save();
        return  view('welcome');
     }
+
 
 
     public function profileInformation()

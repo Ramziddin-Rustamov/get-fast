@@ -1,6 +1,7 @@
 <?php
+namespace App\Http\Controllers\Admin;
 
-namespace App\Http\Controllers;
+use App\Http\Controllers\Controller;
 
 use App\Models\V1\DriverPayment;
 use App\Models\V1\Balance;
@@ -12,7 +13,7 @@ class DriverPaymentController extends Controller
     public function index()
     {
         $payments = DriverPayment::with(['admin', 'driver'])->latest()->paginate(10);
-        return view('driver_payments.index', compact('payments'));
+        return view('admin-views.driver_payments.index', compact('payments'));
     }
 
 

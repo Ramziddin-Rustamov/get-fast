@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth\Driver;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Models\V1\Region;
 use App\Models\V1\Vehicle;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -34,37 +35,28 @@ public function registerDriver(Request $request)
     $user->role = 'driver';
     $user->phone = $request->phone;
     $user->password = Hash::make($request->phone);
-    $user->save();
 
     // Keshga kod va foydalanuvchini saqlash
-    Cache::put("verify_code_{$user->id}", $randomCode, now()->addMinutes(1)); // ⬅️ Kod 1 daqiqa ichida tasdiqlanishi kerak
-    Cache::put("user_data_{$user->id}", $user, now()->addMinutes(1));
+    Cache::put("verify_code_{$user->phone}", $randomCode, now()->addMinutes(3)); // ⬅️ Kod 1 daqiqa ichida tasdiqlanishi kerak
+    Cache::put("user_data_{$user->id}", $user, now()->addMinutes(3));
 
-    // ⬇️ 1 daqiqa ichida tasdiqlanmasa, foydalanuvchini bazadan o‘chirish
-    dispatch(function () use ($user) {
-        if (!Cache::has("verify_code_{$user->id}")) {
-            $user->delete();
-        }
-    })->delay(now()->addMinutes(1));
-
-    return view('auth.verify', [
-        'user_id' => $user->id
+    return redirect()->route('auth.verify.index', [
+        'user_id' => $user->id,
+        'phone' => $request->phone
     ]);
-}
-
-    public function loginDriver()
-    {
-        // 
-    }
+  }
 
     public function verifyDriver()
     {
         return view('auth.verify');
     }
 
-    public function vehileIndex()
+    public function vehicleIndex()
     {
-        return view('auth.driver.vehicle');
+        $region = Region::all();
+        return view('auth.driver.vehicle',[
+            'regions' => $region
+        ]);
     }
 
     public function createVehicle(Request $request)

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-    @can('client')
+    @can('client_web')
     <h1>Client Profile</h1>
     <p>Name: {{ $client->name }}</p>
     <p>Phone: {{ $client->phone }}</p>

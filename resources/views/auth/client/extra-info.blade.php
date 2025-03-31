@@ -15,7 +15,7 @@
                         <div class="row mb-3">
                             <label for="region" class="col-md-4 col-form-label text-md-end">{{ __('Viloyat') }}</label>
                             <div class="col-md-6">
-                                <select id="region" name="region" class="form-control" required>
+                                <select id="region" name="region_id" class="form-control" required>
                                     @foreach ($regions as $region)
                                         <option value="{{ $region->id }}">{{ $region->name }}</option>
                                     @endforeach
@@ -70,7 +70,7 @@
 
 @section('scripts')
 <script>
-      var appUrl = "{{ config('app.url') }}";  
+var appUrl = "{{ config('app.url') }}";  
 $(document).ready(function() {
     // Region change event
     $('#region').on('change', function() {

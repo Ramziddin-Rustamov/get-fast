@@ -1,6 +1,6 @@
 <?php
+namespace App\Http\Controllers\Admin;
 
-namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\V1\Balance;
@@ -10,6 +10,7 @@ use App\Models\V1\Vehicle;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Controllers\Controller;
 
 class DriverController extends Controller
 {
@@ -19,10 +20,10 @@ class DriverController extends Controller
             ->with(['balance', 'vehicles', 'driverTrips', 'myVehicle'])
             ->orderBy('id', 'desc') // Eng oxirgi haydovchilar birinchi bo‘lib chiqadi
             ->paginate(10);
-    
-        return view('drivers.index', compact('drivers'));
+
+        return view('admin-views.drivers.index', compact('drivers'));
     }
-    
+
 
     /**
      * Yangi driver qo'shish formasi
@@ -30,7 +31,7 @@ class DriverController extends Controller
     public function create()
     {
         $regions = Region::all();
-        return view('drivers.create', compact('regions'));
+        return view('admin-views.drivers.create', compact('regions'));
     }
 
     /**
@@ -64,25 +65,26 @@ class DriverController extends Controller
         $vehicle->license_plate = $request->license_plate;
         $vehicle->seats = $request->seats;
         $vehicle->save();
-        return redirect()->route('drivers.index')->with('success', 'Driver added successfully!');
+        return redirect()->route('admin-views.drivers.index')->with('success', 'Driver added successfully!');
     }
 
     /**
      * Bitta driver ma'lumotlarini ko'rsatish
      */
-    public function show( $driver)
-    {   $driver = User::where('role', 'driver')->with(['balance', 'vehicles', 'driverTrips', 'myVehicle'])->find($driver);
-        return view('drivers.show', compact('driver'));
+    public function show($driver)
+    {
+        $driver = User::where('role', 'driver')->with(['balance', 'vehicles', 'driverTrips', 'myVehicle'])->find($driver);
+        return view('admin-views.drivers.show', compact('driver'));
     }
 
     /**
      * Driverni tahrirlash formasi
      */
-    public function edit( $driver)
+    public function edit($driver)
     {
         $driver = User::where('role', 'driver')->find($driver);
 
-        return view('drivers.edit', compact('driver'));
+        return view('admin-views.drivers.edit', compact('driver'));
     }
 
     /**
@@ -100,12 +102,12 @@ class DriverController extends Controller
             'phone' => $request->phone,
             'password' => Hash::make($request->phone),
         ]);
-        
+
         // $driver ning ID sini olish
         $driverId = $driver->id;
-        
+
         $vehicle = Vehicle::where('user_id', $driverId)->first();
-        
+
         if ($vehicle) {
             $vehicle->make = $request->make;
             $vehicle->model = $request->model;
@@ -124,7 +126,7 @@ class DriverController extends Controller
                 'seats' => $request->seats,
             ]);
         }
-        
+
 
 
         return redirect()->route('drivers.index')->with('success', 'Driver updated successfully!');
@@ -142,7 +144,7 @@ class DriverController extends Controller
     {
         // Haydovchining joriy balansi
         $currentBalance = Balance::where('user_id', $driverId)->sum('balance');
-    
+
         if ($currentBalance > 0) {
             // To'lov tarixini saqlash
             DriverPayment::create([
@@ -151,12 +153,11 @@ class DriverController extends Controller
                 'amount' => $currentBalance, // Qancha summa nollandi
                 'transaction_date' => now(),
             ]);
-    
+
             // Balansni 0 ga tushirish
             Balance::where('user_id', $driverId)->update(['balance' => 0]);
         }
-    
+
         return back()->with('success', 'Balans muvaffaqiyatli 0 ga tushirildi!');
     }
-    
 }
