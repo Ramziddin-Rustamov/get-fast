@@ -16,7 +16,7 @@ class TripController extends Controller
 
     public function index()
     {
-        $trips = Trip::with('parcels', 'driver', 'vehicle')->get();
+        $trips = Trip::with('parcels', 'driver', 'vehicle')->where('driver_id', Auth::user()->id)->orderBy('created_at', 'desc')->get();
         return view('auth.driver.trip.index', compact('trips'));
     }
 
@@ -131,4 +131,6 @@ class TripController extends Controller
         $trip->delete();
         return redirect()->route('trips.index')->with('success', 'Trip deleted successfully!');
     }
+
+    
 }

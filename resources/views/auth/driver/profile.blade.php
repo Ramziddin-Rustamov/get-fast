@@ -2,13 +2,13 @@
 
 @section('content')
     @can('driver_web')
-    <div class="container rounded bg-white mt-1 mb-5">
-        <div class="d-flex justify-content-between align-items-center ">
+    <div class="container  border-primary bg-white ">
+        <div class="d-flex justify-content-between align-items-center py-3 ">
             <a href="{{ route('trips.index') }}" class="btn btn-primary">{{ __('Trips') }}</a>
             <a href="{{ route('trips.create') }}" class="btn btn-primary ">{{ __('Create Trip') }}</a>
         </div>
         <hr> 
-        <div class="row">
+        <div class="row ">
             <div class="col-md-3 border-right text-center pb-5">
                 <img class="rounded-circle mt-1" width="150px" src="https://st3.depositphotos.com/15648834/17930/v/600/depositphotos_179308454-stock-illustration-unknown-person-silhouette-glasses-profile.jpg">
                 <h5 class="font-weight-bold">{{ $driver->name }}</h5>
@@ -39,7 +39,7 @@
         <div class="row">
             <div class="d-flex justify-content-between align-items-center ">
                 <h4 class="text-success">{{ __('Vehicle Info') }} </h4>
-                <a href="#" class="btn btn-primary">{{ __('+') }}</a>
+                <a href="#" class="btn btn-primary">{{ __('Add Vehicle') }}</a>
             </div>
             <p class="text-black-50"> {{__('You have')}} {{ $driver->vehicles ? count($driver->vehicles) : 0 }} {{ __('vehicles') }}</p>
             @if ($driver->vehicles)

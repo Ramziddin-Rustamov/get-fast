@@ -6,7 +6,7 @@
         <div class="d-flex justify-content-between align-items-between mb-3">
             <h4 class="fw-bold text-success">{{ __('My Trips') }}</h4>
             <div>
-                <a href="{{ route('expired-trips.index') }}" class="btn btn-info">{{ __('My Expired Trips') }}</a>
+                <a href="{{ route('trips.index') }}" class="btn btn-info">{{ __('My active Trips') }}</a>
                 <a href="{{ route('trips.create') }}" class="btn btn-primary">{{ __('Create Trip') }}</a>
                 <a href="{{ route('profile.index.driver') }}" class="btn btn-primary">{{ __('Profile') }}</a>
             </div>
@@ -28,7 +28,10 @@
     @endif
 
     <div class="list-group">
-        @foreach($trips as $trip)
+        @if ($trips->isEmpty())
+            <p class="text-center text-muted">{{__('You have no expired trips yet')}}</p>
+        @else
+            @foreach($trips as $trip)
             <div class="card shadow-sm border  border-primary mb-3">
                 <div class="card  rounded-3 p-3">
                     <div>
@@ -113,8 +116,8 @@
                                 💰 <strong>{{ __('Price per kg:') }}</strong> 
                             </p>
                             <p class="mb-1">
-                                 <strong> <i class="fas fa-arrow-right"></i> </strong> <br>
-                                 <strong> <i class="fas fa-arrow-right"></i> </strong> 
+                                <strong> <i class="fas fa-arrow-right"></i> </strong> <br>
+                                <strong> <i class="fas fa-arrow-right"></i> </strong> 
                             </p>
                             <p>
                                 📦 <strong>{{ $pa->max_weight }} kg</strong> <br>
@@ -133,6 +136,7 @@
                 
             </div>
         @endforeach
+        @endif
     </div>
 </div>
 @endsection

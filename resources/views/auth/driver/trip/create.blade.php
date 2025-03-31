@@ -33,7 +33,7 @@
                 <div class="row mt-2">
                     <!-- Vehicle Selection -->
                     <div class="col-md-6">
-                        <label class="labels">{{ __('Vehicle') }}</label>
+                        <label class="labels mb-2 fs-8 fw-bold ">{{ __('Vehicle') }}</label>
                         <select class="form-control" name="vehicle_id" required>
                             @if ($driverVehicles->isEmpty())
                                 <option value="">{{ __('You do not have any vehicle') }}</option>
@@ -50,9 +50,9 @@
                     <div class="row mt-4">
                         <!-- Start Location -->
                         <div class="col-md-6">
-                            <h5 class="mt-4 text-success" >{{ __('Start Location') }}</h5>
+                            <h5 class="mt-4 text-success fs-8 fw-bold" >{{ __('Start Location') }}</h5>
                             <div class=" mb-3">
-                                <label class="col-md-4 col-form-label">{{ __('Region') }}</label>
+                                <label class="col-md-4 col-form-label fs-8 fw-bold">{{ __('Region') }}</label>
                                 <div class="col-md-8">
                                     <select name="start_region_id" class="form-control start-region" required>
                                         @foreach ($regions as $region)
@@ -65,7 +65,7 @@
                             </div>
                             
                 
-                                <label class="col-md-4 col-form-label">{{ __('District') }}</label>
+                                <label class="col-md-4 col-form-label fs-8 fw-bold">{{ __('District') }}</label>
                                 <div class="col-md-8">
                                     <select name="start_district_id" class="form-control start-district" required>
                                         <option value="">{{ __('Choose region first') }}</option>
@@ -81,7 +81,7 @@
                            
                             
                     
-                                <label class="col-md-4 col-form-label">{{ __('Quarter') }}</label>
+                                <label class="col-md-4 col-form-label fs-8 fw-bold">{{ __('Quarter') }}</label>
                                 <div class="col-md-8">
                                     <select name="start_quarter_id" class="form-control start-quarter" required>
                                         <option value="">{{ __('Choose district first') }}</option>
@@ -98,9 +98,9 @@
 
                         <!-- End Location -->
                         <div class="col-md-6">
-                            <h5 class="mt-4 text-success">{{ __('End Location') }}</h5>
+                            <h5 class="mt-4 text-success fs-8 fw-bold">{{ __('End Location') }}</h5>
                             <div class=" mb-3">
-                                <label class="col-md-4 col-form-label">{{ __('Region') }}</label>
+                                <label class="col-md-4 col-form-label fs-8 fw-bold">{{ __('Region') }}</label>
                                 <div class="col-md-8">
                                     <select name="end_region_id" class="form-control end-region" required>
                                         @foreach ($regions as $region)
@@ -110,7 +110,7 @@
                                 </div>
                             </div>
                             <div class=" mb-3">
-                                <label class="col-md-4 col-form-label">{{ __('District') }}</label>
+                                <label class="col-md-4 col-form-label fs-8 fw-bold">{{ __('District') }}</label>
                                 <div class="col-md-8">
                                     <select name="end_district_id" class="form-control end-district" required>
                                         <option value="">{{ __('Choose region first') }}</option>
@@ -118,7 +118,7 @@
                                 </div>
                             </div>
                             <div class=" mb-3">
-                                <label class="col-md-4 col-form-label">{{ __('Quarter') }}</label>
+                                <label class="col-md-4 col-form-label fs-8 fw-bold">{{ __('Quarter') }}</label>
                                 <div class="col-md-8">
                                     <select name="end_quarter_id" class="form-control end-quarter" required>
                                         <option value="">{{ __('Choose district first') }}</option>
@@ -127,21 +127,21 @@
                             </div>
                         </div>
                     </div>
-                    <h5 class="mt-4 text-success">{{ __('Trip Details') }}</h5>
-                    <div class="col-md-6">
-                        <label class="labels">{{ __('Start Time') }}</label>
+                    <h5 class="mt-4 text-success fs-8 fw-bold">{{ __('Trip Details') }}</h5>
+                    <div class="col-md-6 mb-2">
+                        <label class="labels fs-8 fw-bold ">{{ __('Start Time') }}</label>
                         <input type="datetime-local" class="form-control" name="start_time" required>
                     </div>
-                    <div class="col-md-6">
-                        <label class="labels">{{ __('End Time') }}</label>
+                    <div class="col-md-6 mb-2">
+                        <label class="labels fs-8 fw-bold ">{{ __('End Time') }}</label>
                         <input type="datetime-local" class="form-control" name="end_time" required>
                     </div>
-                    <div class="col-md-6 mt-2">
-                        <label class="labels">{{ __('Price per Seat in sum') }}</label>
+                    <div class="col-md-6 mb-2">
+                        <label class="labels fs-8 fw-bold">{{ __('Price per Seat in sum') }}</label>
                         <input type="number" step="1000" min="1000"  class="form-control" name="price_per_seat" required>
                     </div>
-                    <div class="col-md-6 mt-2">
-                        <label class="labels">{{ __('Total Available Seats') }}</label>
+                    <div class="col-md-6 mb-2">
+                        <label class="labels fs-8 fw-bold">{{ __('Total Available Seats') }}</label>
                         <input type="number" class="form-control" name="available_seats" required>
                     </div>
                     
@@ -154,11 +154,11 @@
 
                     <div id="parcel_fields" class="d-none">
                         <div class="col-md-6 mt-2">
-                            <label class="labels">{{ __('Max Parcel Weight (kg)') }}</label>
+                            <label class="labels fs-8 fw-bold">{{ __('Max Parcel Weight (kg)') }}</label>
                             <input type="number" step="0.1" class="form-control" name="max_weight">
                         </div>
                         <div class="col-md-6 mt-2">
-                            <label class="labels">{{ __('Price per kg (sum)') }}</label>
+                            <label class="labels fs-8 fw-bold">{{ __('Price per kg (sum)') }}</label>
                             <input type="number" step="0.01" class="form-control" name="price_per_kg">
                         </div>
                     </div>

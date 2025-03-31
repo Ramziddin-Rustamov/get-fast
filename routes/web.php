@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DriverPaymentController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Auth\Driver\Trip\TripController;
 use App\Http\Controllers\Auth\Driver\DriverAuthController;
+use App\Http\Controllers\Auth\Driver\Trip\ExpiredTrips\ExpiredTripsController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -70,6 +71,7 @@ Route::middleware(['can:admin'])->group(function () {
 
 Route::middleware(['can:driver_web'])->group(function () {
     Route::resource('trips', TripController::class);
+    Route::resource('expired-trips', ExpiredTripsController::class);
 });
 
 Route::get('login', [AuthController::class, 'login'])->name('login');

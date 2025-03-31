@@ -2,12 +2,12 @@
 
 namespace App\Models\V1;
 
-use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 
-class Trip extends Model
+class ExpiredTrip extends Model
 {
-    protected $table = 'trips';
+    protected $table = 'expired_trips';
 
     protected $fillable = [
         'driver_id',
@@ -43,16 +43,6 @@ class Trip extends Model
 
     public function parcels()
     {
-        return $this->hasMany(Parcel::class);
-    }
-
-    public function scopeExpired($query)
-    {
-        return $query->where('end_time', '<', now())->where('status', '!=', 'canceled');
-    }
-
-    public function scopeCanceled($query)
-    {
-        return $query->where('status', 'canceled');
+        return $this->hasMany(Parcel::class, 'trip_id');
     }
 }

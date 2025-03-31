@@ -11,18 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('trips', function (Blueprint $table) {
+        Schema::create('expired_trips', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('driver_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('vehicle_id')->constrained('vehicles')->onDelete('cascade');
+            $table->foreignId('driver_id')->nullable();
+            $table->foreignId('vehicle_id')->nullable();
             $table->foreignId('start_quarter_id')->nullable();
             $table->string('end_quarter_id')->nullable();
-            $table->timestamp('start_time');
+            $table->timestamp('start_time')->nullable();
             $table->timestamp('end_time')->nullable();
-            $table->decimal('price_per_seat', 8, 2);
+            $table->decimal('price_per_seat', 8, 2)->nullable();
             $table->integer('total_seats')->default(4);
-            $table->integer('available_seats');
-            $table->enum('status', ['active', 'completed', 'cancelled','expired','full'])->default('active');
+            $table->integer('available_seats')->nullable();
+            $table->enum('status', ['active', 'completed', 'cancelled','expired','full'])->default('expired');
             $table->timestamps();
         });
     }
@@ -32,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('trips');
+        Schema::dropIfExists('expired_trips');
     }
 };
