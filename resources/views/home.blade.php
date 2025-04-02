@@ -14,9 +14,45 @@
                         @endcan
 
                         @can('driver_web')
-                        <h4 class="text-success">{{ __('Driver') }}</h4>
-                            <a href="{{ route('profile.index.driver') }}" class="btn btn-primary">Ma'lumotlarim</a>
-                        @endcan
+                        <div class="container my-5">
+                            <div class="card shadow-lg border-0">
+                                <div class="card-header bg-success text-white text-center py-3">
+                                    <h3 class="mb-0"><i class="fas fa-car"></i> {{ __('Driver Panel') }}</h3>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3">
+                                        <div class="col">
+                                            <a href="{{ route('profile.index.driver') }}" class="btn btn-outline-primary w-100 py-3">
+                                                <i class="fas fa-user"></i> {{ __('Profile') }}
+                                            </a>
+                                        </div>
+                                        <div class="col">
+                                            <a href="{{ route('trips.index') }}" class="btn btn-outline-primary w-100 py-3">
+                                                <i class="fas fa-road"></i> {{ __('Trips') }}
+                                            </a>
+                                        </div>
+                                        <div class="col">
+                                            <a href="{{ route('expired-trips.index') }}" class="btn btn-outline-primary w-100 py-3">
+                                                <i class="fas fa-route"></i> {{ __('Expired Trips') }}
+                                            </a>
+                                        </div>
+                                        <div class="col">
+                                            <a href="{{ route('driver.get.vehicle') }}" class="btn btn-outline-primary w-100 py-3">
+                                                <i class="fas fa-taxi"></i> {{ __('My Vehicles') }}
+                                            </a>
+                                        </div>
+
+                                        <div class="col">
+                                            <a href="{{ route('profile.index.driver') }}" class="btn btn-outline-primary w-100 py-3">
+                                                <i class="fas fa-wallet"></i> {{ __('My Balance') }}
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endcan
+                    
 
                         @can('client_web')
                             <a href="{{ route('profile.index.client') }}" class="btn btn-primary">Ma'lumotlarim</a>

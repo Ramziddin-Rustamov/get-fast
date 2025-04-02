@@ -85,7 +85,7 @@
                         <hr>
                         <div class="d-flex justify-content-between">
                             <strong>{{ __('Price per seat:') }} </strong>
-                            <strong class="fs-6">{{ number_format($trip->price_per_seat) }} So'm</strong>
+                            <strong class="fs-6 fw-bold text-dark underline">{{ number_format($trip->price_per_seat) }} <span>So'm </span></strong> 
                         </div>
                         <div class="d-flex justify-content-between">
                             <strong>{{ __('Available Seats:') }} </strong>

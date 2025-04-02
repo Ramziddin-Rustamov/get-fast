@@ -11,10 +11,9 @@ use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Auth\Driver\Trip\TripController;
 use App\Http\Controllers\Auth\Driver\DriverAuthController;
 use App\Http\Controllers\Auth\Driver\Trip\ExpiredTrips\ExpiredTripsController;
+use App\Http\Controllers\WelcomeController;
 
-Route::get('/', function () {
-    return view('welcome');
-})->middleware('guest');
+Route::get('/', [WelcomeController::class,'index']);
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
@@ -23,13 +22,15 @@ Route::prefix('auth/driver')->group(function () {
     // get methods   
     Route::get('register', [DriverAuthController::class, 'register'])->name('driver.auth.register.index');
     Route::get('register-vehicle', [DriverAuthController::class, 'vehicleIndex'])->name('driver.auth.register.vehicle.index');
-    Route::post('register-vehicle', [DriverAuthController::class, 'createVehicle'])->name('driver.auth.register.vehicle');
 
     // post methods   
     Route::post('register', [DriverAuthController::class, 'registerDriver'])->name('driver.auth.register.post');
     Route::post('verify', [DriverAuthController::class, 'verfiyDriver'])->name('driver.auth.verify.post');
 });
 
+Route::prefix('auth/driver')->middleware('auth', 'can:driver_web')->group(function () {
+    Route::post('register-vehicle', [DriverAuthController::class, 'createVehicle'])->name('driver.auth.register.vehicle');
+});
 
 Route::prefix('auth/client')->group(function () {
     // get methods   
@@ -51,11 +52,25 @@ Route::prefix('auth')->middleware('guest')->group(function () {
     Route::post('login', [AuthController::class, 'loginUser'])->name('auth.login.post');
     Route::post('verify/user', [AuthController::class, 'verify'])->name('auth.verify.post');
 });
+
+
 Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout.post')->middleware('auth');
 
-Route::prefix('profile')->group(function () {
-    Route::get('client/info', [ClientAuthController::class, 'profileInformation'])->name('profile.index.client')->middleware('can:client_web');
-    Route::get('driver/info', [DriverAuthController::class, 'profileInformation'])->name('profile.index.driver')->middleware('can:driver_web');
+Route::prefix('profile')->middleware(['auth', 'can:driver_web'])->group(function () {
+    Route::get('driver/info', [DriverAuthController::class, 'profileInformation'])->name('profile.index.driver');
+    Route::get('driver/edit/{id}', [DriverAuthController::class, 'profileEdit'])->name('profile.edit.driver');
+    Route::put('driver/update', [DriverAuthController::class, 'updateDriver'])->name('profile.update.driver');
+    Route::put('update/profile/image', [DriverAuthController::class, 'uploadProfileImage'])->name('profile.edit.driver.image');
+    Route::get('driver/create/vehicle', [DriverAuthController::class, 'addVehicleView'])->name('driver.create.vehicle.get');
+    Route::post('driver/create/vehicle', [DriverAuthController::class, 'addVehicle'])->name('driver.create.vehicle.post');
+    Route::get('driver/edit/vehicle/{id}', [DriverAuthController::class, 'editVehicle'])->name('driver.edit.vehicle.get');
+    Route::put('driver/edit/vehicle', [DriverAuthController::class, 'updateVehicle'])->name('driver.edit.vehicle.post');
+    Route::delete('driver/delete/vehicle/by-id/{id}', [DriverAuthController::class, 'deleteVehicle'])->name('driver.delete.vehicle');
+    Route::get('driver/get/vehicles', [DriverAuthController::class, 'getDriverVehicles'])->name('driver.get.vehicle');
+});
+
+Route::prefix('profile')->middleware(['auth', 'can:client_web'])->group(function () {
+    Route::get('client/info', [ClientAuthController::class, 'profileInformation'])->name('profile.index.client');
 });
 
 

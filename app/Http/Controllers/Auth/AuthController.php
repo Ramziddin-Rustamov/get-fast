@@ -45,8 +45,6 @@ class AuthController extends Controller
 
     public function verify(Request $request)
     {
-
-
         $request->validate([
             'code' => 'required|string',
         ]);
@@ -58,25 +56,27 @@ class AuthController extends Controller
         }
         $userData->save();
         Auth::login($userData);
-        
+
         Cache::forget("verify_code_{$request->phone}");
         Cache::forget("user_data_{$request->user_id}");
 
-        if (Auth::guard('driver_web')->check()) {
-            if (Vehicle::where('user_id', $userData->id)->count() == 0) {
+
+        if ($userData->role == 'driver') {
+            $vehicleExists = Vehicle::where('user_id', $userData->id)->get()->count();
+            if (!$vehicleExists) {
                 return redirect()->route('driver.auth.register.vehicle.index');
             }
             return redirect()->route('home');
         }
 
-        if (Auth::guard('client_web')->check()) {
+        if ($userData->role == 'client') {
             if ($userData->region_id == null || $userData->district_id == null || $userData->quarter_id == null || $userData->home == null) {
                 return redirect()->route('client.auth.register.extra-info.index');
             }
             return redirect()->route('home');
         }
 
-        if (Auth::guard('admin')->check()) {
+        if ($userData->role == 'admin') {
             return redirect()->route('admins.index');
         }
 
