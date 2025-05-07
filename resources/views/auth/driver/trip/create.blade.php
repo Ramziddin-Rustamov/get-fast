@@ -7,7 +7,7 @@
             <div class="d-flex justify-content-between align-items-between mb-3">
                 <h5 class="text-right text-success">{{ __('Create Trip') }}</h5>
 
-                <a href="{{ route('trips.index') }}" class="btn btn-primary">
+                <a href="{{ route('driver.trips.index') }}" class="btn btn-primary">
                     {{ __('Back') }}
                 </a>
             </div>
@@ -28,7 +28,7 @@
             </div>
           @endif
         
-            <form action="{{ route('trips.store') }}" method="POST">
+            <form action="{{ route('driver.trips.store') }}" method="POST">
                 @csrf
                 <div class="row mt-2">
                     <!-- Vehicle Selection -->

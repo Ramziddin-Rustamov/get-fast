@@ -130,6 +130,16 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Quarter::class);
     }
+    // Review
+    public function reviewsGiven()
+    {
+        return $this->hasMany(Review::class, 'reviewer_id');
+    }
+
+    public function reviewsReceived()
+    {
+        return $this->hasMany(Review::class, 'reviewed_id');
+    }
 
 
     

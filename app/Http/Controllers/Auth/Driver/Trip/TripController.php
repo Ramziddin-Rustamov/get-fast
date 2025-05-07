@@ -132,5 +132,7 @@ class TripController extends Controller
         return redirect()->route('trips.index')->with('success', 'Trip deleted successfully!');
     }
 
-    
+
+
+   
 }

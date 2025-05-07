@@ -6,8 +6,8 @@
         <div class="d-flex justify-content-between align-items-between mb-3">
             <h4 class="fw-bold text-success">{{ __('My Trips') }}</h4>
             <div>
-                <a href="{{ route('trips.index') }}" class="btn btn-info">{{ __('My active Trips') }}</a>
-                <a href="{{ route('trips.create') }}" class="btn btn-primary">{{ __('Create Trip') }}</a>
+                <a href="{{ route('driver.trips.index') }}" class="btn btn-info">{{ __('My active Trips') }}</a>
+                <a href="{{ route('driver.trips.create') }}" class="btn btn-primary">{{ __('Create Trip') }}</a>
                 <a href="{{ route('profile.index.driver') }}" class="btn btn-primary">{{ __('Profile') }}</a>
             </div>
         </div>

@@ -25,7 +25,7 @@
           @endif
 
           <div class="card-body">
-            <form action="{{ route('profile.update.driver', $driver->id) }}" method="POST">
+            <form action="{{ route('profile.update.client', $client->id) }}" method="POST">
               @csrf
               @method('PUT')
               
@@ -37,7 +37,7 @@
                 <div class="col-md-6">
                 
                   <input type="text" class="form-control" id="name" name="name" 
-                    value="{{ old('name', $driver->name) }}" required>
+                    value="{{ old('name', $client->name) }}" required>
                 </div>
               </div>
 
@@ -49,7 +49,7 @@
                     <option value="">{{__('Choose a region')}}</option>
                     @foreach ($regions as $region)
                       <option value="{{ $region->id }}" 
-                        {{ old('region_id', $driver->region_id) == $region->id ? 'selected' : '' }}>
+                        {{ old('region_id', $client->region_id) == $region->id ? 'selected' : '' }}>
                         {{ $region->name }}
                       </option>
                     @endforeach
@@ -62,8 +62,8 @@
                 <label for="district" class="col-md-4 col-form-label text-md-end">{{ __('District') }}</label>
                 <div class="col-md-6">
                   <select id="district" class="form-control" name="district_id" required>
-                    @if ($driver->district_id)
-                      <option value="{{ $driver->district_id }}" selected>{{ $driver->district->name }}</option>
+                    @if ($client->district_id)
+                      <option value="{{ $client->district_id }}" selected>{{ $client->district->name }}</option>
                     @endif
                     <option value="">{{__('Choose a region first')}}</option>
                 </select>
@@ -75,8 +75,8 @@
                 <label for="quarter" class="col-md-4 col-form-label text-md-end">{{ __('Village') }}</label>
                 <div class="col-md-6">
                   <select id="quarter" class="form-control" name="quarter_id" required>
-                    @if ($driver->quarter_id)
-                      <option value="{{ $driver->quarter_id }}" selected>{{ $driver->quarter->name }}</option>
+                    @if ($client->quarter_id)
+                      <option value="{{ $client->quarter_id }}" selected>{{ $client->quarter->name }}</option>
                     @endif
                     <option disabled>{{__('Choose a district first')}}</option>
                 </select>
@@ -88,7 +88,7 @@
                 <label for="home" class="col-md-4 col-form-label text-md-end">{{ __('Home Address') }}</label>
                 <div class="col-md-6">
                   <input id="home" type="text" class="form-control @error('home') is-invalid @enderror" 
-                    name="home" value="{{ old('home', $driver->home) }}" required 
+                    name="home" value="{{ old('home', $client->home) }}" required 
                     autocomplete="home" placeholder="Masalan: Toshkent shahar, Chilonzor ko‘chasi 12">
                 </div>
               </div>

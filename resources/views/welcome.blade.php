@@ -2,6 +2,7 @@
 
 @section('content')
 @guest
+
 <div class="d-flex justify-content-center align-items-center vh-100 text-center">
         <div>
             <h1 class="mb-4">Assalomu alaykum!</h1>
@@ -36,7 +37,7 @@
         @can('admin')
           <h6 class="underline">{{ __('Hi,') }} {{ __('Admin') }} - {{ auth()->user()->name }} </h6>
         @endcan
- @endauth
+
         <div class="d-flex justify-content-between align-items-center">
             <h4 class="fw-bold">Tomorrow</h4>
             <!-- Search Button -->
@@ -108,6 +109,7 @@
         <div class="container mt-4">
             <div class="row">
                 @foreach ($trips as $trip)
+                <a href="{{ route('trip.show', $trip->id) }}" class="text-decoration-none">
                     <div class="col-md-6 col-lg-12 mb-4">
                         <div class="trip-card p-4 shadow rounded bg-white">
                             <div class="d-flex justify-content-between align-items-center">
@@ -168,6 +170,7 @@
                             </div>
                         </div>
                     </div>
+                </a>
                 @endforeach
             </div>
         </div>
@@ -209,11 +212,15 @@
             </div>
         </div>
     </div>
-
+    @endauth
 
 @endsection
 @push('styles')
 <style>
+ a {
+    text-decoration: none !important;
+}
+
     body {
         background-color: #f8f9fa;
     }

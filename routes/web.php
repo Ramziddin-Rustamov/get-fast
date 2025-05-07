@@ -8,12 +8,14 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\Clients\ClientAuthController;
 use App\Http\Controllers\Admin\DriverPaymentController;
 use App\Http\Controllers\Admin\OrderController;
-use App\Http\Controllers\Auth\Driver\Trip\TripController;
+use App\Http\Controllers\Auth\Driver\Trip\TripController as DriverTripController;
 use App\Http\Controllers\Auth\Driver\DriverAuthController;
 use App\Http\Controllers\Auth\Driver\Trip\ExpiredTrips\ExpiredTripsController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\Auth\Clients\ClientTripController;
+use App\Http\Controllers\GeneralTripController;
 
-Route::get('/', [WelcomeController::class,'index']);
+Route::get('/', [WelcomeController::class, 'index']);
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
@@ -55,7 +57,7 @@ Route::prefix('auth')->middleware('guest')->group(function () {
 
 
 Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout.post')->middleware('auth');
-
+// driver profile
 Route::prefix('profile')->middleware(['auth', 'can:driver_web'])->group(function () {
     Route::get('driver/info', [DriverAuthController::class, 'profileInformation'])->name('profile.index.driver');
     Route::get('driver/edit/{id}', [DriverAuthController::class, 'profileEdit'])->name('profile.edit.driver');
@@ -69,9 +71,17 @@ Route::prefix('profile')->middleware(['auth', 'can:driver_web'])->group(function
     Route::get('driver/get/vehicles', [DriverAuthController::class, 'getDriverVehicles'])->name('driver.get.vehicle');
 });
 
+// client profile
 Route::prefix('profile')->middleware(['auth', 'can:client_web'])->group(function () {
     Route::get('client/info', [ClientAuthController::class, 'profileInformation'])->name('profile.index.client');
+    Route::get('client/edit/{id}', [ClientAuthController::class, 'profileEdit'])->name('profile.edit.client');
+    Route::put('client/update', [ClientAuthController::class, 'updateDriver'])->name('profile.update.client');
 });
+// client profile end
+
+
+
+
 
 
 Route::middleware(['can:admin'])->group(function () {
@@ -85,8 +95,26 @@ Route::middleware(['can:admin'])->group(function () {
 
 
 Route::middleware(['can:driver_web'])->group(function () {
-    Route::resource('trips', TripController::class);
-    Route::resource('expired-trips', ExpiredTripsController::class);
+    Route::get('driver/trips', [DriverTripController::class, 'index'])->name('driver.trips.index');
+    Route::get('driver/create/trip', [DriverTripController::class, 'create'])->name('driver.trips.create');
+    Route::get('driver/store/trip', [DriverTripController::class, 'store'])->name('driver.trips.store');
+    Route::get('expired-trips', [ExpiredTripsController::class, 'index'])->name('driver.expired-trips.index');
+});
+
+Route::middleware(['can:client_web'])->group(function () {
+    Route::get('client/trips', [ClientTripController::class, 'index'])->name('client.trips.index');
+    Route::get('client/create/trip', [ClientTripController::class, 'create'])->name('client.trips.create');
+    Route::get('client/store/trip', [ClientTripController::class, 'store'])->name('client.trips.store');
 });
 
 Route::get('login', [AuthController::class, 'login'])->name('login');
+
+Route::prefix('trip')->group(function () {
+    Route::get('/', [GeneralTripController::class, 'index'])->name('trips.index');
+    Route::get('/{id}', [GeneralTripController::class, 'show'])->name('trip.show');
+});
+
+
+Route::prefix('trip')->middleware(['auth', 'can:client_web'])->group(function () {
+    Route::get('/{id}/book', [ClientTripController::class, 'book'])->name('trip.book');
+});
