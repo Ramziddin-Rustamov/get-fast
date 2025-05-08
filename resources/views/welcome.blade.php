@@ -166,8 +166,46 @@
                             </div>
     
                             <div class="mt-3">
-                                <span class="text-muted"><i class="fas fa-shield-alt"></i> No service fee.</span>
+                                <span class="text-muted d-block mb-2">
+                                    <i class="fas fa-shield-alt"></i> {{ __('No service fee.') }}
+                                </span>
+                            
+                                @if($trip->parcels && count($trip->parcels))
+                                    <hr>
+                                    <div class="mb-2">
+                                        <h6 class="text-muted"><i class="fas fa-box-open"></i> {{ __('Available Parcels') }}</h6>
+                                    </div>
+                            
+                                    @foreach ($trip->parcels as $parcel)
+                                        <div class="card mb-2 shadow-sm border-0">
+                                            <div class="card-body p-2">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <strong>{{ $parcel->max_weight }} kg max</strong><br>
+                                                        <small class="text-muted">1kg = {{ number_format($parcel->price_per_kg, 0, ',', ' ') }} UZS</small>
+                                                    </div>
+                                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('trip.show', $trip->id) }}">
+                                                        <i class="fas fa-box"></i> {{ __('Book Parcel') }}
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                @endif
+                            
+                                <hr>
+                            
+                                @if($trip->available_seats > 0)
+                                    <a href="{{ route('trip.show', $trip->id) }}" class="btn btn-primary w-100">
+                                        <i class="fas fa-chair"></i> {{ __('Book Trip') }}
+                                    </a>
+                                @else
+                                    <button class="btn btn-danger w-100" disabled>
+                                        <i class="fas fa-ban"></i> {{ __('No Seats Available') }}
+                                    </button>
+                                @endif
                             </div>
+                            
                         </div>
                     </div>
                 </a>

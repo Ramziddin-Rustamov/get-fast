@@ -119,6 +119,7 @@
         </div>
 
         <!-- Driver Information -->
+        
         <div class="col-md-4">
             <div class="card mt-4 shadow-sm rounded-3">
                 <div class="card-header bg-info text-white fw-bold">
@@ -161,13 +162,51 @@
                     </div>
                 </div>
             </div>
-            <div class="mt-3">
+   
+            <div class="mt-1">
                 @auth
-                <a href="{{ route('trip.book', $trip->id) }}" class="btn btn-primary  hoverable w-100">{{ __('Book') }}</a>
+                <a href="{{ route('trip.book', $trip->id) }}" class="btn btn-primary  hoverable w-100">{{ __('Book Trip') }}</a>
                 @else
-                <a href="{{ route('auth.login.index') }}" class="btn btn-primary hoverable w-100">{{ __('Book') }}</a>
+                <a href="{{ route('auth.login.index') }}" class="btn btn-primary hoverable w-100">{{ __('Book Trip') }}</a>
                 @endauth
             </div>
+                      <!-- Parcel Information -->
+                      @if($trip->parcels->count() > 0)
+                      <div class="card mt-3 shadow-sm rounded-3">
+                          <div class="card-header bg-warning text-white fw-bold">
+                              <i class="fas fa-box"></i> {{ __('Parcel Information') }}
+                          </div>
+                          <div class="card-body">
+                              <table class="table table-striped table-sm">
+                                  <thead>
+                                      <tr>
+                                          <th scope="col"><i class="fas fa-box-open"></i> {{ __('Max Weight (kg)') }}</th>
+                                          <th scope="col"><i class="fas fa-money-bill-wave"></i> {{ __('Price per Kg (UZS)') }}</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      @foreach ($trip->parcels as $parcel)
+                                          <tr>
+                                              <td>{{ number_format($parcel->max_weight, 0, ',', ' ') }}</td>
+                                              <td>{{ number_format($parcel->price_per_kg, 0, ',', ' ') }}</td>
+                                          </tr>
+                                      @endforeach
+                                  </tbody>
+                              </table>
+                              <div class="mt-2">
+                                  <span class="text-muted"><i class="fas fa-shield-alt"></i> {{ __('No service fee.') }}</span>
+                              </div>
+                          </div>
+                         
+                      </div>
+                      <div class="mt-1">
+                        @auth
+                        <a href="{{ route('trip.book', $trip->id) }}" class="btn btn-primary  hoverable w-100">{{ __('Book Parcel') }}</a>
+                        @else
+                        <a href="{{ route('auth.login.index') }}" class="btn btn-primary hoverable w-100">{{ __('Book Parcel') }}</a>
+                        @endauth
+                    </div>
+                  @endif
         </div>
         
     </div>

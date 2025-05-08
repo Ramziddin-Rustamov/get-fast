@@ -9,7 +9,7 @@ class GeneralTripController extends Controller
 {
     public function show($trip)
     {
-        $trip = Trip::findOrFail($trip);
-        return view('trip.show', compact('trip'));
+        $trip = Trip::with('parcels', 'driver', 'vehicle')->findOrFail($trip);
+        return view('general-trip.show', compact('trip'));
     }
 }
