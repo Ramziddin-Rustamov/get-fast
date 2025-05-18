@@ -32,9 +32,9 @@
                                                 </a>
                                             </div>
                                             <div class="col">
-                                                <a href="{{ route('expired-trips.index') }}" class="btn btn-outline-primary w-100 py-3">
+                                                {{-- <a href="{{ route('expired-trips.index') }}" class="btn btn-outline-primary w-100 py-3">
                                                     <i class="fas fa-route"></i> {{ __('Expired Trips') }}
-                                                </a>
+                                                </a> --}}
                                             </div>
                                             <div class="col">
                                                 <a href="{{ route('driver.get.vehicle') }}" class="btn btn-outline-primary w-100 py-3">
@@ -74,6 +74,14 @@
                                                 <i class="fas fa-user"></i> {{ __('Profile') }}
                                             </a>
                                         </div>
+                                        <div class="col">
+                                            <a href="/" class="btn btn-outline-primary w-100 py-3">
+                                                <i class="fas fa-road"></i> {{ __('Book Trip') }}
+                                            </a>
+                                        </div>
+
+
+                                        
                                     </div>
                                 </div>
                             </div>

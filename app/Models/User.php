@@ -9,7 +9,7 @@ use App\Models\V1\Booking;
 use App\Models\V1\Region;
 use App\Models\V1\District;
 use App\Models\V1\Quarter;
-
+use App\Models\V1\ParcelBooking;
 use App\Models\V1\Trip;
 use App\Models\V1\Vehicle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,10 +18,18 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 class User extends Authenticatable
 {
     use HasFactory;
-    protected $table = 'users'; 
+    protected $table = 'users';
     public $timestamps = true;
     protected $fillable = [
-        'name', 'phone', 'image', 'region_id', 'district_id', 'quarter_id', 'home', 'role','password',
+        'name',
+        'phone',
+        'image',
+        'region_id',
+        'district_id',
+        'quarter_id',
+        'home',
+        'role',
+        'password',
     ];
 
     protected $hidden = [
@@ -53,7 +61,7 @@ class User extends Authenticatable
 
     public function balance()
     {
-        return $this->hasOne(Balance::class,'user_id','id');
+        return $this->hasOne(Balance::class, 'user_id', 'id');
     }
 
 
@@ -141,11 +149,8 @@ class User extends Authenticatable
         return $this->hasMany(Review::class, 'reviewed_id');
     }
 
-
-    
-
-
-
-    
-
+    public function parcelBookings()
+    {
+        return $this->hasMany(ParcelBooking::class);
+    }
 }

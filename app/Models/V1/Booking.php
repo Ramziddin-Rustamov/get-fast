@@ -23,10 +23,12 @@ class Booking extends Model
         return $this->belongsTo(Trip::class);
     }
 
-    public function user()
+    public function client()
     {
         return $this->belongsTo(User::class);
     }
+
+
 
     
 }

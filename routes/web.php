@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\Clients\ClientAuthController;
 use App\Http\Controllers\Admin\DriverPaymentController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Auth\Clients\ClientParcelController;
 use App\Http\Controllers\Auth\Driver\Trip\TripController as DriverTripController;
 use App\Http\Controllers\Auth\Driver\DriverAuthController;
 use App\Http\Controllers\Auth\Driver\Trip\ExpiredTrips\ExpiredTripsController;
@@ -101,10 +102,12 @@ Route::middleware(['can:driver_web'])->group(function () {
     Route::get('expired-trips', [ExpiredTripsController::class, 'index'])->name('driver.expired-trips.index');
 });
 
-Route::middleware(['can:client_web'])->group(function () {
-    Route::get('client/trips', [ClientTripController::class, 'index'])->name('client.trips.index');
+Route::middleware(['auth', 'can:client_web'])->group(function () {
+    Route::get('client/my/trips', [ClientTripController::class, 'index'])->name('client.trips.index');
     Route::get('client/create/trip', [ClientTripController::class, 'create'])->name('client.trips.create');
     Route::get('client/store/trip', [ClientTripController::class, 'store'])->name('client.trips.store');
+    Route::get('cleint/trip/{id}/book', [ClientTripController::class, 'bookView'])->name('trip.book');
+    Route::post('client/trip/book', [ClientTripController::class, 'bookPost'])->name('client.trips.book.post'); // client.trips.book
 });
 
 Route::get('login', [AuthController::class, 'login'])->name('login');
@@ -115,6 +118,8 @@ Route::prefix('trip')->group(function () {
 });
 
 
-Route::prefix('trip')->middleware(['auth', 'can:client_web'])->group(function () {
-    Route::get('/{id}/book', [ClientTripController::class, 'book'])->name('trip.book');
+Route::middleware(['auth', 'can:client_web'])->group(function () { // parcel.show
+    Route::get('client/my/parcels', [ClientParcelController::class, 'index'])->name('client.parcels.index');
+    Route::get('client/parcel/{id}', [ClientParcelController::class, 'show'])->name('client.parcel.show'); // client.parcel.send
+    Route::post('client/send/parcel', [ClientParcelController::class, 'sendParcel'])->name('client.parcel.send'); // client.parcel.send
 });

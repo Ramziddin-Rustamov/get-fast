@@ -4,6 +4,7 @@ namespace App\Models\V1;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\V1\Trip;
+
 class Parcel extends Model
 {
 
@@ -12,5 +13,10 @@ class Parcel extends Model
     public function trip()
     {
         return $this->belongsTo(Trip::class);
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(ParcelBooking::class);
     }
 }

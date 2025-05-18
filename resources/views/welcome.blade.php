@@ -184,9 +184,16 @@
                                                         <strong>{{ $parcel->max_weight }} kg max</strong><br>
                                                         <small class="text-muted">1kg = {{ number_format($parcel->price_per_kg, 0, ',', ' ') }} UZS</small>
                                                     </div>
-                                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('trip.show', $trip->id) }}">
+                                                    @if($parcel->max_weight > 0)
+                                                    <a class="btn btn-sm btn-outline-primary" href="{{ route('client.parcel.show', $parcel->id) }}">
                                                         <i class="fas fa-box"></i> {{ __('Book Parcel') }}
                                                     </a>
+                                                    @else
+                                                    <button class="btn btn-sm btn-outline-primary" disabled>
+                                                        <i class="fas fa-box"></i> {{ __('Book Parcel') }}
+                                                    </button>
+                                                    @endif
+                                                  
                                                 </div>
                                             </div>
                                         </div>

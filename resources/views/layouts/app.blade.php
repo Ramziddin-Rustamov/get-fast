@@ -105,12 +105,28 @@
                                     <div class="dropdown-divider"></div>
                                 @endcan
         
-                                @can('client_web')
-                                    <a class="dropdown-item" href="{{ route('profile.index.client') }}">
-                                        {{ __('Ma\'lumotlarim') }}
+                                @can('client_web') 
+                                    <a class="dropdown-item" href="/">
+                                        {{ __('Book Trip') }}
                                     </a>
                                     <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="{{ route('profile.index.client') }}">
+                                        {{ __('Profile') }}
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+
+                                    <a class="dropdown-item" href="{{ route('client.trips.index') }}">
+                                        {{ __('My booked trips') }}
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+
+                                    <a class="dropdown-item" href="{{ route('client.parcels.index') }}">
+                                        {{ __('My parcels') }}
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+
                                 @endcan
+
         
                                 <a class="dropdown-item" href="{{ route('auth.logout.post') }}"
                                    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
