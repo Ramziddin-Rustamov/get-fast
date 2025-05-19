@@ -45,65 +45,7 @@
                 <i class="fas fa-search"></i> Search
             </button>
         </div>
-        <!-- First Trip -->
-        {{-- <div class="trip-card">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h5>05:00 <i class="fas fa-circle"></i> Warsaw</h5>
-                    <small>6:40</small>
-                    <h5>11:40 <i class="fas fa-circle"></i> Berlin</h5>
-                </div>
-                <div class="price">143.00 PLN</div>
-            </div>
-            <hr>
-            <div class="d-flex align-items-center">
-                <img src="https://via.placeholder.com/50" class="rounded-circle me-2" alt="Driver">
-                <span>Slawomir</span>
-                <span class="ms-auto"><i class="fas fa-star text-warning"></i> 4.9</span>
-            </div>
-        </div> --}}
-    
-        <!-- Second Trip (Full) -->
-        {{-- <div class="trip-card full-trip">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h5>06:00 <i class="fas fa-circle"></i> Warsaw</h5>
-                    <small>5:20</small>
-                    <h5>11:20 <i class="fas fa-circle"></i> Rangsodrf</h5>
-                </div>
-                <div class="price">Full</div>
-            </div>
-            <hr>
-            <div class="d-flex align-items-center">
-                <img src="https://via.placeholder.com/50" class="rounded-circle me-2" alt="Driver">
-                <span>Arkadiusz</span>
-                <span class="ms-auto"><i class="fas fa-star text-warning"></i> 4.9</span>
-            </div>
-        </div> --}}
-    
-        <!-- Third Trip -->
-        {{-- <div class="trip-card">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <span> <i class="fas fa-map-marker"></i>   From </span>
-                    <h3>07:20 <br></h3>
-                    <h5>Warsaw</h5> <hr>
-                    <small><i class="fas fa-clock"></i> 5:20 <i class="fas fa-route"></i> </small> <hr>
-                    <span> <i class="fas fa-map-marker"></i> To </span>
-                    <h3>07:20 <br></h3>
-                    <h5>Warsaw</h5>
-                </div>
-            </div>
-            <hr>
-            <div class="d-flex align-items-center">
-                <img src="https://via.placeholder.com/50" class="rounded-circle me-2" alt="Driver">
-                <span>Damian</span>
-                <span class="ms-auto"><i class="fas fa-star text-warning"></i> 5.0</span>
-            </div>
-            <div class="mt-2">
-                <span class="no-service-fee">No service fee.</span>
-            </div>
-        </div> --}}
+
 
         @if($trips->count() > 0)
         <div class="container mt-4">
@@ -190,7 +132,7 @@
                                                     </a>
                                                     @else
                                                     <button class="btn btn-sm btn-outline-primary" disabled>
-                                                        <i class="fas fa-box"></i> {{ __('Book Parcel') }}
+                                                        <i class="fas fa-box"></i> {{ __('There is no space for parcels ') }}
                                                     </button>
                                                     @endif
                                                   

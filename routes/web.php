@@ -15,6 +15,7 @@ use App\Http\Controllers\Auth\Driver\Trip\ExpiredTrips\ExpiredTripsController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\Auth\Clients\ClientTripController;
 use App\Http\Controllers\GeneralTripController;
+use App\Http\Controllers\Auth\Clients\ClientBankController;
 
 Route::get('/', [WelcomeController::class, 'index']);
 
@@ -122,4 +123,10 @@ Route::middleware(['auth', 'can:client_web'])->group(function () { // parcel.sho
     Route::get('client/my/parcels', [ClientParcelController::class, 'index'])->name('client.parcels.index');
     Route::get('client/parcel/{id}', [ClientParcelController::class, 'show'])->name('client.parcel.show'); // client.parcel.send
     Route::post('client/send/parcel', [ClientParcelController::class, 'sendParcel'])->name('client.parcel.send'); // client.parcel.send
+});
+
+Route::middleware(['auth', 'can:client_web'])->group(function () { // parcel.show
+    Route::get('client/bank', [ClientBankController::class, 'index'])->name('client.banks.index');
+    Route::post('client/bank', [ClientBankController::class, 'store'])->name('client.banks.store');
+    Route::delete('client/bank/{id}', [ClientBankController::class, 'destroy'])->name('client.banks.destroy');
 });

@@ -14,7 +14,7 @@ use App\Models\V1\Trip;
 use App\Models\V1\Vehicle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-
+use App\Models\V1\CreditCard;
 class User extends Authenticatable
 {
     use HasFactory;
@@ -123,6 +123,17 @@ class User extends Authenticatable
     {
         return $this->hasManyThrough(Vehicle::class, Booking::class, 'user_id', 'driver_id');
     }
+
+    public function clientCard()
+    {
+        return $this->hasOne(CreditCard::class)->where('is_active', true)->where('user_type', 'client');
+    }
+
+    public function driverCard()
+    {
+        return $this->hasOne(CreditCard::class)->where('is_active', true)->where('user_type', 'driver');
+    }
+
 
     public function region()
     {

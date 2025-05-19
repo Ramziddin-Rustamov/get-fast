@@ -90,12 +90,6 @@
                             </a>
         
                             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                                {{-- Sozlamalar --}}
-                                <a class="dropdown-item {{ request()->routeIs('home') ? 'active bg-success rounded' : '' }}"
-                                   href="{{ route('home') }}">
-                                    {{ __('Sozlamalar') }}
-                                </a>
-                                <div class="dropdown-divider"></div>
         
                                 @can('driver_web')
                                     <a class="dropdown-item {{ request()->routeIs('profile.index.driver') ? 'active bg-success rounded' : '' }}"
@@ -114,6 +108,12 @@
                                         {{ __('Profile') }}
                                     </a>
                                     <div class="dropdown-divider"></div>
+
+                                    <a class="dropdown-item" href="{{ route('client.banks.index') }}">
+                                        {{ __('My Bank cards') }}
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+
 
                                     <a class="dropdown-item" href="{{ route('client.trips.index') }}">
                                         {{ __('My booked trips') }}

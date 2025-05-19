@@ -201,14 +201,15 @@
                       </div>
                       <div class="mt-1">
                         @auth
-                        <a href="{{ route('trip.book', $trip->id) }}" class="btn btn-primary  hoverable w-100">{{ __('Book Parcel') }}</a>
-                        @else
-                        <a href="{{ route('auth.login.index') }}" class="btn btn-primary hoverable w-100">{{ __('Book Parcel') }}</a>
+                        @if($parcel->max_weight > 0)
+                                <a href="{{ route('client.parcel.show', $parcel->id) }}" class="btn btn-primary  hoverable w-100">{{ __('Book Parcel') }}</a>
+                                @else
+                                <a href="{{ route('client.parcel.show', $parcel->id) }}" class="btn btn-primary  hoverable w-100 disabled">{{ __('Full') }}</a>
+                            @endif
                         @endauth
                     </div>
                   @endif
-        </div>
-        
+          </div>
     </div>
 </div>
 @endsection

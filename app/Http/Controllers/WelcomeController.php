@@ -9,7 +9,7 @@ class WelcomeController extends Controller
 {
     public function index()
     {
-        $trips = Trip::whereIn('status', ['active', 'full'])->get();
+        $trips = Trip::whereIn('status', ['active', 'completed'])->get();
 
         return view('welcome', compact('trips'));
     }

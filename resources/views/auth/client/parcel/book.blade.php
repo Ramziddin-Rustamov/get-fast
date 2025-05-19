@@ -57,7 +57,7 @@
 
                         <div class="mb-3">
                             <label class="form-label">Sender Phone</label>
-                            <input type="text" value="{{ Auth::user()->phone }}" class="form-control" name="sender_phone" required>
+                            <input type="text" disabled value="{{ Auth::user()->phone }}" class="form-control" name="sender_phone" required>
                         </div>
 
                         <div class="mb-3">
@@ -72,34 +72,36 @@
 
                         <div class="mb-3">
                             <label class="form-label">Weight (kg)</label>
-                            <input type="number" class="form-control" name="weight" step="0.1" max="{{ $parcel->max_weight }}" maxlength="3" required>
-                        </div>
-
-                        {{-- <!-- Card payment -->
-                        <div class="mb-3">
-                            <label class="form-label">Card Number</label>
-                            <input type="text" class="form-control" name="card_number" placeholder="0000-0000-0000-0000" pattern="\d{4}-\d{4}-\d{4}-\d{4}" required>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Expiry Month</label>
-                                <input type="number" class="form-control" name="expiry_month" min="1" max="12" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Expiry Year</label>
-                                <input type="number" class="form-control" name="expiry_year" min="{{ now()->year }}" max="2040" required>
-                            </div>
+                            <input type="number" class="form-control" name="max_weight" step="0.1" max="{{ $parcel->max_weight }}" maxlength="3" required>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">CVV</label>
-                            <input type="text" class="form-control" name="cvv" minlength="3" maxlength="3" required>
-                        </div> --}}
+                            <label class="form-label">{{ __('Payment Method')}}</label>
+                            <input type="text" class="form-control" name="payment_method" value="Credit Card" required disabled>
+                        </div>
 
-                        <button type="submit" class="btn btn-success w-100">
+                        <div class="mb-3">
+                            @if(!Auth::user()->clientCard)
+                            <a href="{{ route('client.banks.index') }}" class="btn btn-primary">Add Card</a>
+                            @else
+                            <label class="form-label">{{ __('Your Credit Card ') }}</label>
+                                <input type="text" class="form-control" name="card_number" value="{{ Auth::user()->clientCard->card_number }}" required disabled>
+                            @endif
+                        </div>
+                        
+
+                        @if(!Auth::user()->clientCard)  
+                        <button type="submit" class="btn btn-success w-100" disabled>
                             <i class="fas fa-paper-plane"></i> Submit Parcel
                         </button>
+                        @else
+                        <button type="submit" class="btn btn-success w-100">
+                            
+                            <i class="fas fa-paper-plane"></i> Submit Parcel
+                        </button>
+                        @endif
+                        
+                      
                     </form>
                 </div>
             </div>
