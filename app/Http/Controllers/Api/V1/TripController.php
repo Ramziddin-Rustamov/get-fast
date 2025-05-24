@@ -68,7 +68,7 @@ class TripController extends Controller
             $returnTrips = Trip::where('start_quarter_id', $to)
                 ->where('end_quarter_id', $from)
                 ->where('status', 'active')
-                ->where('start_time', '>=', Carbon::parse($returnDate))
+                ->where('start_time', '<=', Carbon::parse($returnDate))
                 ->where('available_seats', '>', 0)
                 ->get();
         }
