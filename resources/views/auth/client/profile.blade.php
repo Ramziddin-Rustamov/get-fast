@@ -2,57 +2,70 @@
 
 @section('content')
     @can('client_web')
-    <div class="container  border-primary bg-white ">
-        <div class="d-flex justify-content-between align-items-center py-3 ">
-            <a href="{{ route('client.trips.index') }}" class="btn btn-primary">{{ __('My Trips') }}</a>
-            {{-- <a href="{{ route('trips.create') }}" class="btn btn-primary ">{{ __('Create Trip') }}</a> --}}
+    <div class="container bg-white border rounded shadow-sm mt-4 p-4">
+        <!-- Header buttons -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="text-primary m-0"><i class="fas fa-user"></i> {{ __('My Profile') }}</h3>
+            <a href="{{ route('client.trips.index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-route"></i> {{ __('My Trips') }}
+            </a>
         </div>
-        @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
 
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-        <hr> 
-        <div class="row ">
-            <div class="col-md-3 border-right text-center pb-5">
-                <img class="rounded-circle mt-1" width="150px" src="{{ asset('image')}}/{{ $client->image }}">
-                <h5 class="font-weight-bold">{{ $client->name }}</h5>
-                <p class="text-black-50">{{ $client->phone }}</p>
-                <div>
-                    <a href="{{ route('profile.edit.client', $client->id) }}" class="btn btn-primary">{{ __('Edit') }}</a>
-                </div>
+        <!-- Alert messages -->
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                {{ session('success') }}
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
+        @endif
+
+        @if (session('error'))
+            <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                {{ session('error') }}
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        <hr>
+
+        <!-- Profile Section -->
+        <div class="row">
+            <!-- Left Side -->
+            <div class="col-md-3 text-center border-end pe-4">
+                <img src="{{ asset('image/' . $client->image) }}" class="rounded-circle img-thumbnail mb-3" width="150" alt="Profile Picture">
+                <h5 class="fw-bold">{{ $client->name }}</h5>
+                <p class="text-muted mb-3">{{ $client->phone }}</p>
+                <a href="{{ route('profile.edit.client', $client->id) }}" class="btn btn-primary w-100">
+                    <i class="fas fa-edit"></i> {{ __('Edit') }}
+                </a>
+            </div>
+
+            <!-- Right Side -->
             <div class="col-md-9">
-                <h4 class="mb-3 text-success ">{{ __('Profile Info') }}</h4>
+                <h5 class="text-success mb-4"><i class="fas fa-info-circle"></i> {{ __('Profile Info') }}</h5>
                 <div class="row g-3">
                     @foreach ([
-                        'Name' => $client->name ?? 'there is no name',
-                        'Phone Number' => $client->phone ?? 'there is no phone number',
-                        'Region' => $client->region->name ?? 'there is no region address yet',
-                        'District' => $client->district->name ?? 'there is no district address yet',
-                        'Quarter' => $client->quarter->name ?? 'there is no quarter address yet',
-                        'Home' => $client->home ?? 'there is no home address yet',
-                        'Role' => $client->role,
-                        'Created' => $client->created_at
+                        'Name' => $client->name ?? 'There is no name',
+                        'Phone Number' => $client->phone ?? 'There is no phone number',
+                        'Region' => $client->region->name ?? 'There is no region address yet',
+                        'District' => $client->district->name ?? 'There is no district address yet',
+                        'Quarter' => $client->quarter->name ?? 'There is no quarter address yet',
+                        'Home' => $client->home ?? 'There is no home address yet',
+                        'Role' => ucfirst($client->role),
+                        'Created' => $client->created_at->format('d M Y, H:i'),
                     ] as $label => $value)
                         <div class="col-md-6">
-                            <label class="labels">{{ __($label) }}</label>
-                            <input type="text" class="form-control" value="{{ $value }}" disabled>
+                            <label class="form-label fw-semibold">{{ __($label) }}</label>
+                            <input type="text" class="form-control bg-light" value="{{ $value }}" disabled>
                         </div>
                     @endforeach
                 </div>
             </div>
         </div>
-        <hr>
-       
+
+        <hr class="mt-4">
     </div>
     @endcan
 @endsection

@@ -36,6 +36,8 @@ Route::prefix('trips')->group(function () {
     Route::get('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'show']);
     Route::put('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'update']);
     Route::delete('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'destroy']);
+    Route::get('/search/available-trips', [App\Http\Controllers\Api\V1\TripController::class, 'search']);
+
 });
 
 Route::prefix('booking')->group(function () {
@@ -45,10 +47,10 @@ Route::prefix('booking')->group(function () {
     Route::put('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'update']);
     Route::delete('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'destroy']);
 });
-    Route::post('add-card', [App\Http\Controllers\Api\V1\PaymeeController::class, 'addCard']);
-    Route::post('book-trip', [App\Http\Controllers\Api\V1\PaymeeController::class, 'bookTrip']);
-    Route::post('process-payment', [App\Http\Controllers\Api\V1\PaymeeController::class, 'processPayment']);
-    Route::post('/check-payment-status', [App\Http\Controllers\Api\V1\PaymeeController::class, 'checkPaymentStatus']);
+Route::post('add-card', [App\Http\Controllers\Api\V1\PaymeeController::class, 'addCard']);
+Route::post('book-trip', [App\Http\Controllers\Api\V1\PaymeeController::class, 'bookTrip']);
+Route::post('process-payment', [App\Http\Controllers\Api\V1\PaymeeController::class, 'processPayment']);
+Route::post('/check-payment-status', [App\Http\Controllers\Api\V1\PaymeeController::class, 'checkPaymentStatus']);
 
 
 Route::prefix('review')->group(function () {
@@ -64,7 +66,3 @@ Route::get('districts', [App\Http\Controllers\Api\V1\DistrictsController::class,
 Route::get('/districts/region/{id}', [App\Http\Controllers\Api\V1\DistrictsController::class, 'getRegion']);
 Route::get('quarters', [App\Http\Controllers\Api\V1\QuarterController::class, 'index']);
 Route::get('quarters/districts/{id}', [App\Http\Controllers\Api\V1\QuarterController::class, 'getVillagesByDistrict']);
-
-
-
-

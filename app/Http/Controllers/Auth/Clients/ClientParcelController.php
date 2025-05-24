@@ -64,7 +64,6 @@ class ClientParcelController extends Controller
         $parcelBooking->save();
 
         // user card logic writen here 
-
-        return "done";
+        return redirect()->route('client.parcels.index')->with('success', 'Parcel sent successfully!');
     }
 }

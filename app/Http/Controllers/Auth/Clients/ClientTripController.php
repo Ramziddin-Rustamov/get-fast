@@ -30,11 +30,7 @@ class ClientTripController extends Controller
             'trip_id' => 'required|exists:trips,id',
             'user_id' => 'required|exists:users,id',
             'seats' => 'required|integer|min:1',
-            'extra_phone' => 'required|string|min:9',
-            'card_number' => 'required|string|min:16',
-            'expiry_month' => 'required|integer|min:1|max:12',
-            'expiry_year' => 'required|integer|min:2025|max:2035',
-            'cvv' => 'required|integer|min:100|max:999',
+            'extra_phone' => 'required|string|min:9'
         ]);
 
         $findedTrip = Trip::findOrFail($request->trip_id);

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Resources\V1;
 
 use Illuminate\Http\Request;
@@ -26,6 +27,17 @@ class TripResource extends JsonResource
             : null;
         return [
             'id' => $this->id,
+            'from_where' => $this->startQuarter->name . ', ' . $this->startQuarter->district->name . ', ' . $this->startQuarter->district->region->name,
+            'to_where' => $this->endQuarter->name . ', ' . $this->endQuarter->district->name . ', ' . $this->endQuarter->district->region->name,
+            'start_time' => $this->start_time,
+            'end_time' => $this->end_time,
+            'duration' => $duration_formatted, // Davomiylik (soatlar va daqiqalarda)
+            'price_per_seat' => $this->price_per_seat,
+            'total_seats' => $this->total_seats,
+            'available_seats' => $this->available_seats,
+            'status' => $this->status,
+            'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
+            'updated_at' => $this->updated_at ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s') : null,
             'driver' => [
                 'id' => $this->driver->id,
                 'name' => $this->driver->name ?? null,
@@ -38,16 +50,6 @@ class TripResource extends JsonResource
                 'year' => $this->vehicle->year ?? null,
                 'seats' => $this->vehicle->seats ?? null,
             ],
-            'start_location' => $this->start_location,
-            'end_location' => $this->end_location,
-            'start_time' => $this->start_time,
-            'end_time' => $this->end_time,
-            'duration' => $duration_formatted, // Davomiylik (soatlar va daqiqalarda)
-            'price_per_seat' => $this->price_per_seat,
-            'total_seats' => $this->total_seats,
-            'available_seats' => $this->available_seats,
-           'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
-            'updated_at' => $this->updated_at ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s') : null,
         ];
     }
 }

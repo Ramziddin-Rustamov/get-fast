@@ -1,10 +1,11 @@
 <?php
+
 namespace App\Repositories\V1;
 
-use App\Models\V1\Trip; 
+use App\Models\V1\Trip;
 use App\Http\Resources\V1\TripResource;
 
-class TripRepository 
+class TripRepository
 {
 
     public $errorResponse = [
@@ -19,16 +20,16 @@ class TripRepository
 
     public function getAllTrips()
     {
-        return Trip::where('available_seats', '>', 0)->where('status', 'active')->paginate(10);
-    }    
+        return Trip::where('status', 'active')->paginate(20);
+    }
 
     public function getTripById($id)
     {
         $trip  =  Trip::find($id);
-        if(is_null($trip) && empty($trip)){
+        if (is_null($trip) && empty($trip)) {
             return response()->json($this->errorResponse, 404);
         }
-        return response()->json(new TripResource($trip),200);
+        return response()->json(new TripResource($trip), 200);
     }
 
     public function createTrip(array $data)
@@ -42,16 +43,15 @@ class TripRepository
         $trip->end_time = $data['end_time'];
         $trip->price_per_seat = $data['price_per_seat'];
         $trip->total_seats = (int) $data['total_seats'];
-        $trip->available_seats = $data['available_seats'];  
+        $trip->available_seats = $data['available_seats'];
         $trip->save();
-        return response()->json(new TripResource($trip),200);
-
+        return response()->json(new TripResource($trip), 200);
     }
 
     public function updateTrip($id, array $data)
     {
         $trip = Trip::find($id);
-        if(is_null($trip) && empty($trip)){
+        if (is_null($trip) && empty($trip)) {
             return response()->json($this->errorResponse, 404);
         }
         $trip->update([
@@ -65,16 +65,21 @@ class TripRepository
             'total_seats' => $data['total_seats'],
             'available_seats' => $data['available_seats'],
         ]);
-        return response()->json(new TripResource($trip),200);
+        return response()->json(new TripResource($trip), 200);
     }
 
     public function deleteTrip($id)
     {
         $trip = Trip::find($id);
-        if(is_null($trip) && empty($trip)){
+        if (is_null($trip) && empty($trip)) {
             return response()->json($this->errorResponse, 404);
         }
-         $trip->delete();
-        return response()->json($this->successResponse,200);
+        $trip->delete();
+        return response()->json($this->successResponse, 200);
+    }
+
+    public function search($request)
+    {
+        //
     }
 }

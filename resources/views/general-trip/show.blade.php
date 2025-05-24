@@ -111,9 +111,17 @@
                         </span>
                     </div>
 
+                  @if($trip->56 > 0)
+
                     <div class="mt-2 text-success">
                         <small><i class="fas fa-check-circle"></i>{{__('Available')}}</small>
                     </div>
+
+                    @else
+                    <div class="mt-2 text-danger">
+                        <small><i class="fas fa-times-circle"></i>{{__('Not Available')}}</small>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -165,7 +173,13 @@
    
             <div class="mt-1">
                 @auth
+                @if($trip->available_seats > 0)
                 <a href="{{ route('trip.book', $trip->id) }}" class="btn btn-primary  hoverable w-100">{{ __('Book Trip') }}</a>
+                @else
+                <button class="btn btn-danger w-100" disabled>
+                    <i class="fas fa-ban"></i> {{ __('No Seats Available') }}
+                </button>
+                @endif
                 @else
                 <a href="{{ route('auth.login.index') }}" class="btn btn-primary hoverable w-100">{{ __('Book Trip') }}</a>
                 @endauth

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services\V1;
 
 use App\Repositories\V1\TripRepository;
@@ -36,4 +37,6 @@ class TripService
     {
         return $this->tripRepository->deleteTrip($id);
     }
+
+
 }

@@ -175,36 +175,30 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="card_number" class="form-label">Card Number</label> 
-                            <input type="text" class="form-control" id="card_number" name="card_number" pattern="\d{4}-\d{4}-\d{4}-\d{4}" maxlength="16" minlength="16" placeholder="0000-0000-0000-0000" required>
-                            <div class="invalid-feedback">
-                                Please provide a valid card number.
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="cvv" class="form-label">{{__('Expiry month')}}</label>
-                            <input type="number" class="form-control" maxlength="2" minlength="2" id="expiry_month" max="12" min="1" name="expiry_month" placeholder="MM" required>
-                            <div class="invalid-feedback">
-                                Please provide a valid expiry month.
-                            </div>
+                            <label class="form-label">{{ __('Payment Method')}}</label>
+                            <input type="text" class="form-control" name="payment_method" value="Credit Card" required disabled>
                         </div>
 
                         <div class="mb-3">
-                            <label for="cvv" class="form-label">{{__('Expiry year')}}</label>
-                            <input type="number" class="form-control" maxlength="4" minlength="4" id="expiry_year" max="2040" min="2025" name="expiry_year" placeholder="YYYY" required>
-                            <div class="invalid-feedback">
-                                Please provide a valid expiry year.
-                            </div>
+                            @if(!Auth::user()->clientCard)
+                            <a href="{{ route('client.banks.index') }}" class="btn btn-primary">Add Card</a>
+                            @else
+                            <label class="form-label">{{ __('Your Credit Card ') }}</label>
+                                <input type="text" class="form-control" name="card_number" value="{{ Auth::user()->clientCard->card_number }}" required disabled>
+                            @endif
                         </div>
+                        
 
-                        <div class="mb-3">
-                            <label for="cvv" class="form-label">CVV</label>
-                            <input type="text" class="form-control" id="cvv" maxlength="3" minlength="3" max="999" min="100" name="cvv" placeholder="CVV" required>
-                            <div class="invalid-feedback">
-                                Please provide a valid CVV.
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">Book Now</button>
+                        @if(!Auth::user()->clientCard)  
+                        <button type="submit" class="btn btn-success w-100" disabled>
+                            <i class="fas fa-paper-plane"></i> {{__('Book Now')}}
+                        </button>
+                        @else
+                        <button type="submit" class="btn btn-success w-100">
+                            
+                            <i class="fas fa-paper-plane"></i> {{__('Book Now')}}
+                        </button>
+                        @endif
                     </form>
                 </div>
             </div>
