@@ -51,7 +51,7 @@ class TripController extends Controller
         $to = $request->query('end_quarter_id');
         $departureDate = $request->query('departure_date');
         $returnDate = $request->query('return_date');
-        $isRoundTrip = $request->has('is_round_trip');
+        $isRoundTrip = $request->query('is_round_trip');
 
         // Departure leg
         $departureTrips = Trip::where('start_quarter_id', $from)
@@ -62,13 +62,13 @@ class TripController extends Controller
             ->get();
 
 
-        $returnTrips = collect(); 
+        $returnTrips = collect();
 
         if ($isRoundTrip && $returnDate) {
             $returnTrips = Trip::where('start_quarter_id', $to)
                 ->where('end_quarter_id', $from)
                 ->where('status', 'active')
-                ->where('start_time', '<=', Carbon::parse($returnDate))
+                ->where('start_time', '>=', Carbon::parse($returnDate))
                 ->where('available_seats', '>', 0)
                 ->get();
         }
