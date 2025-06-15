@@ -57,7 +57,7 @@ class TripController extends Controller
         $departureTrips = Trip::where('start_quarter_id', $from)
             ->where('end_quarter_id', $to)
             ->where('status', 'active')
-            ->where('start_time', '>=', Carbon::parse($departureDate)) // full datetime
+            ->where('start_time', '>=', Carbon::parse($departureDate))
             ->where('available_seats', '>', 0)
             ->get();
 
@@ -75,7 +75,7 @@ class TripController extends Controller
 
         return response()->json([
             'departure_trips' => TripResource::collection($departureTrips),
-            'return_trips' => TripResource::collection($returnTrips)
+            'return_trips' => TripResource::collection($returnTrips),
         ]);
     }
 }

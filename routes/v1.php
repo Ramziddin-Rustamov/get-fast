@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\HamkorBankController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\PaymentController;
 
@@ -37,7 +38,6 @@ Route::prefix('trips')->group(function () {
     Route::put('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'update']);
     Route::delete('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'destroy']);
     Route::get('/search/available-trips', [App\Http\Controllers\Api\V1\TripController::class, 'search']);
-
 });
 
 Route::prefix('booking')->group(function () {
@@ -66,3 +66,27 @@ Route::get('districts', [App\Http\Controllers\Api\V1\DistrictsController::class,
 Route::get('/districts/region/{id}', [App\Http\Controllers\Api\V1\DistrictsController::class, 'getRegion']);
 Route::get('quarters', [App\Http\Controllers\Api\V1\QuarterController::class, 'index']);
 Route::get('quarters/districts/{id}', [App\Http\Controllers\Api\V1\QuarterController::class, 'getVillagesByDistrict']);
+
+
+// Hamkorbank payment entegratin here 
+
+
+Route::prefix('payments')->group(function () {
+
+
+    Route::post('/token', [HamkorBankController::class, 'getToken']);
+    Route::post('/cards/list', [HamkorBankController::class, 'listCards']);
+    Route::post('/cards/add', [HamkorBankController::class, 'addCard']);
+    Route::post('/cards/verify', [HamkorBankController::class, 'verifyCard']);
+    Route::post('/cards/info', [HamkorBankController::class, 'cardInfo']);
+    Route::post('/cards/check-balance', [HamkorBankController::class, 'checkBalance']);
+
+
+
+    Route::post('/create', [HamkorBankController::class, 'createPayment']);
+    Route::post('/confirm', [HamkorBankController::class, 'confirmPayment']);
+    Route::post('/cancel', [HamkorBankController::class, 'cancelPayment']);
+    Route::post('/partial-refund', [HamkorBankController::class, 'partialRefund']);
+    Route::post('/get', [HamkorBankController::class, 'getPayment']);
+    Route::post('/get-by-external', [HamkorBankController::class, 'getPaymentByExternalId']);
+});
