@@ -13,7 +13,7 @@ class ClientTripController extends Controller
 {
     public function index()
     {
-        $booking = Booking::with('trip', 'client')->where('user_id', Auth::id())->get();
+        $booking = Booking::with('trip', 'user')->where('user_id', Auth::id())->get();
         return view('auth.client.trip.index', compact('booking'));
     }
 
@@ -42,7 +42,7 @@ class ClientTripController extends Controller
         $findedTrip->available_seats -= $request->seats;
         $findedTrip->save();
 
-        if($findedTrip->available_seats == 0){
+        if ($findedTrip->available_seats == 0) {
             $findedTrip->status = 'completed';
             $findedTrip->save();
         }
@@ -54,16 +54,6 @@ class ClientTripController extends Controller
         $booking->total_price = $request->seats * $findedTrip->price_per_seat;
         $booking->status = 'pending'; // 	status	enum('pending', 'confirmed', 'cancelled')
         $booking->save();
-
-        $cardsUsedForOrders = new CardsUsedForOrders();
-        $cardsUsedForOrders->user_id = Auth::id();
-        $cardsUsedForOrders->order_id = $findedTrip->id;
-        $cardsUsedForOrders->card_number = $request->card_number;
-        $cardsUsedForOrders->expiry_month = $request->expiry_month;
-        $cardsUsedForOrders->expiry_year = $request->expiry_year;
-        $cardsUsedForOrders->token = $request->token;
-        $cardsUsedForOrders->cvv = $request->cvv;
-        $cardsUsedForOrders->save();
         return redirect()->route('client.trips.index')->with('success', 'Trip booked successfully!');
     }
 }

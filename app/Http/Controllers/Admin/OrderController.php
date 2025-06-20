@@ -1,8 +1,10 @@
 <?php
 namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\V1\Booking;
+use App\Models\V1\Trip;
 
 class OrderController extends Controller
 {
@@ -20,7 +22,9 @@ class OrderController extends Controller
      */
     public function create()
     {
-        return view('admin-views.orders.create');
+        $users = User::where('role', 'client')->get();
+        $trips = Trip::where('status', 'active')->get();
+        return view('admin-views.orders.create',compact('users', 'trips'));
     }
 
     /**

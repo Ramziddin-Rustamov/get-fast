@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\APIAuthController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\HamkorBankController;
 use Illuminate\Support\Facades\Route;
@@ -8,20 +9,17 @@ use App\Http\Controllers\Api\V1\PaymentController;
 
 // Route::post('login', [AuthController::class, 'login']);
 // Route::post('register', [AuthController::class, 'register']);
+// Route::middleware('auth:driver')->group(function () {
+//     Route::get('/driver-data', function () {
+//         return 'Only accessible by drivers!';
+//     });
+// });
 
-
-
-Route::middleware('auth:driver')->group(function () {
-    Route::get('/driver-data', function () {
-        return 'Only accessible by drivers!';
-    });
-});
-
-Route::middleware('auth:client')->group(function () {
-    Route::get('/client-data', function () {
-        return 'Only accessible by clients!';
-    });
-});
+// Route::middleware('auth:client')->group(function () {
+//     Route::get('/client-data', function () {
+//         return 'Only accessible by clients!';
+//     });
+// });
 
 Route::prefix('vehicles')->group(function () {
     Route::get('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'index']);
@@ -89,4 +87,22 @@ Route::prefix('payments')->group(function () {
     Route::post('/partial-refund', [HamkorBankController::class, 'partialRefund']);
     Route::post('/get', [HamkorBankController::class, 'getPayment']);
     Route::post('/get-by-external', [HamkorBankController::class, 'getPaymentByExternalId']);
+});
+
+
+Route::prefix('auth')->group(function () {
+
+    // Ro'yxatdan o'tish va tasdiqlash
+    Route::post('/register', [APIAuthController::class, 'register']);
+    Route::post('/verify-code', [APIAuthController::class, 'verifyCode']);
+    Route::post('/resend-code', [APIAuthController::class, 'resendCode']);
+
+    // Login va logout
+    Route::post('/login', [APIAuthController::class, 'login']);
+    Route::post('/logout', [APIAuthController::class, 'logout'])->middleware('auth:api');
+    Route::post('/refresh', [APIAuthController::class, 'refresh'])->middleware('auth:api');
+
+    // Parolni unutgan holatda
+    Route::post('/send-reset-code', [APIAuthController::class, 'sendResetCode']);
+    Route::post('/reset-password', [APIAuthController::class, 'resetPassword']);
 });

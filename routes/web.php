@@ -19,6 +19,8 @@ use App\Http\Controllers\Auth\Clients\ClientBankController;
 
 Route::get('/', [WelcomeController::class, 'index']);
 
+Route::get('/search', [WelcomeController::class, 'search'])->name('welcome.trips.search');
+
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
 // for drivers 
@@ -99,11 +101,11 @@ Route::middleware(['can:admin'])->group(function () {
 Route::middleware(['can:driver_web'])->group(function () {
     Route::get('driver/trips', [DriverTripController::class, 'index'])->name('driver.trips.index');
     Route::get('driver/create/trip', [DriverTripController::class, 'create'])->name('driver.trips.create');
-    Route::get('driver/store/trip', [DriverTripController::class, 'store'])->name('driver.trips.store');
+    Route::post('driver/store/trip', [DriverTripController::class, 'store'])->name('driver.trips.store');
     Route::get('expired-trips', [ExpiredTripsController::class, 'index'])->name('driver.expired-trips.index');
 });
 
-Route::middleware(['auth', 'can:client_web'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('client/my/trips', [ClientTripController::class, 'index'])->name('client.trips.index');
     Route::get('client/create/trip', [ClientTripController::class, 'create'])->name('client.trips.create');
     Route::get('client/store/trip', [ClientTripController::class, 'store'])->name('client.trips.store');
@@ -114,7 +116,6 @@ Route::middleware(['auth', 'can:client_web'])->group(function () {
 Route::get('login', [AuthController::class, 'login'])->name('login');
 
 Route::prefix('trip')->group(function () {
-    Route::get('/', [GeneralTripController::class, 'index'])->name('trips.index');
     Route::get('/{id}', [GeneralTripController::class, 'show'])->name('trip.show');
 });
 
@@ -125,6 +126,8 @@ Route::middleware(['auth', 'can:client_web'])->group(function () { // parcel.sho
     Route::post('client/send/parcel', [ClientParcelController::class, 'sendParcel'])->name('client.parcel.send'); // client.parcel.send
 });
 
+
+// for banking
 Route::middleware(['auth', 'can:client_web'])->group(function () { // parcel.show
     Route::get('client/bank', [ClientBankController::class, 'index'])->name('client.banks.index');
     Route::post('client/bank', [ClientBankController::class, 'store'])->name('client.banks.store');

@@ -5,6 +5,7 @@ namespace App\Models;
 
 use App\Models\V1\Balance;
 use App\Models\V1\Booking;
+use App\Models\V1\CreditCard;
 use App\Models\V1\Region;
 use App\Models\V1\District;
 use App\Models\V1\Quarter;
@@ -14,8 +15,9 @@ use App\Models\V1\Trip;
 use App\Models\V1\Vehicle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
-class User extends Authenticatable
+class User  extends Authenticatable implements JWTSubject
 {
     use HasFactory;
     protected $table = 'users';
@@ -30,6 +32,8 @@ class User extends Authenticatable
         'home',
         'role',
         'password',
+        'is_verified',
+        'verification_code'
     ];
 
     protected $hidden = [
@@ -48,6 +52,7 @@ class User extends Authenticatable
             }
         });
     }
+
 
     public function getJWTIdentifier()
     {
@@ -162,5 +167,10 @@ class User extends Authenticatable
     public function activeCard()
     {
         return $this->hasOne(PaymentCard::class)->where('is_active', true);
+    }
+
+    public function clientCard()
+    {
+        return $this->hasOne(CreditCard::class)->where('is_active', true);
     }
 }

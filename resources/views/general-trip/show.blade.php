@@ -111,7 +111,7 @@
                         </span>
                     </div>
 
-                  @if($trip->56 > 0)
+                  @if($trip->available_seats > 0)
 
                     <div class="mt-2 text-success">
                         <small><i class="fas fa-check-circle"></i>{{__('Available')}}</small>

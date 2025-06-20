@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class Booking extends Model
+class CreditCard extends Model
 {
     use HasFactory;
 

@@ -89,7 +89,7 @@ class TripController extends Controller
         //         ->withInput();
         // }
 
-        return redirect()->route('trips.index')
+        return redirect()->back()
             ->with('success', 'Trip created successfully!');
     }
 
@@ -131,8 +131,4 @@ class TripController extends Controller
         $trip->delete();
         return redirect()->route('trips.index')->with('success', 'Trip deleted successfully!');
     }
-
-
-
-   
 }

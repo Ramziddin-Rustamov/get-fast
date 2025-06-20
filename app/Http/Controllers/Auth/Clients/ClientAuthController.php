@@ -45,9 +45,9 @@ class ClientAuthController extends Controller
 
     public function registerExtra()
     {
-        $region = Region::all();
+        $regions = Region::all();
         return view('auth.client.extra-info', [
-            'regions' => $region
+            'regions' => $regions
         ]);
     }
 
@@ -59,7 +59,8 @@ class ClientAuthController extends Controller
         $user->quarter_id = $request->quarter_id;
         $user->home = $request->home;
         $user->save();
-        return  view('welcome');
+        $regions = Region::all();
+        return  view('welcome', compact('regions'));
     }
 
 

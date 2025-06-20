@@ -22,6 +22,8 @@ return new class extends Migration
             $table->string('quarter_id')->nullable();
             $table->string('home')->nullable();
             $table->enum('role', ['client', 'driver', 'admin'])->default('client');
+            $table->boolean('is_verified')->default(false);
+            $table->string('verification_code')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
