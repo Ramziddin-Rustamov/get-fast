@@ -21,50 +21,56 @@ use App\Http\Controllers\Api\V1\PaymentController;
 //     });
 // });
 
-Route::prefix('vehicles')->group(function () {
-    Route::get('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'index']);
-    Route::get('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'show']);
-    Route::post('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'store']);
-    Route::put('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'update']);
-    Route::delete('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'destroy']);
+Route::middleware('auth:api')->group(function () {
+    Route::prefix('vehicles')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'index']);
+        Route::get('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'show']);
+        Route::post('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'store']);
+        Route::put('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'destroy']);
+
+        Route::get('/driver/my-vehicles', [App\Http\Controllers\Api\V1\VehicleController::class, 'getDriverVehicles']);
+    });
+
+    Route::prefix('trips')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\V1\TripController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\Api\V1\TripController::class, 'store']);
+        Route::get('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'show']);
+        Route::put('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'destroy']);
+        Route::get('/search/available-trips', [App\Http\Controllers\Api\V1\TripController::class, 'search']);
+
+        Route::get('/public/view', [App\Http\Controllers\Api\V1\TripController::class, 'getAllTripsForPublic']);
+        Route::get('/public/view/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'getTripByIdForPublic']);
+    });
+
+    Route::prefix('booking')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\V1\BookingController::class, 'index']);
+        Route::get('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'show']);
+        Route::post('/', [App\Http\Controllers\Api\V1\BookingController::class, 'store']);
+        Route::put('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'destroy']);
+    });
+    Route::post('add-card', [App\Http\Controllers\Api\V1\PaymeeController::class, 'addCard']);
+    Route::post('book-trip', [App\Http\Controllers\Api\V1\PaymeeController::class, 'bookTrip']);
+    Route::post('process-payment', [App\Http\Controllers\Api\V1\PaymeeController::class, 'processPayment']);
+    Route::post('/check-payment-status', [App\Http\Controllers\Api\V1\PaymeeController::class, 'checkPaymentStatus']);
+
+
+    Route::prefix('review')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\V1\ReviewController::class, 'index']);
+        Route::get('/{id}', [App\Http\Controllers\Api\V1\ReviewController::class, 'show']);
+        Route::post('/', [App\Http\Controllers\Api\V1\ReviewController::class, 'store']);
+        Route::put('/{id}', [App\Http\Controllers\Api\V1\ReviewController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\Api\V1\ReviewController::class, 'destroy']);
+    });
+
+    Route::get('regions', [App\Http\Controllers\Api\V1\RegionController::class, 'index']);
+    Route::get('districts', [App\Http\Controllers\Api\V1\DistrictsController::class, 'index']);
+    Route::get('/districts/region/{id}', [App\Http\Controllers\Api\V1\DistrictsController::class, 'getRegion']);
+    Route::get('quarters', [App\Http\Controllers\Api\V1\QuarterController::class, 'index']);
+    Route::get('quarters/districts/{id}', [App\Http\Controllers\Api\V1\QuarterController::class, 'getVillagesByDistrict']);
 });
-
-Route::prefix('trips')->group(function () {
-    Route::get('/', [App\Http\Controllers\Api\V1\TripController::class, 'index']);
-    Route::post('/', [App\Http\Controllers\Api\V1\TripController::class, 'store']);
-    Route::get('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'show']);
-    Route::put('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'update']);
-    Route::delete('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'destroy']);
-    Route::get('/search/available-trips', [App\Http\Controllers\Api\V1\TripController::class, 'search']);
-});
-
-Route::prefix('booking')->group(function () {
-    Route::get('/', [App\Http\Controllers\Api\V1\BookingController::class, 'index']);
-    Route::get('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'show']);
-    Route::post('/', [App\Http\Controllers\Api\V1\BookingController::class, 'store']);
-    Route::put('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'update']);
-    Route::delete('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'destroy']);
-});
-Route::post('add-card', [App\Http\Controllers\Api\V1\PaymeeController::class, 'addCard']);
-Route::post('book-trip', [App\Http\Controllers\Api\V1\PaymeeController::class, 'bookTrip']);
-Route::post('process-payment', [App\Http\Controllers\Api\V1\PaymeeController::class, 'processPayment']);
-Route::post('/check-payment-status', [App\Http\Controllers\Api\V1\PaymeeController::class, 'checkPaymentStatus']);
-
-
-Route::prefix('review')->group(function () {
-    Route::get('/', [App\Http\Controllers\Api\V1\ReviewController::class, 'index']);
-    Route::get('/{id}', [App\Http\Controllers\Api\V1\ReviewController::class, 'show']);
-    Route::post('/', [App\Http\Controllers\Api\V1\ReviewController::class, 'store']);
-    Route::put('/{id}', [App\Http\Controllers\Api\V1\ReviewController::class, 'update']);
-    Route::delete('/{id}', [App\Http\Controllers\Api\V1\ReviewController::class, 'destroy']);
-});
-
-Route::get('regions', [App\Http\Controllers\Api\V1\RegionController::class, 'index']);
-Route::get('districts', [App\Http\Controllers\Api\V1\DistrictsController::class, 'index']);
-Route::get('/districts/region/{id}', [App\Http\Controllers\Api\V1\DistrictsController::class, 'getRegion']);
-Route::get('quarters', [App\Http\Controllers\Api\V1\QuarterController::class, 'index']);
-Route::get('quarters/districts/{id}', [App\Http\Controllers\Api\V1\QuarterController::class, 'getVillagesByDistrict']);
-
 
 // Hamkorbank payment entegratin here 
 
@@ -78,8 +84,6 @@ Route::prefix('payments')->group(function () {
     Route::post('/cards/verify', [HamkorBankController::class, 'verifyCard']);
     Route::post('/cards/info', [HamkorBankController::class, 'cardInfo']);
     Route::post('/cards/check-balance', [HamkorBankController::class, 'checkBalance']);
-
-
 
     Route::post('/create', [HamkorBankController::class, 'createPayment']);
     Route::post('/confirm', [HamkorBankController::class, 'confirmPayment']);
@@ -96,13 +100,14 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [APIAuthController::class, 'register']);
     Route::post('/verify-code', [APIAuthController::class, 'verifyCode']);
     Route::post('/resend-code', [APIAuthController::class, 'resendCode']);
-
     // Login va logout
     Route::post('/login', [APIAuthController::class, 'login']);
-    Route::post('/logout', [APIAuthController::class, 'logout'])->middleware('auth:api');
-    Route::post('/refresh', [APIAuthController::class, 'refresh'])->middleware('auth:api');
-
     // Parolni unutgan holatda
     Route::post('/send-reset-code', [APIAuthController::class, 'sendResetCode']);
     Route::post('/reset-password', [APIAuthController::class, 'resetPassword']);
+});
+
+Route::prefix('auth')->middleware('auth:api')->group(function () {
+    Route::post('/logout', [APIAuthController::class, 'logout']);
+    Route::post('/refresh', [APIAuthController::class, 'refresh']);
 });

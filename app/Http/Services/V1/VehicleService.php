@@ -37,4 +37,5 @@ class VehicleService
     {
         $this->vehicleRepository->delete($id);
     }
+
 }

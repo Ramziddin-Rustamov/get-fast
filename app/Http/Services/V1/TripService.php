@@ -38,5 +38,15 @@ class TripService
         return $this->tripRepository->deleteTrip($id);
     }
 
+    public function getAllTripsForPublic()
+    {
+        return $this->tripRepository->getAllTripsForPublic();
+    }
+
+    public function getTripByIdForPublic($id)
+    {
+        return $this->tripRepository->getTripByIdForPublic($id);
+    }
+
 
 }

@@ -78,4 +78,18 @@ class TripController extends Controller
             'return_trips' => TripResource::collection($returnTrips),
         ]);
     }
+
+    public function getAllTripsForPublic()
+    {
+        return Trip::whereIn('status', ['active', 'completed'])->paginate(20);
+    }
+
+    public function getTripByIdForPublic($id)
+    {
+        $trip  =  Trip::find($id);
+        if (is_null($trip) && empty($trip)) {
+            return response()->json($this->errorResponse, 404);
+        }
+        return response()->json(new TripResource($trip), 200);
+    }
 }

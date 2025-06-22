@@ -58,11 +58,11 @@ class APIAuthController extends Controller
     public function verifyCode(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id',
+            'phone' => 'required|exists:users,phone',
             'code' => 'required|string'
         ]);
 
-        $user = \App\Models\User::find($request->user_id);
+        $user = \App\Models\User::where('phone',$request->phone)->first();
 
         if ($user->verification_code === $request->code) {
             $user->is_verified = true;
@@ -124,7 +124,7 @@ class APIAuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'phone' => 'required|string',
+            'phone' => 'required|string|exists:users,phone',
             'password' => 'required|string',
         ]);
     

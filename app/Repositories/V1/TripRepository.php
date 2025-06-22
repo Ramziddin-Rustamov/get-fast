@@ -4,6 +4,7 @@ namespace App\Repositories\V1;
 
 use App\Models\V1\Trip;
 use App\Http\Resources\V1\TripResource;
+use Illuminate\Container\Attributes\Auth;
 
 class TripRepository
 {
@@ -20,12 +21,12 @@ class TripRepository
 
     public function getAllTrips()
     {
-        return Trip::where('status', 'active')->paginate(20);
+        return Trip::where('status', 'active')->andWhere('driver_id', auth()->user()->id)->paginate(20);
     }
 
     public function getTripById($id)
     {
-        $trip  =  Trip::find($id);
+        $trip  =  Trip::where('driver_id', auth()->user()->id)->find($id);
         if (is_null($trip) && empty($trip)) {
             return response()->json($this->errorResponse, 404);
         }
@@ -35,7 +36,7 @@ class TripRepository
     public function createTrip(array $data)
     {
         $trip =  new Trip();
-        $trip->driver_id = $data['driver_id'];
+        $trip->driver_id = Auth::user()->id;
         $trip->vehicle_id = $data['vehicle_id'];
         $trip->start_location = $data['start_location'];
         $trip->end_location = $data['end_location'];
@@ -50,12 +51,12 @@ class TripRepository
 
     public function updateTrip($id, array $data)
     {
-        $trip = Trip::find($id);
+        $trip = Trip::where('driver_id', auth()->user()->id)->find($id);
         if (is_null($trip) && empty($trip)) {
             return response()->json($this->errorResponse, 404);
         }
         $trip->update([
-            'driver_id' => $data['driver_id'],
+            'driver_id' => auth()->user()->id,
             'vehicle_id' => $data['vehicle_id'],
             'start_location' => $data['start_location'],
             'end_location' => $data['end_location'],
@@ -70,7 +71,7 @@ class TripRepository
 
     public function deleteTrip($id)
     {
-        $trip = Trip::find($id);
+        $trip = Trip::where('driver_id', auth()->user()->id)->find($id);
         if (is_null($trip) && empty($trip)) {
             return response()->json($this->errorResponse, 404);
         }
@@ -78,8 +79,7 @@ class TripRepository
         return response()->json($this->successResponse, 200);
     }
 
-    public function search($request)
-    {
-        //
-    }
+
+
+ 
 }
