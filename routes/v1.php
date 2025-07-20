@@ -26,31 +26,42 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'index']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'show']);
         Route::post('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'store']);
-        Route::put('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'update']);
+        Route::put('/update/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'update']);
         Route::delete('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'destroy']);
 
         Route::get('/driver/my-vehicles', [App\Http\Controllers\Api\V1\VehicleController::class, 'getDriverVehicles']);
     });
 
-    Route::prefix('trips')->group(function () {
-        Route::get('/', [App\Http\Controllers\Api\V1\TripController::class, 'index']);
-        Route::post('/', [App\Http\Controllers\Api\V1\TripController::class, 'store']);
-        Route::get('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'show']);
-        Route::put('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'update']);
-        Route::delete('/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'destroy']);
-        Route::get('/search/available-trips', [App\Http\Controllers\Api\V1\TripController::class, 'search']);
-
-        Route::get('/public/view', [App\Http\Controllers\Api\V1\TripController::class, 'getAllTripsForPublic']);
-        Route::get('/public/view/{id}', [App\Http\Controllers\Api\V1\TripController::class, 'getTripByIdForPublic']);
+    Route::prefix('driver/trips')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\V1\DriverTripController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\Api\V1\DriverTripController::class, 'store']);
+        Route::get('/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'show']);
+        Route::put('/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'destroy']);
     });
 
-    Route::prefix('booking')->group(function () {
+    Route::prefix('client/trips')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\V1\ClientTripController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\Api\V1\DriverTripController::class, 'store']);
+        Route::get('/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'show']);
+        Route::put('/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'update']);
+        Route::delete('/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'destroy']);
+    });
+
+    Route::middleware('auth:api')->prefix('public/trips')->group(function () {
+        // for public view
+        Route::get('/search/available-trips', [App\Http\Controllers\Api\V1\PublicTripController::class, 'search']);
+        Route::get('/view', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getAllTripsForPublic']);
+        Route::get('/view/{id}', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripByIdForPublic']);
+    });
+
+    Route::prefix('client/booking')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\BookingController::class, 'index']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'show']);
-        Route::post('/', [App\Http\Controllers\Api\V1\BookingController::class, 'store']);
-        Route::put('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'update']);
-        Route::delete('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'destroy']);
+        Route::post('/', [App\Http\Controllers\Api\V1\BookingController::class, 'bookTrip']);
     });
+
+
     Route::post('add-card', [App\Http\Controllers\Api\V1\PaymeeController::class, 'addCard']);
     Route::post('book-trip', [App\Http\Controllers\Api\V1\PaymeeController::class, 'bookTrip']);
     Route::post('process-payment', [App\Http\Controllers\Api\V1\PaymeeController::class, 'processPayment']);
@@ -110,4 +121,7 @@ Route::prefix('auth')->group(function () {
 Route::prefix('auth')->middleware('auth:api')->group(function () {
     Route::post('/logout', [APIAuthController::class, 'logout']);
     Route::post('/refresh', [APIAuthController::class, 'refresh']);
+    Route::post('/become-a-driver', [APIAuthController::class, 'become_a_driver']);
+    Route::post('/update-profile', [APIAuthController::class, 'updateProfile']);
+    Route::get('/me', [APIAuthController::class, 'me']);
 });

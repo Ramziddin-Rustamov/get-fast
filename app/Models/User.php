@@ -12,6 +12,7 @@ use App\Models\V1\Quarter;
 use App\Models\V1\ParcelBooking;
 use App\Models\V1\PaymentCard;
 use App\Models\V1\Trip;
+use App\Models\V1\UserImage;
 use App\Models\V1\Vehicle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -23,7 +24,11 @@ class User  extends Authenticatable implements JWTSubject
     protected $table = 'users';
     public $timestamps = true;
     protected $fillable = [
-        'name',
+        'first_name',
+        'last_name',
+
+        'email',
+        'father_name',
         'phone',
         'image',
         'region_id',
@@ -172,5 +177,15 @@ class User  extends Authenticatable implements JWTSubject
     public function clientCard()
     {
         return $this->hasOne(CreditCard::class)->where('is_active', true);
+    }
+
+    public function profileImage()
+    {
+        return $this->hasOne(UserImage::class)->where('type', 'profile');
+    }
+
+    public function passportImage()
+    {
+        return $this->hasOne(UserImage::class)->where('type', 'passport');
     }
 }

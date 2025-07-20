@@ -13,7 +13,10 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('first_name')->nullable();
+            $table->string('last_name')->nullable();
+            $table->string('father_name')->nullable();
+            $table->string('email')->unique();
             $table->string('phone')->unique();
             $table->string('password')->nullable();
             $table->string('image')->nullable()->default('default.jpg');
@@ -24,6 +27,10 @@ return new class extends Migration
             $table->enum('role', ['client', 'driver', 'admin'])->default('client');
             $table->boolean('is_verified')->default(false);
             $table->string('verification_code')->nullable();
+            $table->string('driving_licence_number')->nullable();
+            $table->string('driving_licence_expiry')->nullable();
+            $table->string('birth_date')->nullable();
+            $table->enum('driving_verification_status', ['none', 'pending', 'approved', 'rejected', 'blocked'])->default('none');
             $table->rememberToken();
             $table->timestamps();
         });

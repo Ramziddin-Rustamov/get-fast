@@ -19,6 +19,9 @@ class Trip extends Model
         'price_per_seat',
         'total_seats',
         'available_seats',
+        'end_point_id',
+        'start_point_id',
+        'expired_at'
     ];
 
     public function driver()
@@ -54,5 +57,20 @@ class Trip extends Model
     public function scopeCanceled($query)
     {
         return $query->where('status', 'canceled');
+    }
+
+    public function startPoint()
+    {
+        return $this->belongsTo(Point::class, 'start_point_id');
+    }
+
+    public function endPoint()
+    {
+        return $this->belongsTo(Point::class, 'end_point_id');
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
     }
 }

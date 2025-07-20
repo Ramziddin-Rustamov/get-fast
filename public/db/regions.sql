@@ -1,16 +1,15 @@
-
-INSERT INTO `regions` (`id`, `name`) VALUES
-(1, 'Qoraqalpog‘iston Respublikasi'),
-(2, 'Andijon viloyati'),
-(3, 'Buxoro viloyati'),
-(4, 'Jizzax viloyati'),
-(5, 'Qashqadaryo viloyati'),
-(6, 'Navoiy viloyati'),
-(7, 'Namangan viloyati'),
-(8, 'Samarqand viloyati'),
-(9, 'Surxandaryo viloyati'),
-(10, 'Sirdaryo viloyati'),
-(11, 'Toshkent viloyati'),
-(12, 'Farg‘ona viloyati'),
-(13, 'Xorazm viloyati'),
-(14, 'Toshkent shahri');
+INSERT INTO `regions` (`id`, `name_uz`, `name_ru`, `name_en`, `created_at`, `updated_at`) VALUES
+(1, 'Qoraqalpog‘iston Respublikasi', 'Республика Каракалпакстан', 'Republic of Karakalpakstan', NULL, NULL),
+(2, 'Andijon viloyati', 'Андижанская область', 'Andijan region', NULL, NULL),
+(3, 'Buxoro viloyati', 'Бухарская область', 'Bukhara region', NULL, NULL),
+(4, 'Jizzax viloyati', 'Джизакская область', 'Jizzakh region', NULL, NULL),
+(5, 'Qashqadaryo viloyati', 'Кашкадарьинская область', 'Kashkadarya region', NULL, NULL),
+(6, 'Navoiy viloyati', 'Навоийская область', 'Navoi region', NULL, NULL),
+(7, 'Namangan viloyati', 'Наманганская область', 'Namangan region', NULL, NULL),
+(8, 'Samarqand viloyati', 'Самаркандская область', 'Samarkand region', NULL, NULL),
+(9, 'Surxandaryo viloyati', 'Сурхандарьинская область', 'Surkhandarya region', NULL, NULL),
+(10, 'Sirdaryo viloyati', 'Сырдарьинская область', 'Syrdarya region', NULL, NULL),
+(11, 'Toshkent viloyati', 'Ташкентская область', 'Tashkent region', NULL, NULL),
+(12, 'Farg‘ona viloyati', 'Ферганская область', 'Fergana region', NULL, NULL),
+(13, 'Xorazm viloyati', 'Хорезмская область', 'Khorezm region', NULL, NULL),
+(14, 'Toshkent shahri', 'Город Ташкент', 'Tashkent city', NULL, NULL);

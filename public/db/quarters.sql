@@ -1,4 +1,3 @@
-
 INSERT INTO `quarters` (`id`, `district_id`, `name`) VALUES
 (1, 15, 'Amir Temur nomli ovul fuqarolar yig`ini'),
 (2, 15, 'Tosh Yop ovul fuqarolar yig`ini'),
@@ -1784,9 +1783,7 @@ INSERT INTO `quarters` (`id`, `district_id`, `name`) VALUES
 (1945, 61, 'Do`smat MFY'),
 (1946, 61, 'Muzbuloq MFY'),
 (1947, 61, 'Alamli MFY'),
-(1948, 61, 'Madaniyat MFY');
-
-INSERT INTO `quarters` (`id`, `district_id`, `name`) VALUES
+(1948, 61, 'Madaniyat MFY'),
 (1949, 61, 'G`allakon MFY'),
 (1950, 61, 'Yangibog` MFY'),
 (1951, 61, 'Toypoqsoy MFY'),
@@ -3656,8 +3653,7 @@ INSERT INTO `quarters` (`id`, `district_id`, `name`) VALUES
 (3815, 105, 'Kuprikboshi MFY'),
 (3816, 105, 'Kurama MFY'),
 (3817, 105, 'Kurgoncha MFY'),
-(3818, 105, 'Mexnatobod MFY');
-INSERT INTO `quarters` (`id`, `district_id`, `name`) VALUES
+(3818, 105, 'Mexnatobod MFY'),
 (3819, 105, 'Madaniyat MFY'),
 (3820, 105, 'Madaniyat MFY'),
 (3821, 105, 'Namuna MFY'),
@@ -5454,8 +5450,7 @@ INSERT INTO `quarters` (`id`, `district_id`, `name`) VALUES
 (5612, 128, 'Qumqishloq MFY'),
 (5613, 128, 'Sh.Yulduzi QFY'),
 (5614, 128, 'Soqchi MFY'),
-(5615, 128, 'Surxon QFY');
-INSERT INTO `quarters` (`id`, `district_id`, `name`) VALUES
+(5615, 128, 'Surxon QFY'),
 (5616, 128, 'T.Shoburov MFY'),
 (5617, 128, 'U.Xudoyberdiev MFY'),
 (5618, 128, 'Ulug`bek MFY'),
@@ -7224,8 +7219,7 @@ INSERT INTO `quarters` (`id`, `district_id`, `name`) VALUES
 (7381, 163, 'Guliston MFY'),
 (7382, 163, 'Guzar MFY'),
 (7383, 163, 'Istiqlol k.FY'),
-(7384, 163, 'Jaloir MFY');
-INSERT INTO `quarters` (`id`, `district_id`, `name`) VALUES
+(7384, 163, 'Jaloir MFY'),
 (7385, 163, 'Jangaboy MFY'),
 (7386, 163, 'Kaytmas MFY'),
 (7387, 163, 'Konchi MFY'),
@@ -9015,8 +9009,7 @@ INSERT INTO `quarters` (`id`, `district_id`, `name`) VALUES
 (9171, 193, 'Navro`z MFY'),
 (9172, 193, 'Obod MFY'),
 (9173, 193, 'Otalik MFY'),
-(9174, 193, 'Oxunboboev MFY');
-INSERT INTO `quarters` (`id`, `district_id`, `name`) VALUES
+(9174, 193, 'Oxunboboev MFY'),
 (9175, 193, 'Oybek MFY'),
 (9176, 193, 'Pastom MFY'),
 (9177, 193, 'Saidlar MFY'),

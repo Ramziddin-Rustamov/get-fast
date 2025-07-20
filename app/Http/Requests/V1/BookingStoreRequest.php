@@ -23,8 +23,9 @@ class BookingStoreRequest extends FormRequest
     {
         return [
             'trip_id' => 'required|exists:trips,id',
-            'user_id' => 'required|exists:users,id',
-            'seats_booked' => 'required|integer|min:1',
+            'passengers' => 'required|array|min:1',
+            'passengers.*.name' => 'required|string|max:255',
+            'passengers.*.phone' => 'required|string|max:20',
         ];
     }
 }

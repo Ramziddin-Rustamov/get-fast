@@ -18,6 +18,7 @@ return new class extends Migration
             $table->integer('seats_booked');
             $table->decimal('total_price', 10, 2);
             $table->enum('status', ['pending', 'confirmed', 'cancelled'])->default('pending');
+            $table->timestamp('expired_at')->nullable();
             $table->timestamps();
         });
     }

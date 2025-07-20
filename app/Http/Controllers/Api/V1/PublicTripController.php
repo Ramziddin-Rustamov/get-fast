@@ -2,48 +2,19 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Services\V1\TripService;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\V1\TripStoreRequest;
-use App\Http\Requests\V1\TripUpdateRequest;
-use App\Http\Resources\V1\TripResource;
+use App\Http\Resources\V1\PublicTripResource;
 use App\Models\V1\Trip;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
-class TripController extends Controller
+class PublicTripController extends Controller
 {
-    protected $tripService;
 
-    public function __construct(TripService $tripService)
-    {
-        $this->tripService = $tripService;
-    }
-
-    public function index()
-    {
-        return TripResource::collection($this->tripService->getAllTrips());
-    }
-
-    public function show($id)
-    {
-        return $this->tripService->getTripById($id);
-    }
-
-    public function store(TripStoreRequest $request)
-    {
-        return $this->tripService->createTrip($request->validated());
-    }
-
-    public function update(TripUpdateRequest $request, $id)
-    {
-        return $this->tripService->updateTrip($id, $request->validated());
-    }
-
-    public function destroy($id)
-    {
-        return  $this->tripService->deleteTrip($id);
-    }
+    public $errorResponse = [
+        'success' => false,
+        'message' => 'Trip not found'
+    ];
 
     public function search(Request $request)
     {
@@ -74,14 +45,15 @@ class TripController extends Controller
         }
 
         return response()->json([
-            'departure_trips' => TripResource::collection($departureTrips),
-            'return_trips' => TripResource::collection($returnTrips),
+            'departure_trips' => PublicTripResource::collection($departureTrips),
+            'return_trips' => PublicTripResource::collection($returnTrips),
         ]);
     }
 
     public function getAllTripsForPublic()
     {
-        return Trip::whereIn('status', ['active', 'completed'])->paginate(20);
+        $trip =  Trip::whereIn('status', ['active', 'completed', 'full'])->paginate(20);
+        return response()->json(PublicTripResource::collection($trip), 200);
     }
 
     public function getTripByIdForPublic($id)
@@ -90,6 +62,8 @@ class TripController extends Controller
         if (is_null($trip) && empty($trip)) {
             return response()->json($this->errorResponse, 404);
         }
-        return response()->json(new TripResource($trip), 200);
+        return response()->json(new PublicTripResource($trip), 200);
     }
+
+
 }

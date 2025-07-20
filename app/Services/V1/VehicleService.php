@@ -2,7 +2,10 @@
 
 namespace App\Services\V1;
 
+use App\Http\Requests\V1\StoreRequest;
+use App\Http\Requests\V1\UpdateRequest;
 use App\Repositories\V1\VehicleRepository;
+use Illuminate\Http\Request;
 
 class VehicleService
 {
@@ -23,15 +26,15 @@ class VehicleService
         return $this->vehicleRepository->findById($id);
     }
 
-    public function create(array $data)
+    public function create(StoreRequest $data)
     {
         return $this->vehicleRepository->create($data);
     }
 
-    public function update($id, array $data)
-    {
-        return $this->vehicleRepository->update($id, $data);
-    }
+    // public function update(Request $update_request,$id)
+    // {
+    //     return $this->vehicleRepository->update($update_request,$id);
+    // }
 
     public function delete($id)
     {

@@ -23,6 +23,7 @@ return new class extends Migration
             $table->integer('total_seats')->default(4);
             $table->integer('available_seats');
             $table->enum('status', ['active', 'completed', 'cancelled','expired','full'])->default('active');
+            $table->timestamp('expired_at')->nullable(); // Add the expired_at column it equal to end time
             $table->timestamps();
         });
     }

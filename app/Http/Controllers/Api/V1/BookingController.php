@@ -27,22 +27,22 @@ class BookingController extends Controller
         return $this->bookingService->getBookingById($id);
     }
 
-    public function store(BookingStoreRequest $request)
+    public function bookTrip(BookingStoreRequest $request)
     {
         $data = $request->validated();
         return $this->bookingService->createBooking($data);
     }
 
-    public function update(BookingUpdateRequest $request, $id)
-    {
-        $data = $request->validated();
-        return $this->bookingService->updateBooking($id, $data);
-    }
+    // public function update(BookingUpdateRequest $request, $id)
+    // {
+    //     $data = $request->validated();
+    //     return $this->bookingService->updateBooking($id, $data);
+    // }
 
-    public function destroy($id)
-    {
-        return  $this->bookingService->deleteBooking($id);
-    }
+    // public function destroy($id)
+    // {
+    //     return  $this->bookingService->deleteBooking($id);
+    // }
 
     
 }

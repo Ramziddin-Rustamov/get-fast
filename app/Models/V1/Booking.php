@@ -16,6 +16,7 @@ class Booking extends Model
         'seats_booked',
         'total_price',
         'status',
+        'expired_at'
     ];
 
     public function trip()
@@ -27,8 +28,8 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class);
     }
-
-
-
-    
+    public function passengers()
+    {
+        return $this->hasMany(BookingPassengers::class);
+    }
 }

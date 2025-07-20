@@ -22,12 +22,14 @@ class StoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => 'required|exists:users,id',
-            'make' => 'required|string|max:255',
-            'model' => 'required|string|max:255',
-            'year' => 'required|integer|min:1900|max:' . date('Y'),
-            'license_plate' => 'required|string|max:20|unique:vehicles,license_plate',
-            'seats' => 'required|integer|min:1',
+            'vehicle_number' => 'required|string|unique:vehicles,car_number',
+            'car_model' => 'required|string',
+            'car_color_id' => 'required|exists:colors,id',
+            'tech_passport_number' => 'required|string|unique:vehicles,tech_passport_number',
+            'seats' => 'required|integer|min:1|max:8',
+            'car_images' => 'required|array|min:1',
+            'car_images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:44024',
+            'tech_passport' => 'required|image|mimes:jpeg,png,jpg,gif|max:2448',
         ];
     }
 }

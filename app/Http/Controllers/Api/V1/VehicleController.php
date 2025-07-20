@@ -8,6 +8,7 @@ use App\Http\Requests\V1\StoreRequest;
 use App\Http\Requests\V1\UpdateRequest;
 use App\Http\Resources\V1\VehicleResource;
 use App\Models\V1\Vehicle;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class VehicleController extends Controller
@@ -30,7 +31,7 @@ class VehicleController extends Controller
 
     public function store(StoreRequest $request)
     {
-        return $this->vehicleService->create($request->validated());
+        return $this->vehicleService->create($request);
     }
 
     public function show($id)
@@ -38,16 +39,13 @@ class VehicleController extends Controller
         return $this->vehicleService->findById($id);
     }
 
-    public function update(UpdateRequest $request, $id)
-    {
-        return $this->vehicleService->update($id, $request->validated());
-    }
+    // public function update(Request $request, $id)
+    // {
+    //     return $this->vehicleService->update($request, $id);
+    // }
 
     public function destroy($id)
     {
         return $this->vehicleService->delete($id);
     }
-
-
-
 }

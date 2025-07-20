@@ -22,12 +22,14 @@ class UpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'user_id' => 'sometimes|exists:users,id',
-            'make' => 'sometimes|string|max:255',
-            'model' => 'sometimes|string|max:255',
-            'year' => 'sometimes|integer|min:1900|max:' . date('Y'),
-            'license_plate' => 'sometimes|string|max:20|unique:vehicles,license_plate,' . $this->vehicle,
-            'seats' => 'sometimes|integer|min:1',
+            'vehicle_number' => 'required|string|unique:vehicles,car_number,' . $this->route('id'),
+            'tech_passport_number' => 'required|string|unique:vehicles,tech_passport_number,' . $this->route('id'),
+            'car_model' => 'required|string',
+            'car_color_id' => 'required|exists:colors,id',
+            'seats' => 'required|integer|min:1|max:8',
+            'car_images' => 'sometimes|array|min:1',
+            'car_images.*' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:44024',
+            'tech_passport' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2448',
         ];
     }
 }

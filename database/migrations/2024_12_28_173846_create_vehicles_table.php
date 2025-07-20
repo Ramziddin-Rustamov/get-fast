@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('vehicles', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->string('make');
-            $table->string('model');
-            $table->integer('year');
-            $table->string('license_plate')->unique();
-            $table->integer('seats');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('vehicles')) {
+            Schema::create('vehicles', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+                $table->foreignId('color_id')->constrained('colors')->onDelete('cascade');
+                $table->string('model');
+                $table->string('car_number')->unique();
+                $table->string('tech_passport_number')->unique();
+                $table->integer('seats');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

@@ -11,15 +11,30 @@ class Vehicle extends Model
 
     protected $fillable = [
         'user_id',
-        'make',
+        'color_id',
         'model',
-        'year',
-        'license_plate',
+        'car_number',
+        'tech_passport_number',
         'seats',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function color()
+    {
+        return $this->belongsTo(Color::class);
+    }
+
+    public function images()
+    {
+        return $this->hasMany(VehicleImages::class);
+    }
+
+    public function techPassport()
+    {
+        return $this->hasOne(VehicleImages::class)->where('type', 'tech_passport');
     }
 }

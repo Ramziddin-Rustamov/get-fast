@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Carbon\Carbon;
 
-class TripResource extends JsonResource
+class PublicTripResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
@@ -35,21 +35,45 @@ class TripResource extends JsonResource
             'price_per_seat' => $this->price_per_seat,
             'total_seats' => $this->total_seats,
             'available_seats' => $this->available_seats,
+            'start_lat' => $this->startPoint->lat,
+            'start_long' => $this->startPoint->long,
+            'end_lat' => $this->endPoint->lat,
+            'end_long' => $this->endPoint->long,
             'status' => $this->status,
             'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
             'updated_at' => $this->updated_at ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s') : null,
-            'driver' => [
+           'driver' => $this->driver ? [
                 'id' => $this->driver->id,
                 'name' => $this->driver->name ?? null,
                 'role' => $this->driver->role ?? null,
-            ],
-            'vehicle' => [
+            ] : 'No driver data',
+
+            'vehicle' => $this->vehicle ? [
                 'id' => $this->vehicle->id,
-                'make' => $this->vehicle->make ?? null,
                 'model' => $this->vehicle->model ?? null,
-                'year' => $this->vehicle->year ?? null,
                 'seats' => $this->vehicle->seats ?? null,
-            ],
+                'car_number' => $this->vehicle->car_number ?? null,
+                'color' => [
+                    'id' => $this->vehicle->color->id,
+                    'title_uz' => $this->vehicle->color->title_uz,
+                    'title_ru' => $this->vehicle->color->title_ru,
+                    'title_en' => $this->vehicle->color->title_en,
+                    'code' => $this->vehicle->color->code
+                ] ?? null,
+            ] : 'No vehicle data',
+
+            'starting_point' => $this->startPoint ? [
+                'id' => $this->startPoint->id,
+                'lat' => $this->startPoint->lat,
+                'long' => $this->startPoint->long,
+            ] : 'No starting point data',
+
+             'ending_point' => $this->endPoint ? [
+                    'id' => $this->endPoint->id,
+                    'lat' => $this->endPoint->lat,
+                    'long' => $this->endPoint->long,
+              ] : 'No ending point data',
+
         ];
     }
 }

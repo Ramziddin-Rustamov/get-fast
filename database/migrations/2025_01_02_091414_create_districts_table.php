@@ -18,7 +18,9 @@ return new class extends Migration
                 $table->id();
                 $table->unsignedBigInteger('region_id');
                 $table->foreign('region_id')->references('id')->on('regions')->onDelete('cascade');
-                $table->string('name');
+                $table->string('name_uz');
+                $table->string('name_ru');
+                $table->string('name_en');
                 $table->timestamps();
             });
     
