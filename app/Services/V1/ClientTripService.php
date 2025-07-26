@@ -22,4 +22,21 @@ class ClientTripService
     {
         return $this->clientTripRepository->getTripById($id);
     }
+
+    public function getCompletedTrips()
+    {
+        return $this->clientTripRepository->getCompletedTripsForClient();
+    }
+
+    public function getInprogressTrips()
+    {
+        return $this->clientTripRepository->getInprogressTripsForClient();
+    }
+
+    public function getCanceledTrips()
+    {
+        return $this->clientTripRepository->canceledTripsForClient();
+    }
+
+
 }

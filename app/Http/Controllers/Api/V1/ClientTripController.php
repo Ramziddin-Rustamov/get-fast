@@ -29,4 +29,20 @@ class ClientTripController extends Controller
     {
         return $this->clientTripService->getTripById($id);
     }
+
+    public function completedTrips()
+    {
+        return $this->clientTripService->getCompletedTrips();
+    }
+
+    public function inprogressTrips()
+    {
+        return $this->clientTripService->getInprogressTrips();
+    }
+
+    public function canceledTrips()
+    {
+        return $this->clientTripService->getCanceledTrips();
+    }
+    
 }

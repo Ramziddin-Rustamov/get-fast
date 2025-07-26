@@ -4,6 +4,7 @@ namespace App\Repositories\V1;
 
 use App\Http\Resources\V1\ClientTripResource;
 use App\Models\V1\Trip;
+use Illuminate\Support\Carbon;
 
 class ClientTripRepository
 {
@@ -20,14 +21,14 @@ class ClientTripRepository
 
     public function getAllTrips()
     {
-        $trips =  Trip::whereIn('status', ['active','full'])->paginate(10);
+        $trips =  Trip::whereIn('status', ['active', 'full'])->paginate(10);
         return ClientTripResource::collection($trips);
     }
 
     public function getTripById($id)
     {
         $trip = Trip::where('id', $id)
-          ->whereIn('status', ['active','full'])
+            ->whereIn('status', ['active', 'full'])
             ->first();
 
         if (is_null($trip) && empty($trip)) {
@@ -35,130 +36,78 @@ class ClientTripRepository
         }
         return new ClientTripResource($trip);
     }
-    // public function createTrip(array $data)
-    // {
-    //     try {
-    //         DB::beginTransaction();
 
-    //         $startPoint = Point::create([
-    //             'lat' => $data['start_lat'],
-    //             'long' => $data['start_long'],
-    //         ]);
+    public function canceledTripsForClient()
+    {
+        // ✅ Cancelled
+        $cancelledTrips = Trip::whereHas('bookings', function ($q) {
+            $q->where('user_id', auth()->id())
+                ->where('status', 'cancelled');
+        })
+            // ->orWhere(function ($q) {
+            //     $q->whereIn('status', ['cancelled'])
+            //         ->whereHas('bookings', function ($q2) {
+            //             $q2->where('user_id', auth()->id());
+            //         });
+            // })
+            ->get();
 
-    //         $endPoint = Point::create([
-    //             'lat' => $data['end_lat'],
-    //             'long' => $data['end_long'],
-    //         ]);
+        if (count($cancelledTrips) == 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'you have no cancelled trips'
+            ], 404);
+        }
 
-    //         $trip = new Trip();
-    //         $trip->driver_id = auth()->user()->id;
-    //         $trip->vehicle_id = $data['vehicle_id'];
-    //         $trip->start_quarter_id = $data['start_quarter_id'];
-    //         $trip->end_quarter_id = $data['end_quarter_id'];
-    //         $trip->start_time = $data['start_time'];
-    //         $trip->end_time = $data['end_time'];
-    //         $trip->price_per_seat = $data['price_per_seat'];
-    //         $trip->total_seats = (int) $data['total_seats'];
-    //         $trip->available_seats = $data['available_seats'];
-    //         $trip->start_point_id = $startPoint->id;
-    //         $trip->end_point_id = $endPoint->id;
-    //         $trip->save();
+        return ClientTripResource::collection($cancelledTrips);
+    }
 
-    //         DB::commit();
+    public function getInprogressTripsForClient()
+    {
+        $now = Carbon::now();
+        // ✅ In Progress
+        $inProgressTrips = Trip::whereHas('bookings', function ($q) {
+            $q->where('user_id', auth()->id())
+                ->where('status', 'confirmed');
+        })
+            ->where('status', 'active')
+            ->where('start_time', '<=', $now)
+            ->where('end_time', '>=', $now)
+            ->get();
 
-    //         return response()->json(new ClientTripResource($trip), 200);
-    //     } catch (\Throwable $e) {
-    //         DB::rollBack();
+        if (count($inProgressTrips) == 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'you have no in progress trips'
+            ], 404);
+        }
 
-    //         return response()->json([
-    //             'message' => 'Trip yaratishda xatolik yuz berdi.',
-    //             'error' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
-
-    // public function updateTrip($id, array $data)
-    // {
-    //     try {
-    //         DB::beginTransaction();
-
-    //         $trip = Trip::where('id', $id)
-    //             ->where('driver_id', auth()->user()->id)
-    //             ->first();
-    //         if (!$trip) {
-    //             return response()->json([
-    //                 'message' => 'Trip topilmadi.',
-    //                 'error' => 'error'
-    //             ], 404);
-    //         }
-
-    //         $startPoint = Point::find($trip->start_point_id);
-    //         if (!$startPoint) {
-    //             return response()->json([
-    //                 'message' => 'Start point topilmadi.',
-    //                 'error' => 'error'
-    //             ], 404);
-    //         }
-
-    //         $endPoint = Point::find($trip->end_point_id);
-    //         if (!$endPoint) {
-    //             return response()->json([
-    //                 'message' => 'End point topilmadi.',
-    //                 'error' => 'error'
-    //             ], 404);
-    //         }
-
-    //         // Start point yangilash
-    //         $startPoint->update([
-    //             'lat' => $data['start_lat'] ?? $startPoint->lat,
-    //             'long' => $data['start_long'] ?? $startPoint->long,
-    //         ]);
-
-    //         // End point yangilash
-    //         $endPoint->update([
-    //             'lat' => $data['end_lat'] ?? $endPoint->lat,
-    //             'long' => $data['end_long'] ?? $endPoint->long,
-    //         ]);
-
-    //         // Trip yangilash
-    //         $trip->vehicle_id = $data['vehicle_id'];
-    //         $trip->start_quarter_id = $data['start_quarter_id'];
-    //         $trip->end_quarter_id = $data['end_quarter_id'];
-    //         $trip->start_time = $data['start_time'];
-    //         $trip->end_time = $data['end_time'];
-    //         $trip->price_per_seat = $data['price_per_seat'];
-    //         $trip->total_seats = (int) $data['total_seats'];
-    //         $trip->available_seats = $data['available_seats'];
-    //         $trip->save();
-
-    //         DB::commit();
-
-    //         return response()->json(new ClientTripResource($trip), 200);
-    //     } catch (\Throwable $e) {
-    //         DB::rollBack();
-
-    //         Log::error('Trip yangilashda xatolik: ' . $e->getMessage(), [
-    //             'trip_id' => $id,
-    //             'user_id' => auth()->id(),
-    //         ]);
-
-    //         return response()->json([
-    //             'message' => 'Trip yangilashda xatolik yuz berdi.',
-    //             'error' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
+        return ClientTripResource::collection($inProgressTrips);
+    }
 
 
-    // public function deleteTrip($id)
-    // {
-    //     $trip = Trip::where('id', $id)
-    //         ->where('driver_id', auth()->user()->id)
-    //         ->first();
-    //     if (is_null($trip) && empty($trip)) {
-    //         return response()->json($this->errorResponse, 404);
-    //     }
-    //     $trip->delete();
-    //     return response()->json($this->successResponse, 200);
-    // }
+    public function getCompletedTripsForClient()
+    {
+        $now = Carbon::now();
+        $completedTrips = Trip::whereHas('bookings', function ($q) {
+            $q->where('user_id', auth()->id())
+                ->where('status', 'completed');
+        })
+            // ->orWhere(function ($q) {
+            //     $q->where('status', 'completed')
+            //         ->whereHas('bookings', function ($q2) {
+            //             $q2->where('user_id', auth()->id());
+            //         });
+            // })
+            ->get();
+
+
+        if (count($completedTrips) == 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'you have no completed trips'
+            ], 404);
+        }
+        return ClientTripResource::collection($completedTrips);
+    }
 }

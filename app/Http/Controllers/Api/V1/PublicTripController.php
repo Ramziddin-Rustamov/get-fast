@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\PublicTripResource;
+use App\Http\Resources\V1\PublicTripWithLessInfoResource;
 use App\Models\V1\Trip;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,6 +16,12 @@ class PublicTripController extends Controller
         'success' => false,
         'message' => 'Trip not found'
     ];
+
+    public function getTripsWithLessInfo()
+    {
+        $tripWithLessInfo =  Trip::whereIn('status', ['active', 'completed', 'full'])->paginate(20);
+        return response()->json(PublicTripWithLessInfoResource::collection($tripWithLessInfo), 200);
+    }
 
     public function search(Request $request)
     {

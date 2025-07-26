@@ -42,14 +42,15 @@ Route::middleware('auth:api')->group(function () {
 
     Route::prefix('client/trips')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\ClientTripController::class, 'index']);
-        Route::post('/', [App\Http\Controllers\Api\V1\DriverTripController::class, 'store']);
-        Route::get('/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'show']);
-        Route::put('/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'update']);
-        Route::delete('/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'destroy']);
+        Route::get('/get-canceled-trips', [App\Http\Controllers\Api\V1\ClientTripController::class, 'canceledTrips']);
+        Route::get('/get-inprogress-trips', [App\Http\Controllers\Api\V1\ClientTripController::class, 'inprogressTrips']);
+        Route::get('/get-completed-trips', [App\Http\Controllers\Api\V1\ClientTripController::class, 'completedTrips']);
+        Route::get('/{id}', [App\Http\Controllers\Api\V1\ClientTripController::class, 'show']);
     });
 
     Route::middleware('auth:api')->prefix('public/trips')->group(function () {
         // for public view
+        Route::get('/', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripsWithLessInfo']);
         Route::get('/search/available-trips', [App\Http\Controllers\Api\V1\PublicTripController::class, 'search']);
         Route::get('/view', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getAllTripsForPublic']);
         Route::get('/view/{id}', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripByIdForPublic']);
@@ -57,23 +58,22 @@ Route::middleware('auth:api')->group(function () {
 
     Route::prefix('client/booking')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\BookingController::class, 'index']);
+        Route::put('/update/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'update']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'show']);
         Route::post('/', [App\Http\Controllers\Api\V1\BookingController::class, 'bookTrip']);
+        Route::delete('/cancel/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'cancelBooking']);
+    });
+
+    Route::prefix('/user/balance-transactions')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\V1\BalanceTransactionController::class, 'getAllUserBalanceTransactions']);
+        Route::get('/pdf', [App\Http\Controllers\Api\V1\BalanceTransactionController::class, 'downloadPdfTransactions']);
+        Route::get('/pdf/{id}', [App\Http\Controllers\Api\V1\BalanceTransactionController::class, 'downloadOnePdfTransactions']);
     });
 
 
-    Route::post('add-card', [App\Http\Controllers\Api\V1\PaymeeController::class, 'addCard']);
-    Route::post('book-trip', [App\Http\Controllers\Api\V1\PaymeeController::class, 'bookTrip']);
-    Route::post('process-payment', [App\Http\Controllers\Api\V1\PaymeeController::class, 'processPayment']);
-    Route::post('/check-payment-status', [App\Http\Controllers\Api\V1\PaymeeController::class, 'checkPaymentStatus']);
-
-
-    Route::prefix('review')->group(function () {
-        Route::get('/', [App\Http\Controllers\Api\V1\ReviewController::class, 'index']);
-        Route::get('/{id}', [App\Http\Controllers\Api\V1\ReviewController::class, 'show']);
-        Route::post('/', [App\Http\Controllers\Api\V1\ReviewController::class, 'store']);
-        Route::put('/{id}', [App\Http\Controllers\Api\V1\ReviewController::class, 'update']);
-        Route::delete('/{id}', [App\Http\Controllers\Api\V1\ReviewController::class, 'destroy']);
+    Route::prefix('driver/expired-trips')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\V1\DriverExpiredTripsControllerApi::class, 'getExpeiredTrips']);
+        Route::get('/{id}', [App\Http\Controllers\Api\V1\DriverExpiredTripsControllerApi::class, 'getExpiredTrip']);
     });
 
     Route::get('regions', [App\Http\Controllers\Api\V1\RegionController::class, 'index']);
@@ -82,28 +82,6 @@ Route::middleware('auth:api')->group(function () {
     Route::get('quarters', [App\Http\Controllers\Api\V1\QuarterController::class, 'index']);
     Route::get('quarters/districts/{id}', [App\Http\Controllers\Api\V1\QuarterController::class, 'getVillagesByDistrict']);
 });
-
-// Hamkorbank payment entegratin here 
-
-
-Route::prefix('payments')->group(function () {
-
-
-    Route::post('/token', [HamkorBankController::class, 'getToken']);
-    Route::post('/cards/list', [HamkorBankController::class, 'listCards']);
-    Route::post('/cards/add', [HamkorBankController::class, 'addCard']);
-    Route::post('/cards/verify', [HamkorBankController::class, 'verifyCard']);
-    Route::post('/cards/info', [HamkorBankController::class, 'cardInfo']);
-    Route::post('/cards/check-balance', [HamkorBankController::class, 'checkBalance']);
-
-    Route::post('/create', [HamkorBankController::class, 'createPayment']);
-    Route::post('/confirm', [HamkorBankController::class, 'confirmPayment']);
-    Route::post('/cancel', [HamkorBankController::class, 'cancelPayment']);
-    Route::post('/partial-refund', [HamkorBankController::class, 'partialRefund']);
-    Route::post('/get', [HamkorBankController::class, 'getPayment']);
-    Route::post('/get-by-external', [HamkorBankController::class, 'getPaymentByExternalId']);
-});
-
 
 Route::prefix('auth')->group(function () {
 
@@ -124,4 +102,23 @@ Route::prefix('auth')->middleware('auth:api')->group(function () {
     Route::post('/become-a-driver', [APIAuthController::class, 'become_a_driver']);
     Route::post('/update-profile', [APIAuthController::class, 'updateProfile']);
     Route::get('/me', [APIAuthController::class, 'me']);
+    Route::post('/fill-balance', [APIAuthController::class, 'fillBalance']);
 });
+
+
+// Hamkorbank payment entegratin here 
+// Route::prefix('payments')->group(function () {
+//     // Route::post('/token', [HamkorBankController::class, 'getToken']);
+//     // Route::post('/cards/list', [HamkorBankController::class, 'listCards']);
+//     // Route::post('/cards/add', [HamkorBankController::class, 'addCard']);
+//     // Route::post('/cards/verify', [HamkorBankController::class, 'verifyCard']);
+//     // Route::post('/cards/info', [HamkorBankController::class, 'cardInfo']);
+//     // Route::post('/cards/check-balance', [HamkorBankController::class, 'checkBalance']);
+
+//     Route::post('/create', [HamkorBankController::class, 'createPayment']);
+//     Route::post('/confirm', [HamkorBankController::class, 'confirmPayment']);
+//     Route::post('/cancel', [HamkorBankController::class, 'cancelPayment']);
+//     Route::post('/partial-refund', [HamkorBankController::class, 'partialRefund']);
+//     Route::post('/get', [HamkorBankController::class, 'getPayment']);
+//     Route::post('/get-by-external', [HamkorBankController::class, 'getPaymentByExternalId']);
+// });

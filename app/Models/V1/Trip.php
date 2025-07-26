@@ -73,4 +73,18 @@ class Trip extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function passengers()
+    {
+        return $this->hasManyThrough(
+            \App\Models\V1\BookingPassengers::class,
+            \App\Models\V1\Booking::class,
+            'trip_id',         // Foreign key on bookings table
+            'booking_id',      // Foreign key on booking_passengers table
+            'id',              // Local key on trips table
+            'id'               // Local key on bookings table
+        );
+    }
+
+    
 }

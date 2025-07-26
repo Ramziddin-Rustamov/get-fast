@@ -16,7 +16,8 @@ class Booking extends Model
         'seats_booked',
         'total_price',
         'status',
-        'expired_at'
+        'expired_at',
+        'deleted_at'
     ];
 
     public function trip()

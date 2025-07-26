@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class ExpiredTrip extends Model
 {
     protected $table = 'expired_trips';
-
+    
     protected $fillable = [
         'driver_id',
         'vehicle_id',
@@ -19,6 +19,9 @@ class ExpiredTrip extends Model
         'price_per_seat',
         'total_seats',
         'available_seats',
+        'end_point_id',
+        'start_point_id',
+        'expired_at'
     ];
 
     public function driver()
@@ -43,6 +46,43 @@ class ExpiredTrip extends Model
 
     public function parcels()
     {
-        return $this->hasMany(Parcel::class, 'trip_id');
+        return $this->hasMany(Parcel::class);
+    }
+
+    public function scopeExpired($query)
+    {
+        return $query->where('end_time', '<', now())->where('status', '!=', 'canceled');
+    }
+
+    public function scopeCanceled($query)
+    {
+        return $query->where('status', 'canceled');
+    }
+
+    public function startPoint()
+    {
+        return $this->belongsTo(Point::class, 'start_point_id');
+    }
+
+    public function endPoint()
+    {
+        return $this->belongsTo(Point::class, 'end_point_id');
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function passengers()
+    {
+        return $this->hasManyThrough(
+            \App\Models\V1\BookingPassengers::class,
+            \App\Models\V1\Booking::class,
+            'trip_id',         // Foreign key on bookings table
+            'booking_id',      // Foreign key on booking_passengers table
+            'id',              // Local key on trips table
+            'id'               // Local key on bookings table
+        );
     }
 }

@@ -45,19 +45,6 @@ class User  extends Authenticatable implements JWTSubject
         'remember_token',
     ];
 
-    protected static function booted()
-    {
-        static::created(function ($user) {
-            // Foydalanuvchi ro'yxatdan o'tgan paytda faqat balans yo'q bo'lsa qo'shish
-            if (!$user->balance) {
-                Balance::create([
-                    'user_id' => $user->id,
-                    'balance' => 100.00,  // Dastlabki balans
-                ]);
-            }
-        });
-    }
-
 
     public function getJWTIdentifier()
     {
@@ -67,11 +54,6 @@ class User  extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
-    }
-
-    public function balance()
-    {
-        return $this->hasOne(Balance::class, 'user_id', 'id');
     }
 
 
@@ -187,5 +169,10 @@ class User  extends Authenticatable implements JWTSubject
     public function passportImage()
     {
         return $this->hasOne(UserImage::class)->where('type', 'passport');
+    }
+
+    public function myBalance()
+    {
+        return $this->hasOne(UserBalance::class);
     }
 }

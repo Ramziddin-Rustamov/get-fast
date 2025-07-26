@@ -17,28 +17,37 @@ class BookingResource extends JsonResource
     {
 
         return [
-            'id' => $this->id,
+            'booking_id' => $this->id,
             'seats_booked' => $this->seats_booked,
             'total_price' => $this->total_price,
             'status' => $this->status,
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
             'trip' => [
                 'id' => $this->trip->id,
                 'from_where' => $this->trip->startQuarter->name . ', ' . $this->trip->startQuarter->district->name . ', ' . $this->trip->startQuarter->district->region->name,
                 'to_where' => $this->trip->endQuarter->name . ', ' . $this->trip->endQuarter->district->name . ', ' . $this->trip->endQuarter->district->region->name,
                 'start_time' => $this->trip->start_time,
                 'end_time' => $this->trip->end_time,
+                'price_per_seat' => $this->trip->price_per_seat,
+                'available_seats' => $this->trip->available_seats,
+                'status' => $this->trip->status,
+                'trip_points' => [
+                    'from_latitude' => $this->trip->startPoint->lat,
+                    'from_longitude' => $this->trip->startPoint->long,
+                    'to_latitude' => $this->trip->endPoint->lat,
+                    'to_longitude' => $this->trip->endPoint->long
+                ],
 
             ],
-            'client' => [
-                'id' => $this->user->id,
-                'first_name' => $this->user->first_name,
-                'last_name' => $this->user->last_name,
-                'email' => $this->user->email,
-                'role' => $this->user->role,
-                'phone' => $this->user->phone
-            ],
+            'booked_users' => [
+                'passengers' => $this->passengers->map(function ($passenger) {
+                    return [
+                        'id' => $passenger->id,
+                        'name' => $passenger->name,
+                        'phone' => $passenger->phone,
+                    ];
+                })
+            ] ?? null,
             'driver' => $this->trip->driver ? [
                 'id' => $this->trip->driver->id,
                 'first_name' => $this->trip->driver->first_name,
@@ -58,8 +67,6 @@ class BookingResource extends JsonResource
                     'title_ru' => $this->trip->vehicle->color->title_ru,
                     'title_en' => $this->trip->vehicle->color->title_en,
                     'color_code' => $this->trip->vehicle->color->code
-
-
                 ]
             ] : null,
 

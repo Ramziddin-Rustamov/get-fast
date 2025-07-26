@@ -32,8 +32,8 @@ class BookingService
         return $this->bookingRepository->updateBooking($id, $data);
     }
 
-    public function deleteBooking($id)
+    public function cancelBooking($id)
     {
-        return $this->bookingRepository->deleteBooking($id);
+        return $this->bookingRepository->cancelBooking($id);
     }
 }

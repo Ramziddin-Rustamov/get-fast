@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-
+use App\Models\BalanceTransaction;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\UserBalance;
 use App\Models\V1\UserImage;
 use App\Models\V1\Vehicle;
 use App\Models\V1\VehicleImages;
@@ -61,7 +62,7 @@ class APIAuthController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Verification code sent to your phone',
-            'user_id' => $user->phone,
+            'user_phone' => $user->phone,
             'code' => $code
         ]);
     }
@@ -79,6 +80,11 @@ class APIAuthController extends Controller
             $user->is_verified = true;
             $user->verification_code = null;
             $user->save();
+
+            $userbalalce = UserBalance::create([
+                'user_id' => $user->id,
+                'balance' => 0.00,
+            ]);
 
 
             return response()->json([
@@ -265,15 +271,15 @@ class APIAuthController extends Controller
             'tech_passport_number' => 'required|string|unique:vehicles,tech_passport_number',
             'seats' => 'required|integer|min:1|max:8',
             'car_images' => 'required|array|min:1',
-            'car_images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:44024',
-            'tech_passport' => 'required|image|mimes:jpeg,png,jpg,gif|max:2448',
-            'driving_licence' => 'required|image|mimes:jpeg,png,jpg,gif|max:24048',
-            'driver_passport_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2448',
+            'car_images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'tech_passport' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'driving_licence' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'driver_passport_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
         try {
-            DB::beginTransaction();
 
+            DB::beginTransaction();
             $user = Auth::user();
             $user->driving_licence_number = $request->driving_license_number;
             $user->driving_licence_expiry = $request->driving_license_expiration_date;
@@ -444,26 +450,98 @@ class APIAuthController extends Controller
     public function me()
     {
         $user = Auth::user();
+
         $image = UserImage::where('user_id', $user->id)->where('type', 'profile')->first();
         $passport = UserImage::where('user_id', $user->id)->where('type', 'passport')->first();
-        $path_for_driving_licence = UserImage::where('user_id', $user->id)->where('type', 'driving_licence')->first();
+        $drivingLicence = UserImage::where('user_id', $user->id)->where('type', 'driving_licence')->first();
+
         return response()->json([
             'status' => 'success',
             'user' => $user,
-            'user_image' => [
-                'type' => $image->type ?? null,
-                'user_image' => asset($image->image_path) ?? null,
-                'user_id' => $user->id
-            ] ?? null,
-            'passport' => [
-                'type' => $passport->type ?? null,
-                'user_image' => asset($passport->image_path) ?? null,
-            ] ?? null,
-            'driving_licence' => [
-                'type' => $path_for_driving_licence->type ?? null,
-                'user_image' => asset($path_for_driving_licence->image_path) ?? null,
-            ] ?? null
 
+            'user_image' => $image ? [
+                'type' => $image->type,
+                'user_image' => asset($image->image_path),
+                'user_id' => $user->id,
+            ] : null,
+
+            'passport' => $passport ? [
+                'type' => $passport->type,
+                'user_image' => asset($passport->image_path),
+            ] : null,
+
+            'driving_licence' => $drivingLicence ? [
+                'type' => $drivingLicence->type,
+                'user_image' => asset($drivingLicence->image_path),
+            ] : null,
+
+            'my_balance' => $user->myBalance ? [
+                'balance' => $user->myBalance->balance,
+                'locked_balance' => $user->myBalance->locked_balance,
+                'currency' => $user->myBalance->currency,
+                'created_at' => $user->myBalance->created_at,
+                'updated_at' => $user->myBalance->updated_at,
+            ] : null,
         ]);
+    }
+
+
+    public function fillBalance(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1000',
+        ]);
+
+        if ($request->amount <= 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Amount must be greater than 0',
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $user = Auth::user();
+            $currentBalance = $user->myBalance?->balance ?? 0;
+
+            // 1. Tranzaksiya yozuvi
+            $balanceTransaction = BalanceTransaction::create([
+                'user_id' => $user->id,
+                'type' => 'credit',
+                'amount' => $request->amount,
+                'balance_before' => $currentBalance,
+                'balance_after' => $currentBalance + $request->amount,
+                'trip_id' => null,
+                'status' => 'success',
+                'reason' => 'Balance filled',
+                'reference_id' => null,
+            ]);
+
+            // 2. Balansni yangilash yoki yaratish
+            $user->myBalance()->updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'balance' => $currentBalance + $request->amount,
+                    'currency' => 'som',
+                ]
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Balance filled successfully',
+                'transaction_id' => $balanceTransaction->id,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Something went wrong while filling balance.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

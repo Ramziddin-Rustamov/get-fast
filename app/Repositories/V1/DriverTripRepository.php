@@ -23,15 +23,23 @@ class DriverTripRepository
 
     public function getAllTrips()
     {
-        $trips =  Trip::where('driver_id', auth()->user()->id)->paginate(10);
-        return DriverTripResource::collection($trips);
+
+
+        $activeTrips = Trip::where('driver_id', auth()->user()->id)
+            ->where('end_time', '>=', now())
+            ->paginate(10);
+
+        return DriverTripResource::collection($activeTrips);
     }
+
+
 
     public function getTripById($id)
     {
-        $trip = Trip::where('id', $id)
-            ->where('driver_id', auth()->user()->id)
-            ->first();
+
+        $trip = Trip::where('driver_id', auth()->user()->id)->where('end_time', '>=', now())
+            ->find($id);
+
 
         if (is_null($trip) && empty($trip)) {
             return response()->json($this->errorResponse, 404);
@@ -62,6 +70,7 @@ class DriverTripRepository
             $trip->end_time = $data['end_time'];
             $trip->price_per_seat = $data['price_per_seat'];
             $trip->available_seats = $data['available_seats'];
+            $trip->expired_at = $data['end_time'];
             $trip->start_point_id = $startPoint->id;
             $trip->end_point_id = $endPoint->id;
             $trip->save();

@@ -11,19 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('credit_cards', function (Blueprint $table) {
+        Schema::create('user_balances', function (Blueprint $table) {
             $table->id();
-
-            $table->unsignedBigInteger('user_id');
-            $table->string('card_number');
-            $table->string('expiry_month', 2);
-            $table->string('expiry_year', 4);
-            $table->string('cvv', 4);
-            $table->boolean('is_active')->default(false);
-
+            $table->unsignedBigInteger('user_id')->unique();
+            $table->decimal('balance', 12, 2)->default(0); // Asosiy balans
+            $table->decimal('locked_balance', 12, 2)->default(0); // Hozircha foydalanuvchi ishlata olmaydigan summa (masalan: rezerv qilingan)
+            $table->string('currency')->default('UZS'); // optional: USD, EUR, UZS
             $table->timestamps();
-
-            // Foreign key
+        
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
@@ -33,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('credit_cards');
+        Schema::dropIfExists('user_balances');
     }
 };

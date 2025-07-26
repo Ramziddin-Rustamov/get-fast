@@ -17,8 +17,9 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->integer('seats_booked');
             $table->decimal('total_price', 10, 2);
-            $table->enum('status', ['pending', 'confirmed', 'cancelled'])->default('pending');
+            $table->enum('status', ['pending', 'confirmed', 'completed', 'cancelled'])->default('pending');
             $table->timestamp('expired_at')->nullable();
+            $table->timestamp('departed_at')->nullable()->default(now()->addDays(30));
             $table->timestamps();
         });
     }

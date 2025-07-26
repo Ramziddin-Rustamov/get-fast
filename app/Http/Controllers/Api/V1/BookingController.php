@@ -7,6 +7,7 @@ use App\Http\Requests\V1\BookingUpdateRequest;
 use App\Http\Requests\V1\BookingStoreRequest;
 use App\Http\Resources\V1\BookingResource;
 use App\Services\V1\BookingService;
+use Illuminate\Http\Request;
 
 class BookingController extends Controller
 {
@@ -33,16 +34,14 @@ class BookingController extends Controller
         return $this->bookingService->createBooking($data);
     }
 
-    // public function update(BookingUpdateRequest $request, $id)
-    // {
-    //     $data = $request->validated();
-    //     return $this->bookingService->updateBooking($id, $data);
-    // }
+    public function update(Request $request, $id)
+    {
+        return $this->bookingService->updateBooking($id, $request->all());
+    }
 
-    // public function destroy($id)
-    // {
-    //     return  $this->bookingService->deleteBooking($id);
-    // }
-
-    
+    public function cancelBooking($id)
+    {
+        
+        return $this->bookingService->cancelBooking($id);
+    }
 }
