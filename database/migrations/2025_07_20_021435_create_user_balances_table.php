@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id')->unique();
             $table->decimal('balance', 12, 2)->default(0); // Asosiy balans
+            $table->decimal('after_taxes', 12, 2)->default(0); // Asosiy balans
+            $table->decimal('tax')->default(0);
             $table->decimal('locked_balance', 12, 2)->default(0); // Hozircha foydalanuvchi ishlata olmaydigan summa (masalan: rezerv qilingan)
             $table->string('currency')->default('UZS'); // optional: USD, EUR, UZS
             $table->timestamps();

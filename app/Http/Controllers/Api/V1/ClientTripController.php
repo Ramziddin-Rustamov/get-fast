@@ -44,5 +44,4 @@ class ClientTripController extends Controller
     {
         return $this->clientTripService->getCanceledTrips();
     }
-    
 }

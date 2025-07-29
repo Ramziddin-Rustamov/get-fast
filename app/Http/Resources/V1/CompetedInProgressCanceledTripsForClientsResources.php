@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources;
+namespace App\Http\Resources\V1;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -72,6 +72,7 @@ class CompetedInProgressCanceledTripsForClientsResources extends JsonResource
                     'lat' => $this->endPoint->lat,
                     'long' => $this->endPoint->long,
             ] : 'No ending point data',
+            
         ];
     }
 }

@@ -12,12 +12,13 @@ class DriverExpiredTripsControllerApi extends Controller
     public function getExpeiredTrips()
     {
         $expiredTrips = ExpiredTrip::where('driver_id', auth()->user()->id)->paginate(20);
-        if (!$expiredTrips) {
+        if (count($expiredTrips) == 0 || !$expiredTrips) {
             return response()->json([
                 'message' => 'No expired trips found',
                 'status' => 'error'
             ], 404);
         }
+        
         return DriverExpiredTripsResource::collection($expiredTrips);
     }
 

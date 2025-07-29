@@ -13,5 +13,7 @@ class UserBalance extends Model
         'balance',
         'locked_balance',
         'currency',
+        'tax',
+        'after_taxes',
     ];
 }

@@ -30,6 +30,7 @@ class APIAuthController extends Controller
         // Step 1: Validatsiya
         $validator = Validator::make($request->all(), [
             'phone' => 'required|string|unique:users,phone',
+            'email' => 'required|string|unique:users,email',
             'password' => 'required|string|min:6|confirmed', // confirmation uchun `password_confirmation` kerak
         ]);
 
@@ -514,7 +515,7 @@ class APIAuthController extends Controller
                 'balance_after' => $currentBalance + $request->amount,
                 'trip_id' => null,
                 'status' => 'success',
-                'reason' => 'Balance filled',
+                'reason' => 'Balance filled manually by user',
                 'reference_id' => null,
             ]);
 
@@ -523,7 +524,9 @@ class APIAuthController extends Controller
                 ['user_id' => $user->id],
                 [
                     'balance' => $currentBalance + $request->amount,
-                    'currency' => 'som',
+                    'currency' => 'UZS',
+                    'tax' => '0.14',
+                    'after_taxes' => $currentBalance + $request->amount
                 ]
             );
 
@@ -532,7 +535,14 @@ class APIAuthController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Balance filled successfully',
-                'transaction_id' => $balanceTransaction->id,
+                'transaction' => [
+                    'id' => $balanceTransaction->id,
+                    'type' => $balanceTransaction->type,
+                    'amount' => number_format($balanceTransaction->amount, 2),
+                    'balance_before' => number_format($balanceTransaction->balance_before, 2),
+                    'balance_after' => number_format($balanceTransaction->balance_after, 2),
+
+                ],
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

@@ -3,6 +3,8 @@
 namespace App\Repositories\V1;
 
 use App\Http\Resources\V1\ClientTripResource;
+use App\Http\Resources\V1\ClientTripWithMoreInfoResource;
+use App\Http\Resources\V1\CompetedInProgressCanceledTripsForClientsResources;
 use App\Models\V1\Trip;
 use Illuminate\Support\Carbon;
 
@@ -27,14 +29,17 @@ class ClientTripRepository
 
     public function getTripById($id)
     {
-        $trip = Trip::where('id', $id)
-            ->whereIn('status', ['active', 'full'])
+        $booking = Trip::whereHas('bookings', function ($q) use ($id) {
+            $q->where('user_id', auth()->id())->where('id', $id);
+        })
+            ->orderBy('id', 'asc')
             ->first();
 
-        if (is_null($trip) && empty($trip)) {
+        if (is_null($booking)) {
             return response()->json($this->errorResponse, 404);
         }
-        return new ClientTripResource($trip);
+
+        return new ClientTripWithMoreInfoResource($booking);
     }
 
     public function canceledTripsForClient()
@@ -50,7 +55,8 @@ class ClientTripRepository
             //             $q2->where('user_id', auth()->id());
             //         });
             // })
-            ->get();
+            ->orderBy('id', 'asc')
+            ->paginate(10);
 
         if (count($cancelledTrips) == 0) {
             return response()->json([
@@ -59,7 +65,7 @@ class ClientTripRepository
             ], 404);
         }
 
-        return ClientTripResource::collection($cancelledTrips);
+        return CompetedInProgressCanceledTripsForClientsResources::collection($cancelledTrips);
     }
 
     public function getInprogressTripsForClient()
@@ -73,7 +79,8 @@ class ClientTripRepository
             ->where('status', 'active')
             ->where('start_time', '<=', $now)
             ->where('end_time', '>=', $now)
-            ->get();
+            ->orderBy('id', 'asc')
+            ->paginate(10);
 
         if (count($inProgressTrips) == 0) {
             return response()->json([
@@ -82,7 +89,7 @@ class ClientTripRepository
             ], 404);
         }
 
-        return ClientTripResource::collection($inProgressTrips);
+        return CompetedInProgressCanceledTripsForClientsResources::collection($inProgressTrips);
     }
 
 
@@ -99,7 +106,8 @@ class ClientTripRepository
             //             $q2->where('user_id', auth()->id());
             //         });
             // })
-            ->get();
+            ->orderBy('id', 'asc')
+            ->paginate(10);
 
 
         if (count($completedTrips) == 0) {
@@ -108,6 +116,6 @@ class ClientTripRepository
                 'message' => 'you have no completed trips'
             ], 404);
         }
-        return ClientTripResource::collection($completedTrips);
+        return CompetedInProgressCanceledTripsForClientsResources::collection($completedTrips);
     }
 }

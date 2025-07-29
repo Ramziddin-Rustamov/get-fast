@@ -33,8 +33,8 @@ class DriverTripService
         return $this->driverTripRepository->updateTrip($id, $data);
     }
 
-    public function deleteTrip($id)
+    public function cancel($id)
     {
-        return $this->driverTripRepository->deleteTrip($id);
+        return $this->driverTripRepository->cancel($id);
     }
 }

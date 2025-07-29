@@ -3,6 +3,9 @@
 namespace App\Repositories\V1;
 
 use App\Http\Resources\V1\DriverTripResource;
+use App\Models\BalanceTransaction;
+use App\Models\User;
+use App\Models\V1\Booking;
 use App\Models\V1\Trip;
 use App\Models\V1\Point;
 use Illuminate\Support\Facades\DB;
@@ -161,15 +164,95 @@ class DriverTripRepository
     }
 
 
-    public function deleteTrip($id)
+    public function cancel($id)
     {
-        $trip = Trip::where('id', $id)
-            ->where('driver_id', auth()->user()->id)
-            ->first();
-        if (is_null($trip) && empty($trip)) {
-            return response()->json($this->errorResponse, 404);
+        $trip = Trip::findOrFail($id);
+
+
+        if ($trip->status == 'cancelled') {
+            return response()->json(
+                [
+                    'message' => 'Trip already cancelled',
+                    'status' => 'error'
+                ],
+                400
+            );
         }
-        $trip->delete();
-        return response()->json($this->successResponse, 200);
+
+        DB::transaction(function () use ($trip) {
+            $trip->status = 'cancelled';
+            $trip->expired_at = now();
+            $trip->save();
+
+            // Agar expired_trips jadvali bo‘lsa, unga ko‘chirish
+            DB::table('expired_trips')->insert([
+                'driver_id' => $trip->driver_id,
+                'vehicle_id' => $trip->vehicle_id,
+                'start_point_id' => $trip->start_point_id,
+                'end_point_id' => $trip->end_point_id,
+                'start_quarter_id' => $trip->start_quarter_id,
+                'end_quarter_id' => $trip->end_quarter_id,
+                'start_time' => $trip->start_time,
+                'end_time' => $trip->end_time,
+                'price_per_seat' => $trip->price_per_seat,
+                'total_seats' => $trip->total_seats,
+                'available_seats' => $trip->available_seats,
+                'status' => 'cancelled',
+                'expired_at' => $trip->expired_at,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Shu tripga tegishli barcha bookinglar
+            $bookings = Booking::where('trip_id', $trip->id)->get();
+
+            foreach ($bookings as $booking) {
+                $userId = $booking->user_id;
+                $user = User::find($userId);
+                $totalPrice = $booking->total_price;
+
+                // Driver o‘zi cancel qilganmi?
+                if ($userId == $trip->driver_id) {
+                    // 15% jarima, 85% qaytariladi
+                    $penalty = $totalPrice * 0.15;
+                    $refund = $totalPrice - $penalty;
+                } else {
+                    // 100% refund
+                    $refund = $totalPrice;
+                    $penalty = 0;
+                }
+
+                // Balansni yangilash (user_balances)
+                $balance = $user->myBalance;
+                $before = $balance->balance;
+                $after = $before + $refund;
+
+                $balance->update([
+                    'balance' => $after,
+                ]);
+
+                // balance_transactions jadvaliga yozish
+                BalanceTransaction::create([
+                    'user_id' => $userId,
+                    'type' => 'credit',
+                    'amount' => $refund,
+                    'balance_before' => $before,
+                    'balance_after' => $after,
+                    'trip_id' => $trip->id,
+                    'status' => 'success',
+                    'reason' => $userId == $trip->driver_id
+                        ? "Booking canceled - 85% refund, 15% penalty"
+                        : "Booking canceled - full refund",
+                    'reference_id' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Trip cancelled and refunds processed successfully.',
+            'status' => 'success'
+        ]);
     }
 }
