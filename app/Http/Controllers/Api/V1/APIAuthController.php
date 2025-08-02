@@ -561,6 +561,13 @@ class APIAuthController extends Controller
                 'driving_verification_status' => $user->driving_verification_status,
                 'created_at' => $user->created_at,
                 'image' => $image ? asset($image->image_path) : null,
+                'balance' => $user->myBalance ? [
+                    'balance' => $user->myBalance->balance,
+                    'after_tax' => $user->myBalance->after_tax,
+                    'tax' => $user->myBalance->tax,
+                    'locked_balance' => $user->myBalance->locked_balance,
+                    'currency' => $user->myBalance->currency
+                ] : 0,
             ]
         ]);
     }
