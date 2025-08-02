@@ -16,6 +16,8 @@ return new class extends Migration
             $table->foreignId('vehicle_id')->constrained()->onDelete('cascade');
             $table->string('image_path',255);
             $table->enum('type', ['tech_passport', 'vehicle']);
+            $table->enum('side', ['front', 'back'])->nullable();
+            $table->timestamps();
         });
     }
 

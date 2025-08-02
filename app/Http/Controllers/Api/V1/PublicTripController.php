@@ -18,8 +18,8 @@ class PublicTripController extends Controller
     ];
 
     public function getTripsWithLessInfo()
-    {
-        $tripWithLessInfo =  Trip::whereIn('status', ['active', 'completed', 'full'])->paginate(20);
+    {   
+        $tripWithLessInfo =  Trip::whereIn('status', ['active', 'full'])->paginate(20);
         return response()->json(PublicTripWithLessInfoResource::collection($tripWithLessInfo), 200);
     }
 
@@ -59,7 +59,7 @@ class PublicTripController extends Controller
 
     public function getAllTripsForPublic()
     {
-        $trip =  Trip::whereIn('status', ['active', 'completed', 'full'])->paginate(20);
+        $trip =  Trip::whereIn('status', ['active', 'full'])->paginate(20);
         return response()->json(PublicTripResource::collection($trip), 200);
     }
 

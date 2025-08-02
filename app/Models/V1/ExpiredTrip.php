@@ -8,12 +8,18 @@ use Illuminate\Database\Eloquent\Model;
 class ExpiredTrip extends Model
 {
     protected $table = 'expired_trips';
-    
+
     protected $fillable = [
         'driver_id',
         'vehicle_id',
         'start_quarter_id',
         'end_quarter_id',
+
+        'start_region_id',
+        'end_region_id',
+
+        'start_district_id',
+        'end_district_id',
         'start_time',
         'end_time',
         'price_per_seat',
@@ -42,6 +48,27 @@ class ExpiredTrip extends Model
     public function endQuarter()
     {
         return $this->belongsTo(Quarter::class, 'end_quarter_id');
+    }
+
+    public function startRegion()
+    {
+        return $this->belongsTo(Region::class, 'start_region_id');
+    }
+
+    public function endRegion()
+    {
+        return $this->belongsTo(Region::class, 'end_region_id');
+    }
+
+
+    public function startDistrict()
+    {
+        return $this->belongsTo(District::class, 'start_district_id');
+    }
+
+    public function endDistrict()
+    {
+        return $this->belongsTo(District::class, 'end_district_id');
     }
 
     public function parcels()

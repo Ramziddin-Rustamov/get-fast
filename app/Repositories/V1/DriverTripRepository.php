@@ -69,6 +69,10 @@ class DriverTripRepository
             $trip->vehicle_id = $data['vehicle_id'];
             $trip->start_quarter_id = $data['start_quarter_id'];
             $trip->end_quarter_id = $data['end_quarter_id'];
+            $trip->start_region_id = $data['start_region_id'];
+            $trip->end_region_id = $data['end_region_id'];
+            $trip->start_district_id = $data['start_district_id'];
+            $trip->end_district_id = $data['end_district_id'];
             $trip->start_time = $data['start_time'];
             $trip->end_time = $data['end_time'];
             $trip->price_per_seat = $data['price_per_seat'];
@@ -134,10 +138,20 @@ class DriverTripRepository
                 'long' => $data['end_long'] ?? $endPoint->long,
             ]);
 
+            if($data['total_seats'] < $trip->available_seats){
+                return response()->json([
+                    'message' => 'Umumiy o`rindiqlar sonidan bo`sh o`rindiqlar soni kichik bo`lishi mumkin emas.',
+                    'error' => 'error'], 400);
+            }
+
             // Trip yangilash
             $trip->vehicle_id = $data['vehicle_id'];
             $trip->start_quarter_id = $data['start_quarter_id'];
             $trip->end_quarter_id = $data['end_quarter_id'];
+            $trip->start_region_id = $data['start_region_id'];
+            $trip->end_region_id = $data['end_region_id'];
+            $trip->start_district_id = $data['start_district_id'];
+            $trip->end_district_id = $data['end_district_id'];
             $trip->start_time = $data['start_time'];
             $trip->end_time = $data['end_time'];
             $trip->price_per_seat = $data['price_per_seat'];
@@ -167,7 +181,6 @@ class DriverTripRepository
     public function cancel($id)
     {
         $trip = Trip::findOrFail($id);
-
 
         if ($trip->status == 'cancelled') {
             return response()->json(
@@ -231,6 +244,11 @@ class DriverTripRepository
                     'balance' => $after,
                 ]);
 
+                $reason = $userId == $trip->driver_id
+                    ? __('messages.driver_cancel_self')
+                    : __('messages.driver_cancel_user');
+
+
                 // balance_transactions jadvaliga yozish
                 BalanceTransaction::create([
                     'user_id' => $userId,
@@ -240,9 +258,7 @@ class DriverTripRepository
                     'balance_after' => $after,
                     'trip_id' => $trip->id,
                     'status' => 'success',
-                    'reason' => $userId == $trip->driver_id
-                        ? "Booking canceled - 85% refund, 15% penalty"
-                        : "Booking canceled - full refund",
+                    'reason' =>  $reason,
                     'reference_id' => null,
                     'created_at' => now(),
                     'updated_at' => now(),

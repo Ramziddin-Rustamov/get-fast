@@ -29,6 +29,12 @@ class PublicTripWithLessInfoResource extends JsonResource
             'id' => $this->id,
             'from_where' => $this->startQuarter->name . ', ' . $this->startQuarter->district->name . ', ' . $this->startQuarter->district->region->name,
             'to_where' => $this->endQuarter->name . ', ' . $this->endQuarter->district->name . ', ' . $this->endQuarter->district->region->name,
+            'from_region_id' => $this->start_region_id,
+            'to_region_id' => $this->end_region_id,
+            'from_district_id' => $this->start_district_id,
+            'to_district_id' => $this->end_district_id,
+            'from_quarter_id' => $this->start_quarter_id,
+            'to_quarter_id' => $this->end_quarter_id,
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'duration' => $duration_formatted, // Davomiylik (soatlar va daqiqalarda)

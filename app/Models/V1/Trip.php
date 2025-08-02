@@ -14,6 +14,13 @@ class Trip extends Model
         'vehicle_id',
         'start_quarter_id',
         'end_quarter_id',
+
+        'start_region_id',
+        'end_region_id',
+
+        'start_district_id',
+        'end_district_id',
+
         'start_time',
         'end_time',
         'price_per_seat',
@@ -21,8 +28,11 @@ class Trip extends Model
         'available_seats',
         'end_point_id',
         'start_point_id',
-        'expired_at'
+        'expired_at',
+        'status'
     ];
+
+
 
     public function driver()
     {
@@ -43,6 +53,28 @@ class Trip extends Model
     {
         return $this->belongsTo(Quarter::class, 'end_quarter_id');
     }
+
+    public function startRegion()
+    {
+        return $this->belongsTo(Region::class, 'start_region_id');
+    }
+
+    public function endRegion()
+    {
+        return $this->belongsTo(Region::class, 'end_region_id');
+    }
+
+    public function startDistrict()
+    {
+        return $this->belongsTo(District::class, 'start_district_id');
+    }
+
+    public function endDistrict()
+    {
+        return $this->belongsTo(District::class, 'end_district_id');
+    }
+
+
 
     public function parcels()
     {
@@ -85,6 +117,4 @@ class Trip extends Model
             'id'               // Local key on bookings table
         );
     }
-
-    
 }

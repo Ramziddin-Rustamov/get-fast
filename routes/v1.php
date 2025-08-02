@@ -99,10 +99,15 @@ Route::prefix('auth')->group(function () {
 Route::prefix('auth')->middleware('auth:api')->group(function () {
     Route::post('/logout', [APIAuthController::class, 'logout']);
     Route::post('/refresh', [APIAuthController::class, 'refresh']);
-    Route::post('/become-a-driver', [APIAuthController::class, 'become_a_driver']);
+    Route::post('/become-a-driver', [APIAuthController::class, 'becomeDriver']);
+    Route::post('/upload-car-images', [APIAuthController::class, 'uploadVehicleImages']);
+    Route::post('/upload-driver-passport-driving-licence', [APIAuthController::class, 'uploadDriverDocuments']);
     Route::post('/update-profile', [APIAuthController::class, 'updateProfile']);
     Route::get('/me', [APIAuthController::class, 'me']);
     Route::post('/fill-balance', [APIAuthController::class, 'fillBalance']);
+
+    Route::post('approve-driver', [APIAuthController::class, 'approveClientAsDriver']);
+    Route::post('reject-driver', [APIAuthController::class, 'rejectClientAsDriver']);
 });
 
 

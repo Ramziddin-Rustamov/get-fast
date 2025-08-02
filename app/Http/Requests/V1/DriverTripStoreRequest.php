@@ -32,6 +32,10 @@ class DriverTripStoreRequest extends FormRequest
             'vehicle_id' => 'required|exists:vehicles,id',
             'start_quarter_id' => 'required|string|exists:quarters,id',
             'end_quarter_id' => 'required|string|exists:quarters,id',
+            'start_region_id' => 'required|string|exists:regions,id',
+            'end_region_id' => 'required|string|exists:regions,id',
+            'start_district_id' => 'required|string|exists:districts,id',
+            'end_district_id' => 'required|string|exists:districts,id',
             'end_time' => ['nullable', 'date', function ($attribute, $value, $fail) {
                 if (!request()->has('start_time')) {
                     $fail('Start time is required for validating end time.');

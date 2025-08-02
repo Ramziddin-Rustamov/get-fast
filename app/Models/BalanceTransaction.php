@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\V1\Booking;
 use App\Models\V1\Trip;
 use Illuminate\Database\Eloquent\Model;
 
@@ -31,5 +32,10 @@ class BalanceTransaction extends Model
     public function trip()
     {
         return $this->belongsTo(Trip::class);
+    }
+
+    public function booking()
+    {
+        return $this->belongsTo(Booking::class,'reference_id');
     }
 }

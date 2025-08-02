@@ -29,6 +29,15 @@ class ClientTripResource extends JsonResource
             'id' => $this->id,
             'from_where' => $this->startQuarter->name . ', ' . $this->startQuarter->district->name . ', ' . $this->startQuarter->district->region->name,
             'to_where' => $this->endQuarter->name . ', ' . $this->endQuarter->district->name . ', ' . $this->endQuarter->district->region->name,
+
+            'start_quarter_id' => $this->start_quarter_id,
+            'end_quarter_id' => $this->end_quarter_id,
+            'start_region_id' => $this->start_region_id,
+            'end_region_id' => $this->end_region_id,
+            'start_district_id' => $this->start_district_id,
+            'end_district_id' => $this->end_district_id,
+
+            
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'duration' => $duration_formatted, // Davomiylik (soatlar va daqiqalarda)

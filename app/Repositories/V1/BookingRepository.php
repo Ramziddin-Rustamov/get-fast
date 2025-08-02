@@ -145,7 +145,14 @@ class BookingRepository
             ]);
 
             if ($driverBalance) {
-               
+
+                $reason = __('messages.driver_booking_reason', [
+                    'booking_id' => $booking->id,
+                    'trip_id' => $trip->id,
+                    'total_price' => $totalPrice,
+                    'service_fee' => $serviceFee,
+                    'net_income' => $totalPrice - $serviceFee,
+                ]);
 
                 $balancetranaction = new BalanceTransaction();
                 $balancetranaction->user_id = $trip->driver_id;
@@ -155,7 +162,7 @@ class BookingRepository
                 $balancetranaction->balance_after = $driverBalance->balance + $totalPrice;
                 $balancetranaction->trip_id = $trip->id;
                 $balancetranaction->status = 'success';
-                $balancetranaction->reason =  'Trip booking ' . $booking->id . ' trip id ' . $trip->id . ' driver id ' . $trip->driver_id . ' you can withdraw your balance - ' . $driverBalance->after_taxes . ' after taxes';
+                $balancetranaction->reason = $reason;
                 $balancetranaction->reference_id = $booking->id;
                 $balancetranaction->save();
 
@@ -163,10 +170,19 @@ class BookingRepository
                 $driverBalance->balance = ($driverBalance->balance) + ($totalPrice);
                 $driverBalance->after_taxes = $afterTaxDriverBalance;
                 $driverBalance->save();
-
             }
 
             if ($userBalance) {
+
+                $reason = __('messages.user_booking_reason', [
+                    'booking_id' => $booking->id,
+                    'trip_id' => $trip->id,
+                    'seats' => $requestedSeats,
+                    'total_price' => $totalPrice,
+                    'service_fee' => $serviceFee,
+                ]);
+
+
                 $balancetranaction = new BalanceTransaction();
                 $balancetranaction->user_id = auth()->user()->id;
                 $balancetranaction->type = 'debit';
@@ -176,12 +192,7 @@ class BookingRepository
 
                 $balancetranaction->trip_id = $trip->id;
                 $balancetranaction->status = 'success';
-                $balancetranaction->reason =  
-                $balancetranaction->reason =  'Booking ID: ' . $booking->id . 
-                              ', Trip ID: ' . $trip->id . 
-                              ', Driver ID: ' . $trip->driver_id . 
-                              ', Booked ' . $requestedSeats . ' seat(s) for total ' . $totalPrice . 
-                              ' (including service fee: ' . $serviceFee . '). Amount debited from your balance.';
+                $balancetranaction->reason = $reason;
                 $balancetranaction->reference_id = $booking->id;
                 $balancetranaction->save();
 
@@ -282,112 +293,82 @@ class BookingRepository
 
             $booking = Booking::where('user_id', $user->id)->find($bookingId);
             if (is_null($booking)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'booking not found',
-                ]);
+                return response()->json(['status' => 'error', 'message' => 'Booking not found']);
             }
 
-            if ($booking->status == 'cancelled') {
+            if (in_array($booking->status, ['cancelled', 'pending', 'completed'])) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'booking already cancelled',
-                ], 422);
-            }
-
-            if ($booking->status == 'pending') {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Booking is not confirmed yet please wait',
-                ], 422);
-            }
-
-            if ($booking->status == 'completed') {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Booking is already completed, you can not cancel it',
+                    'message' => 'Booking cannot be cancelled at this stage.',
                 ], 422);
             }
 
             $trip = Trip::find($booking->trip_id);
             if (is_null($trip)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'trip not found',
-                ]);
+                return response()->json(['status' => 'error', 'message' => 'Trip not found']);
             }
-            if ($trip->total_seats < ($booking->seats_booked + $booking->trip->available_seats)) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Available seats should not be more than total seats',
-                ]);
-            }
-
 
             $total = (float) $booking->total_price;
+            $commission = round($total * env('SERVICE_FEE'), 2); // e.g. 0.1 (10%)
+            $refund = round($total - $commission, 2);
 
+            // === USER BALANCE UPDATE (refund - commission) ===
             $userBalance = UserBalance::firstOrCreate(
                 ['user_id' => $user->id],
-                ['balance' => 0.00, 'currency' => 'UZS'] // kerak bo‘lsa currency
-            );
-
-            // 90% refund, 10% komissiya
-            $commission = round($total * env('SERVICE_FEE'), 2);
-            $refund = round($total - $commission, 2);
-            if($userBalance){
-                $userBalanceBefore = $userBalance->balance;
-                $userBalance->balance = $userBalance->balance + $refund;
-                $userBalance->after_taxes = $userBalance->after_taxes + $refund;
-                $userBalance->save();
-
-                $userBalanceAfter = $userBalance->balance;
-                // BalanceTransaction
-                BalanceTransaction::create([
-                    'user_id' => $user->id,
-                    'type' => 'credit',
-                    'amount' => $refund,
-                    'balance_before' => $userBalanceBefore,
-                    'balance_after' => $userBalanceAfter,
-                    'trip_id' => $booking->trip_id,
-                    'status' => 'success',
-                    'reason' => 'Booking canceled -  Refund ' . $refund . ' som, ' . ' ' . $commission . ' som commission, ' . $booking->id . ' booking id, ' . $trip->id . ' trip id, ',
-                    'reference_id' => $booking->id,
-                    'currency' => 'som',
-                ]);
-            }
-
-            $driverBalance = UserBalance::firstOrCreate(
-                ['user_id' => $trip->driver_id],
                 ['balance' => 0.00, 'currency' => 'UZS']
             );
 
-            if($driverBalance){
-                $driverBalanceBefore = $driverBalance->balance;
-                $driverBalance->balance = $driverBalance->balance - $refund;
-                $driverBalance->after_taxes = $driverBalance->after_taxes - $refund;
-                $driverBalance->save();
-                $driverBalanceAfter = $driverBalance->balance;
+            $userBalanceBefore = $userBalance->balance;
+            $userBalance->balance += $refund;
+            $userBalance->after_taxes += $refund;
+            $userBalance->save();
+            $userBalanceAfter = $userBalance->balance;
 
-                BalanceTransaction::create([
-                    'user_id' => $trip->driver->id,
-                    'type' => 'debit',
-                    'amount' => $refund,
-                    'balance_before' => $driverBalanceBefore,
-                    'balance_after' => $driverBalanceAfter,
-                    'trip_id' => $booking->trip_id,
-                    'status' => 'success',
-                    'reason' => 'Client  canceled booking -  Refund ' . $refund . ' som, ' . ' ' . $commission . ' som commission, ' . $booking->id . ' booking id, ' . $trip->id . ' trip id, you did not lose any money',
-                    'reference_id' => $booking->id,
-                    'currency' => 'UZS',
-                ]);
-                
-            }
-           
-            $trip->available_seats = $trip->available_seats + $booking->seats_booked;
+            BalanceTransaction::create([
+                'user_id' => $user->id,
+                'type' => 'credit',
+                'amount' => $refund,
+                'balance_before' => $userBalanceBefore,
+                'balance_after' => $userBalanceAfter,
+                'trip_id' => $trip->id,
+                'status' => 'success',
+                'reason' => "User cancelled booking #{$booking->id}, refund: {$refund} UZS, commission: {$commission} UZS",
+                'reference_id' => $booking->id,
+                'currency' => 'UZS',
+            ]);
+
+            // === DRIVER BALANCE UPDATE (full amount returned, no commission) ===
+            $driver = $trip->driver;
+            $driverBalance = UserBalance::firstOrCreate(
+                ['user_id' => $driver->id],
+                ['balance' => 0.00, 'currency' => 'UZS']
+            );
+
+            $driverBalanceBefore = $driverBalance->balance;
+            $driverBalance->balance -= $total;
+            $driverBalance->after_taxes  = $driverBalance->balance;
+            $driverBalance->save();
+            $driverBalanceAfter = $driverBalance->balance;
+
+            BalanceTransaction::create([
+                'user_id' => $driver->id,
+                'type' => 'debit',
+                'amount' => $booking->total_price,
+                'balance_before' => $driverBalanceBefore,
+                'balance_after' => $driverBalanceAfter,
+                'trip_id' => $trip->id,
+                'status' => 'success',
+                'reason' => "Booking #{$booking->id} cancelled by user. Driver refund: {$total} UZS (no commission taken)",
+                'reference_id' => $booking->id,
+                'currency' => 'UZS',
+            ]);
+
+            // === TRIP SEAT ADJUSTMENT ===
+            $trip->available_seats += $booking->seats_booked;
             $trip->status = 'active';
             $trip->save();
 
-            // Booking status update
+            // === BOOKING STATUS UPDATE ===
             $booking->status = 'cancelled';
             $booking->save();
 
@@ -395,7 +376,7 @@ class BookingRepository
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Booking canceled and refund issued.'
+                'message' => 'Booking cancelled. Refund issued, driver compensated.'
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();

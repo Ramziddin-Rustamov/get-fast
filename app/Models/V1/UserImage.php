@@ -14,10 +14,13 @@ class UserImage extends Model
         'user_id',
         'image_path',
         'type',
+        'side',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
+
+    
 }

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class VehicleImages extends Model
 {
     protected $table = 'vehicle_images';
-    protected $fillable = ['vehicle_id', 'image_path', 'type'];
+    protected $fillable = ['vehicle_id', 'image_path', 'type', 'side'];
     public $timestamps = false;
   
     public function vehicle()

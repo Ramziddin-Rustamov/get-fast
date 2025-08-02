@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
 use App\Models\BalanceTransaction;
 use Illuminate\Support\Facades\Hash;
@@ -255,9 +256,8 @@ class APIAuthController extends Controller
     }
 
 
-    public function become_a_driver(Request $request)
+    public function becomeDriver(Request $request)
     {
-
         $request->validate([
             'driving_license_number' => 'required|string',
             'driving_license_expiration_date' => 'required|string',
@@ -269,18 +269,13 @@ class APIAuthController extends Controller
             'vehicle_number' => 'required|string|unique:vehicles,car_number',
             'car_model' => 'required|string',
             'car_color_id' => 'required|exists:colors,id',
-            'tech_passport_number' => 'required|string|unique:vehicles,tech_passport_number',
             'seats' => 'required|integer|min:1|max:8',
-            'car_images' => 'required|array|min:1',
-            'car_images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
-            'tech_passport' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
-            'driving_licence' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
-            'driver_passport_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'tech_passport_number' => 'required|string|unique:vehicles,tech_passport_number',
         ]);
 
         try {
-
             DB::beginTransaction();
+
             $user = Auth::user();
             $user->driving_licence_number = $request->driving_license_number;
             $user->driving_licence_expiry = $request->driving_license_expiration_date;
@@ -292,86 +287,205 @@ class APIAuthController extends Controller
             $user->home = $request->home_address;
             $user->save();
 
-            $vehicle = new Vehicle();
-            $vehicle->user_id = $user->id;
-            $vehicle->color_id = $request->car_color_id;
-            $vehicle->model = $request->car_model;
-            $vehicle->tech_passport_number = $request->tech_passport_number;
-            $vehicle->car_number = $request->vehicle_number;
-            $vehicle->seats = $request->seats;
-            $vehicle->save();
-            // done
-            if ($request->hasFile('car_images')) {
-                $paths = [];
-
-                foreach ($request->file('car_images') as $image) {
-                    // Faylni saqlash va haqiqiy yo‘lini olish
-                    $path = $image->store('vehicles/cars/' . $user->id, 'public');
-                    $paths[] = $path;
-                }
-
-                // Saqlash
-                $vehicleImage = new VehicleImages();
-                $vehicleImage->vehicle_id = $vehicle->id;
-                $vehicleImage->image_path = json_encode($paths); // array of image paths
-                $vehicleImage->type = 'vehicle';
-                $vehicleImage->save(); // <-- MUHIM
-            }
-
-
-            if ($request->hasFile('driving_licence')) {
-                $filename = time() . '.' . $request->file('driving_licence')->getClientOriginalExtension();
-                $path = 'drivers/driving_licences/' . $user->id;
-                $storedPath = $request->file('driving_licence')->storeAs($path, $filename, 'public');
-
-                $userImage = new UserImage();
-                $userImage->user_id = $user->id;
-                $userImage->image_path = $storedPath;
-                $userImage->type = 'driving_licence';
-                $userImage->save();
-            }
-
-            if ($request->hasFile('driver_passport_image')) {
-                $filename = time() . '.' . $request->file('driver_passport_image')->getClientOriginalExtension();
-                $path = 'drivers/passports/' . $user->id;
-                $path_for_driving_licence = $request->file('driver_passport_image')->storeAs($path, $filename, 'public');
-
-                $userImage = new UserImage();
-                $userImage->user_id = $user->id;
-                $userImage->image_path = $path_for_driving_licence;
-                $userImage->type = 'passport';
-                $userImage->save();
-            }
-
-
-            if ($request->hasFile('tech_passport')) {
-                $filename = time() . '.' . $request->file('tech_passport')->getClientOriginalExtension();
-                $path = 'drivers/tech_passports/' . $user->id;
-                $path_for_tech_passport = $request->file('tech_passport')->storeAs($path, $filename, 'public');
-
-                $vehicleImage = new VehicleImages();
-                $vehicleImage->vehicle_id = $vehicle->id;
-                $vehicleImage->image_path = $path_for_tech_passport;
-                $vehicleImage->type = 'tech_passport';
-                $vehicleImage->save();
-            }
-
+            $vehicle = Vehicle::create([
+                'user_id' => $user->id,
+                'color_id' => $request->car_color_id,
+                'model' => $request->car_model,
+                'car_number' => $request->vehicle_number,
+                'tech_passport_number' => $request->tech_passport_number,
+                'seats' => $request->seats,
+            ]);
 
             DB::commit();
             return response()->json([
                 'status' => 'success',
-                'message' => 'Applied for driver status successfully',
-            ], 200);
+                'message' => 'Vehicle created successfully, jump to the next step',
+                'vehicle_id' => $vehicle->id,
+            ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            FacadesLog::error('Driver registration failed: ' . $e->getMessage());
-
             return response()->json([
                 'status' => 'error',
-                'message' => 'Something went wrong. Please try again later.' . $e->getMessage(),
+                'message' => 'Failed to create vehicle.' . $e
             ], 500);
         }
     }
+
+
+
+    public function uploadVehicleImages(Request $request)
+    {
+        $request->validate([
+            'vehicle_id' => 'required|exists:vehicles,id',
+            'tech_passport_front' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'tech_passport_back' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'car_images' => 'nullable|array|min:1',
+            'car_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+        ]);
+
+        try {
+            $vehicleId = $request->vehicle_id;
+
+            // ✅ CAR IMAGES: avval eski rasm va fayllarni o‘chirish
+            if ($request->hasFile('car_images')) {
+                $existingImages = VehicleImages::where('vehicle_id', $vehicleId)
+                    ->where('type', 'vehicle')
+                    ->get();
+
+                foreach ($existingImages as $image) {
+                    Storage::disk('public')->delete($image->image_path);
+                    $image->delete();
+                }
+
+                foreach ($request->file('car_images') as $image) {
+                    $path = $image->store("vehicles/cars/{$vehicleId}", 'public');
+                    VehicleImages::create([
+                        'vehicle_id' => $vehicleId,
+                        'image_path' => $path,
+                        'type' => 'vehicle',
+                    ]);
+                }
+            }
+
+            // ✅ TECH PASSPORT FRONT
+            if ($request->hasFile('tech_passport_front')) {
+                $existingFront = VehicleImages::where('vehicle_id', $vehicleId)
+                    ->where('type', 'tech_passport')
+                    ->where('side', 'front')
+                    ->first();
+
+                if ($existingFront) {
+                    Storage::disk('public')->delete($existingFront->image_path);
+                    $existingFront->delete();
+                }
+
+                $path = $request->file('tech_passport_front')->store("vehicles/tech_passports/front/vehicle/{$vehicleId}/", 'public');
+                VehicleImages::create([
+                    'vehicle_id' => $vehicleId,
+                    'image_path' => $path,
+                    'type' => 'tech_passport',
+                    'side' => 'front',
+                ]);
+            }
+
+            // ✅ TECH PASSPORT BACK
+            if ($request->hasFile('tech_passport_back')) {
+                $existingBack = VehicleImages::where('vehicle_id', $vehicleId)
+                    ->where('type', 'tech_passport')
+                    ->where('side', 'back')
+                    ->first();
+
+                if ($existingBack) {
+                    Storage::disk('public')->delete($existingBack->image_path);
+                    $existingBack->delete();
+                }
+
+                $path = $request->file('tech_passport_back')->store("vehicles/tech_passports/back/vehicle/{$vehicleId}", 'public');
+                VehicleImages::create([
+                    'vehicle_id' => $vehicleId,
+                    'image_path' => $path,
+                    'type' => 'tech_passport',
+                    'side' => 'back',
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Vehicle images uploaded successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to upload vehicle images. Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+
+    public function uploadDriverDocuments(Request $request)
+    {
+        $request->validate([
+            'driving_licence_front' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'driving_licence_back' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'driver_passport_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+        ]);
+
+        try {
+            $user = Auth::user();
+            $userId = $user->id;
+
+            // Helper function to update one image
+            $updateImage = function ($file, $folder, $type, $side = null) use ($userId) {
+                // Eski rasmni topish
+                $query = UserImage::where('user_id', $userId)->where('type', $type);
+                if ($side) {
+                    $query->where('side', $side);
+                }
+
+                $oldImage = $query->first();
+
+                // Eski faylni o‘chirish
+                if ($oldImage && Storage::disk('public')->exists($oldImage->image_path)) {
+                    Storage::disk('public')->delete($oldImage->image_path);
+                    $oldImage->delete(); // bazadan ham o‘chir
+                }
+
+                // Yangi faylni saqlash
+                $path = $file->store($folder, 'public');
+
+                // Bazaga yozish
+                UserImage::create([
+                    'user_id' => $userId,
+                    'image_path' => $path,
+                    'type' => $type,
+                    'side' => $side,
+                ]);
+            };
+
+            // Driving Licence Front
+            if ($request->hasFile('driving_licence_front')) {
+                $updateImage(
+                    $request->file('driving_licence_front'),
+                    "drivers/driving_licences/{$userId}",
+                    'driving_licence',
+                    'front'
+                );
+            }
+
+            // Driving Licence Back
+            if ($request->hasFile('driving_licence_back')) {
+                $updateImage(
+                    $request->file('driving_licence_back'),
+                    "drivers/driving_licences/{$userId}",
+                    'driving_licence',
+                    'back'
+                );
+            }
+
+            // Passport
+            if ($request->hasFile('driver_passport_image')) {
+                $updateImage(
+                    $request->file('driver_passport_image'),
+                    "drivers/passports/{$userId}",
+                    'passport'
+                );
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Driver documents uploaded. Please wait for admin approval.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to upload driver documents.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
 
 
     public function updateProfile(Request $request)
@@ -423,30 +537,7 @@ class APIAuthController extends Controller
         }
     }
 
-    private function handleImageUpdate(Request $request, $userId, $inputName, $type, $uploadPath)
-    {
-        if ($request->hasFile($inputName)) {
-            $image = $request->file($inputName);
-            $imageName = time() . '_' . uniqid() . '.' . $image->extension();
-            $image->move(public_path($uploadPath), $imageName);
 
-            // Eski rasmni topish
-            $oldImage = UserImage::where('user_id', $userId)
-                ->where('type', $type)
-                ->first();
-
-            // Eski rasm faylini o'chirish
-            if ($oldImage && file_exists(public_path($oldImage->image_path))) {
-                unlink(public_path($oldImage->image_path));
-            }
-
-            // Bazani yangilash yoki yaratish
-            UserImage::updateOrCreate(
-                ['user_id' => $userId, 'type' => $type],
-                ['image_path' => $uploadPath . '/' . $imageName]
-            );
-        }
-    }
 
     public function me()
     {
@@ -553,5 +644,57 @@ class APIAuthController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+
+    public function approveClientAsDriver(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $user = User::find($request->user_id);
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        $user->role = 'driver';
+        $user->driving_verification_status = 'approved';
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User approved as driver',
+        ]);
+    }
+
+    public function rejectClientAsDriver(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $user = User::find($request->user_id);
+
+
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        $user->role = 'client';
+        $user->driving_verification_status = 'rejected';
+        $user->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'User rejected for driving verification',
+        ]);
     }
 }

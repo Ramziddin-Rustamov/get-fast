@@ -22,6 +22,12 @@ class MoveExpiredTrips extends Command
                 'end_point_id' => $trip->end_point_id,
                 'start_quarter_id' => $trip->start_quarter_id,
                 'end_quarter_id' => $trip->end_quarter_id,
+                'start_region_id' => $trip->start_region_id,
+                'end_region_id' => $trip->end_region_id,
+
+                'start_district_id' => $trip->start_district_id,
+                'end_district_id' => $trip->end_district_id,
+                
                 'start_time' => $trip->start_time,
                 'end_time' => $trip->end_time,
                 'price_per_seat' => $trip->price_per_seat,

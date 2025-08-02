@@ -16,6 +16,8 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('image_path');
             $table->enum('type', ['profile', 'passport','driving_licence']);
+            $table->enum('side', ['front', 'back'])->nullable();
+            $table->timestamps();
         });
     }
 
