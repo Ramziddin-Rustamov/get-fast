@@ -546,34 +546,22 @@ class APIAuthController extends Controller
         $image = UserImage::where('user_id', $user->id)->where('type', 'profile')->first();
         $passport = UserImage::where('user_id', $user->id)->where('type', 'passport')->first();
         $drivingLicence = UserImage::where('user_id', $user->id)->where('type', 'driving_licence')->first();
-
+        $image = $user->profileImage;
         return response()->json([
             'status' => 'success',
-            'user' => $user,
-
-            'user_image' => $image ? [
-                'type' => $image->type,
-                'user_image' => asset($image->image_path),
-                'user_id' => $user->id,
-            ] : null,
-
-            'passport' => $passport ? [
-                'type' => $passport->type,
-                'user_image' => asset($passport->image_path),
-            ] : null,
-
-            'driving_licence' => $drivingLicence ? [
-                'type' => $drivingLicence->type,
-                'user_image' => asset($drivingLicence->image_path),
-            ] : null,
-
-            'my_balance' => $user->myBalance ? [
-                'balance' => $user->myBalance->balance,
-                'locked_balance' => $user->myBalance->locked_balance,
-                'currency' => $user->myBalance->currency,
-                'created_at' => $user->myBalance->created_at,
-                'updated_at' => $user->myBalance->updated_at,
-            ] : null,
+            'user' => [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'father_name' => $user->father_name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'role' => $user->role,
+                'birth_date' => $user->birth_date,
+                'driving_verification_status' => $user->driving_verification_status,
+                'created_at' => $user->created_at,
+                'image' => $image ? asset($image->image_path) : null,
+            ]
         ]);
     }
 
