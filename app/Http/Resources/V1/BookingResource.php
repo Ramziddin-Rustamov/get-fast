@@ -24,20 +24,24 @@ class BookingResource extends JsonResource
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'trip' => [
                 'id' => $this->trip->id,
-                'from_where' => $this->trip->startQuarter->name . ', ' . $this->trip->startQuarter->district->name . ', ' . $this->trip->startQuarter->district->region->name,
-                'to_where' => $this->trip->endQuarter->name . ', ' . $this->trip->endQuarter->district->name . ', ' . $this->trip->endQuarter->district->region->name,
+
+                'start_region_id' => $this->trip->start_region_id,
+                'end_region_id' => $this->trip->end_region_id,
+                'start_district_id' => $this->trip->start_district_id,
+                'end_district_id' => $this->trip->end_district_id,
+                'start_quarter_id' => $this->trip->start_quarter_id,
+                'end_quarter_id' => $this->trip->end_quarter_id,
+
+
                 'start_time' => $this->trip->start_time,
                 'end_time' => $this->trip->end_time,
                 'price_per_seat' => $this->trip->price_per_seat,
                 'available_seats' => $this->trip->available_seats,
                 'status' => $this->trip->status,
-                'trip_points' => [
-                    'from_latitude' => $this->trip->startPoint->lat,
-                    'from_longitude' => $this->trip->startPoint->long,
-                    'to_latitude' => $this->trip->endPoint->lat,
-                    'to_longitude' => $this->trip->endPoint->long
-                ],
-
+                'from_latitude' => $this->trip->startPoint->lat,
+                'from_longitude' => $this->trip->startPoint->long,
+                'to_latitude' => $this->trip->endPoint->lat,
+                'to_longitude' => $this->trip->endPoint->long
             ],
             'booked_users' => [
                 'passengers' => $this->passengers->map(function ($passenger) {
