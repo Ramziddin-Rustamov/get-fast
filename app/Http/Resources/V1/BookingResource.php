@@ -43,15 +43,16 @@ class BookingResource extends JsonResource
                 'to_latitude' => $this->trip->endPoint->lat,
                 'to_longitude' => $this->trip->endPoint->long
             ],
-            'booked_users' => [
-                'passengers' => $this->passengers->map(function ($passenger) {
+
+            'passengers' => $this->passengers && $this->passengers->isNotEmpty()
+                ? $this->passengers->map(function ($passenger) {
                     return [
                         'id' => $passenger->id,
                         'name' => $passenger->name,
                         'phone' => $passenger->phone,
                     ];
                 })
-            ] ?? null,
+                : null,
             'driver' => $this->trip->driver ? [
                 'id' => $this->trip->driver->id,
                 'first_name' => $this->trip->driver->first_name,
