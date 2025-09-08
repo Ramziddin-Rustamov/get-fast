@@ -18,7 +18,7 @@ class BalanceTransactionController extends Controller
         }
 
         return response()->json(
-            [
+            [ 
                 'message' => 'No balance transactions found',
                 'status' => 'error'
             ],

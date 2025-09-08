@@ -324,6 +324,15 @@ class BookingRepository
             $userBalance->save();
             $userBalanceAfter = $userBalance->balance;
 
+            $locale = app()->getLocale();
+
+            $reason = match($locale) {
+                'uz' => "Foydalanuvchi #{$booking->id} band qilgan safarni bekordi, qaytarilgan summa: {$refund} UZS, komissiya: {$commission} UZS",
+                'ru' => "Пользователь отменил бронирование #{$booking->id}, возврат: {$refund} UZS, комиссия: {$commission} UZS",
+                'en' => "User cancelled booking #{$booking->id}, refund: {$refund} UZS, commission: {$commission} UZS",
+                default => "User cancelled booking #{$booking->id}, refund: {$refund} UZS, commission: {$commission} UZS",
+            };
+
             BalanceTransaction::create([
                 'user_id' => $user->id,
                 'type' => 'credit',
@@ -332,7 +341,7 @@ class BookingRepository
                 'balance_after' => $userBalanceAfter,
                 'trip_id' => $trip->id,
                 'status' => 'success',
-                'reason' => "User cancelled booking #{$booking->id}, refund: {$refund} UZS, commission: {$commission} UZS",
+                'reason' => $reason,
                 'reference_id' => $booking->id,
                 'currency' => 'UZS',
             ]);
@@ -349,6 +358,15 @@ class BookingRepository
             $driverBalance->after_taxes  = $driverBalance->balance;
             $driverBalance->save();
             $driverBalanceAfter = $driverBalance->balance;
+            
+            $locale = app()->getLocale();
+
+            $driverReason = match($locale) {
+                'uz' => "Foydalanuvchi #{$booking->id} band qilgan safarni bekordi. Haydovchiga qaytarilgan summa: {$total} UZS (komissiya olinmadi)",
+                'ru' => "Пользователь отменил бронирование #{$booking->id}. Возврат водителю: {$total} UZS (комиссия не взималась)",
+                'en' => "Booking #{$booking->id} cancelled by user. Driver refund: {$total} UZS (no commission taken)",
+                default => "Booking #{$booking->id} cancelled by user. Driver refund: {$total} UZS (no commission taken)",
+            };
 
             BalanceTransaction::create([
                 'user_id' => $driver->id,
@@ -358,7 +376,7 @@ class BookingRepository
                 'balance_after' => $driverBalanceAfter,
                 'trip_id' => $trip->id,
                 'status' => 'success',
-                'reason' => "Booking #{$booking->id} cancelled by user. Driver refund: {$total} UZS (no commission taken)",
+                'reason' => $driverReason,
                 'reference_id' => $booking->id,
                 'currency' => 'UZS',
             ]);

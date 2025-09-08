@@ -25,12 +25,12 @@ class BalanceTransactionResource extends JsonResource
             'created_at' => $this->created_at,
             'trip' => $this->trip ? [
                 'id' => $this->trip_id,
-                'start_location' => optional(optional(optional($this->trip->startQuarter)->district)->region)->name . ' - ' .
-                    optional(optional($this->trip->startQuarter)->district)->name . ' - ' .
-                    optional($this->trip->startQuarter)->name,
-                'end_location' => optional(optional(optional($this->trip->endQuarter)->district)->region)->name . ' - ' .
-                    optional(optional($this->trip->endQuarter)->district)->name . ' - ' .
-                    optional($this->trip->endQuarter)->name,
+                'start_region_id' => $this->trip->start_region_id,
+                'end_region_id' => $this->trip->end_region_id,
+                'start_district_id' => $this->trip->start_district_id,
+                'end_district_id' => $this->trip->end_district_id,
+                'start_quarter_id' => $this->trip->start_quarter_id,
+                'end_quarter_id' => $this->trip->end_quarter_id,
                 'start_time' => $this->trip->start_time,
                 'price_per_seat' => $this->trip->price_per_seat,
                 'end_time' => $this->trip->end_time
