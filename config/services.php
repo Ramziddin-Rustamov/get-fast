@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+   /*
+   |--------------------------------------------------------------------------
+   | SMS
+   |--------------------------------------------------------------------------
+   |
+   | playmobilening username va parollarini envdan olib kelish
+   |
+   */
+    'sms' => [
+        'url' => env('SMS_API_URL'),
+        'face_name' => env('SMS_API_FACE_NAME'),
+        'username' => env('SMS_API_USERNAME'),
+        'password' => env('SMS_API_PASSWORD'),
+    ],
+
 ];

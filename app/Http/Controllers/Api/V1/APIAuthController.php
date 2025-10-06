@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Services\V1\SmsService;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
 use App\Models\BalanceTransaction;
@@ -23,7 +24,12 @@ use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 class APIAuthController extends Controller
 {
 
+    protected SmsService $smsService;
 
+    public function __construct(SmsService $smsService)
+    {
+        $this->smsService = $smsService;
+    }
 
 
     public function register(Request $request)
@@ -44,6 +50,8 @@ class APIAuthController extends Controller
 
         // Step 2: Tasdiqlash kodi generatsiya qilish
         $code = rand(100000, 999999); // 6 xonali kod
+        // SMS uchun xabar
+        $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
 
         // Step 3: Foydalanuvchini vaqtincha yaratish (is_verified = false)
         $user = \App\Models\User::create([
@@ -57,9 +65,8 @@ class APIAuthController extends Controller
             'is_verified' => false,
         ]);
 
-        // Step 4: Kodni foydalanuvchiga yuborish (SMS orqali)
-        // Bu joyga SMS yuborish funksiyasini joylashtiring
-        // Misol: SmsService::send($user->phone, "Your verification code is: $code");
+        // smsni navbatga yuborish
+        $this->smsService->sendQueued($user->phone, $text, 'register');
 
         return response()->json([
             'status' => 'success',
