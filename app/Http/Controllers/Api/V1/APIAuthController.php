@@ -134,12 +134,14 @@ class APIAuthController extends Controller
 
         // Yangi tasdiqlash kodi generatsiyasi
         $code = rand(100000, 999999);
+        // SMS uchun xabar
+        $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+
         $user->verification_code = $code;
         $user->save();
 
-        // SMS orqali yuborish logikasi (shu joyga integratsiya qo‘shasiz)
-        // Misol: SmsService::send($user->phone, "Your new verification code is: $code");
-
+        // smsni navbatga yuborish
+        $this->smsService->sendQueued($user->phone, $text, 'register');
         return response()->json([
             'status' => 'success',
             'message' => 'New verification code sent to your phone',
@@ -194,7 +196,8 @@ class APIAuthController extends Controller
         $code = rand(100000, 999999);
         $user->verification_code = $code;
         $user->save();
-
+        $text = "Parolni tiklash uchun tasdiqlash kodi: $code";
+        $this->smsService->sendQueued($user->phone, $text, 'password_reset');
         // SMS yuborish joyi (integratsiya qilasiz)
         // SmsService::send($user->phone, "Your password reset code is: $code");
 
@@ -624,6 +627,11 @@ class APIAuthController extends Controller
             );
 
             DB::commit();
+
+            //Hisob to'ldirish haqisa sms!
+            $text = "Sizning hisobingiz $balanceTransaction->amount so`mga to`ldirildi";
+
+            $this->smsService->sendQueued($user->phone, $text, 'register');
 
             return response()->json([
                 'status' => 'success',
