@@ -6,5 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class PaymentLog extends Model
 {
-    //
+
+    public $table = 'payment_logs';
+
+    protected $fillable = [
+        'request',
+        'response',
+    ];
 }

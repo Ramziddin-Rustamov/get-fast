@@ -2,49 +2,85 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+
 use App\Http\Controllers\Controller;
-use App\Services\V1\PaymentService;
-use App\Http\Requests\V1\PaymentStoreRequest;
-use App\Http\Requests\V1\PaymentUpdateRequest;
-use App\Http\Resources\V1\PaymentResource;
+use App\Models\V1\Card;
+use App\Models\v1\PaymentLog;
+use App\Services\V1\HamkorbankService;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Request;
 
-// class PaymentController extends Controller
-// {
-//     protected $paymentService;
+class PaymentController extends Controller
+{
+    protected static function baseUrl(): string
+    {
+        return rtrim(config('services.hamkorbank.url'), '/');
+    }
 
-//     public function __construct(PaymentService $paymentService)
-//     {
-//         $this->paymentService = $paymentService;
-//     }
+    public static function getToken(): ?string
+    {
+        $url = 'https://dev-open-api.hamkorbank.uz/token';
+        $key = config('services.hamkorbank.key');
+        $secret = config('services.hamkorbank.secret');
 
-//     public function index()
-//     {
-//         $payments = $this->paymentService->getAllPayments();
-//         return PaymentResource::collection($payments);
-//     }
+        $response = Http::withBasicAuth($key, $secret)
+            ->asForm()
+            ->post($url, ['grant_type' => 'client_credentials']);
 
-//     public function show($id)
-//     {
-//         $payment = $this->paymentService->getPaymentById($id);
-//         return new PaymentResource($payment);
-//     }
+        if ($response->failed()) {
+            PaymentLog::create([
+                'request' => 'token_request',
+                'response' => $response->body(),
+            ]);
+            return null;
+        }
 
-//     public function store(PaymentStoreRequest $request)
-//     {
-//         $payment = $this->paymentService->createPayment($request->validated());
-//         return new PaymentResource($payment);
-//     }
+        return $response->json()['access_token'] ?? null;
+    }
 
-//     public function update(PaymentUpdateRequest $request, $id)
-//     {
-//         $payment = $this->paymentService->updatePayment($id, $request->validated());
-//         return new PaymentResource($payment);
-//     }
 
-//     public function destroy($id)
-//     {
-//         $this->paymentService->deletePayment($id);
-//         return response()->json(['message' => 'Payment deleted successfully'], 200);
-//     }
 
-// }
+    /**
+     * 💰 Karta orqali to‘lov (pay.create)
+     */
+    public function chargeCard(Request $request)
+    {
+
+        $auth_id =  Auth::user()->id;
+        $validated = $request->validate([
+            'external_id' => 'required|string',
+            'amount' => 'required|numeric',
+            'currency_code' => 'required|string',
+            'user_card_id' => 'required|exists:cards,id',
+        ]);
+        $card = Card::where('user_id', $auth_id)->where('id', $validated['user_card_id'])->first();
+
+        $response = HamkorbankService::payCreate($validated);
+
+        return response()->json([
+            'status' => $response['error'] ?? false ? false : true,
+            'data' => $response,
+        ]);
+    }
+
+    /**
+     * 📩 To‘lovni SMS orqali tasdiqlash (pay.confirm)
+     */
+    public function confirmPayment(Request $request)
+    {
+        $validated = $request->validate([
+            'pay_id' => 'required|string',
+            'confirm_code' => 'nullable|string|min:4|max:7',
+            'hold' => 'nullable|boolean',
+        ]);
+
+        $response = HamkorbankService::payConfirm($validated);
+
+        return response()->json([
+            'status' => $response['error'] ?? false ? false : true,
+            'data' => $response,
+        ]);
+    }
+   
+}

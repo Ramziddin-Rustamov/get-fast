@@ -5,26 +5,20 @@ namespace App\Models\V1;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
-class Card extends Model
+class Payment_log extends Model
 {
-
-
-    protected $table = 'cards';
+    protected $table = 'payment_logs';
 
     protected $fillable = [
         'user_id',
-        'card_id',
-        'number',
-        'expiry',
-        'phone',
-        'label',
-        'is_default',
-        'status',
-        'meta',
+        'request_data',
+        'response_data'
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
+
+    
 }

@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'hamkorbank' => [
+        'url' => env('BANK_URL_HAMKORBANK'),
+        'key' => env('ACQUIRING_KEY'),
+        'secret' => env('ACQUIRING_SECRET'),
+    ],
+
 ];
