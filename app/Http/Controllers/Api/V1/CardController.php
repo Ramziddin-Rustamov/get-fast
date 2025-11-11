@@ -53,7 +53,7 @@ class CardController extends Controller
                 'phone' => $request->phone,
                 'label' => $request->holder_name,
                 'is_default' => !Card::where('user_id', auth()->id())->exists(),
-                'status' => 'active',
+                'status' => 'not_verified',
                 'meta' => json_encode($response ?? []),
             ]);
 
@@ -67,9 +67,7 @@ class CardController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Card added successfully. Verify with SMS if required.',
-                'confirm_method' => $response['result']['confirm_method'] ?? 'NONE',
-                'confirm_method_info' => 'SMS|NONE|if it is sms then confirm it by verfy method , if NONE then it will not be required',
+                'message' => 'Card added successfully. Verify with SMS code.',
                 'card' => [
                     'id' => $card->id,
                     'lable' => $card->label,
@@ -92,33 +90,86 @@ class CardController extends Controller
             ], 500);
         }
     }
-
+    //DONE ###################### --- DONE -------- #############################
     /** ✅ Kartani verify qilish (SMS kod bilan) */
     public function verifyCard(Request $request)
     {
 
-        $request->validate([
-            'key' => 'required|string',
-            'confirm_code' => 'required|string|min:4|max:8',
-        ]);
-        return HamkorbankService::verifyCard($request);
+        try {
+            $request->validate([
+                'id' => 'required|exists:cards,id',
+                'card_key' => 'required',
+                'confirm_code' => 'required|string|min:4|max:8',
+            ]);
+
+
+            $response = HamkorbankService::verifyCard($request);
+
+            $card = Card::where('id', $request->id)->first();
+            if (!$card) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Card not found',
+                ], 404);
+            }
+
+            $card->status = 'verified';
+            $card->save();
+
+            // Agar Hamkorbankdan error qaytsa:
+            if (isset($response['error'])) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $response['error']['message'] ?? 'Verification failed',
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Card verified successfully',
+                'card' => $response['result'] ?? null,
+            ]);
+        } catch (\Illuminate\Http\Client\RequestException $e) {
+            // HTTP so‘rov bilan bog‘liq xatoliklar
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Request error: ' . $e->getMessage(),
+            ], 500);
+        } catch (\Exception $e) {
+            // Boshqa har qanday xatoliklar
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unexpected error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
+ 
 
-
-
-    public function checkCardBalanceIsAvailable(Request $request)
+    public function checkCardBalance(Request $request) // return 1 if emaount is exist in this card if not returns 0 
     {
-        $request->validate([
-            'card_id' => 'required|string',
-            'amount' => 'required|numeric',
-        ]);
+        try {
+            $request->validate([
+                'id' => 'required|exists:cards,id',
+                'card_key' => 'required|string|exists:cards,card_id',
+                'amount' => 'required|integer|min:1',
+            ]);
 
-        return HamkorbankService::checkCardBalanceIsAvailable($request);
-    }
+            $response = HamkorbankService::checkCardBalance($request);
 
+            if ($response['status'] === 'error') {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $response['message'],
+                    'error' => $response['error'] ?? null,
+                ], 400);
+            }
 
-    public function checkBalanceByCardId(Request $request)
-    {
-        return HamkorbankService::checkBalanceByCardId($request);
+            return $response['data']['response']; 
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unexpected error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

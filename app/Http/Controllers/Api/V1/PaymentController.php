@@ -39,48 +39,5 @@ class PaymentController extends Controller
         return $response->json()['access_token'] ?? null;
     }
 
-
-
-    /**
-     * 💰 Karta orqali to‘lov (pay.create)
-     */
-    public function chargeCard(Request $request)
-    {
-
-        $auth_id =  Auth::user()->id;
-        $validated = $request->validate([
-            'external_id' => 'required|string',
-            'amount' => 'required|numeric',
-            'currency_code' => 'required|string',
-            'user_card_id' => 'required|exists:cards,id',
-        ]);
-        $card = Card::where('user_id', $auth_id)->where('id', $validated['user_card_id'])->first();
-
-        $response = HamkorbankService::payCreate($validated);
-
-        return response()->json([
-            'status' => $response['error'] ?? false ? false : true,
-            'data' => $response,
-        ]);
-    }
-
-    /**
-     * 📩 To‘lovni SMS orqali tasdiqlash (pay.confirm)
-     */
-    public function confirmPayment(Request $request)
-    {
-        $validated = $request->validate([
-            'pay_id' => 'required|string',
-            'confirm_code' => 'nullable|string|min:4|max:7',
-            'hold' => 'nullable|boolean',
-        ]);
-
-        $response = HamkorbankService::payConfirm($validated);
-
-        return response()->json([
-            'status' => $response['error'] ?? false ? false : true,
-            'data' => $response,
-        ]);
-    }
    
 }

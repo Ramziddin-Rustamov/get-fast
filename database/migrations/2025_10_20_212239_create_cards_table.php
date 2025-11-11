@@ -36,7 +36,7 @@ return new class extends Migration
             $table->boolean('is_default')->default(false);
 
             // Holat (active / blocked / expired va h.k.)
-            $table->enum('status', ['active', 'blocked', 'expired'])->default('active');
+            $table->enum('status', ['active', 'blocked', 'expired','verified', 'not_verified'])->default('active');
 
             // Qo‘shimcha JSON maydon (bankdan qaytgan raw ma’lumotlar)
             $table->json('meta')->nullable();

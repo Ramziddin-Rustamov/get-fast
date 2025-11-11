@@ -113,220 +113,168 @@ class HamkorbankService
 
     /** ✅ 3. Karta verify qilish (SMS kodi bilan) */
     //DONE ###################### --- DONE -------- #############################
-
     public static function verifyCard($request)
-    {
-        $token = self::getToken();
-        if (!$token) {
-            return response()->json(['error' => 'Token olinmadi'], 500);
-        }
-
-        $payload = [
-            "jsonrpc" => "2.0",
-            "method"  => "card.verify",
-            "params"  => [[
-                "key" => $request->input('key'),
-                "confirm_code" => $request->input('confirm_code'),
-            ]],
-            "id" => (string) Str::uuid(),
-        ];
-
-        $response = Http::withToken($token)
-            ->withHeaders(['Content-Type' => 'application/json; charset=utf-8'])
-            ->post(self::baseUrl(), $payload);
-
-        PaymentLog::create([
-            'request' => json_encode($payload),
-            'response' => $response->body(),
-        ]);
-
-        if ($response->failed()) {
-            return response()->json(['status' => false, 'error' => $response->json()], $response->status());
-        }
-
-        $json = $response->json();
-        $result = $json['result'] ?? [];
-
-        if (isset($result['id']) && Auth::check()) {
-            Card::updateOrCreate(
-                ['card_id' => $result['id']],
-                [
-                    'user_id' => Auth::id(),
-                    'number' => $result['number'] ?? null,
-                    'expiry' => $result['expiry'] ?? null,
-                    'is_default' => !Card::where('user_id', Auth::id())->exists(),
-                    'status' => 'verified',
-                ]
-            );
-        }
-
-        return response()->json($json);
-    }
-
-    public static function payCreate(array $data)
-    {
-        $token = self::getToken();
-        if (!$token) {
-            return ['error' => 'Token olinmadi'];
-        }
-
-        $card = [];
-        if (!empty($data['card_id'])) {
-            $card['id'] = $data['card_id'];
-        } else {
-            $card['number'] = $data['card_number'];
-            $card['expiry'] = $data['card_expiry'];
-        }
-
-        $payload = [
-            "jsonrpc" => "2.0",
-            "method" => "pay.create",
-            "params" => [[
-                "external_id" => $data['external_id'],
-                "amount" => (int)$data['amount'],
-                "currency_code" => $data['currency_code'],
-                "card" => $card,
-            ]],
-            "id" => (string) Str::uuid(),
-        ];
-
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-            'Content-Type' => 'application/json; charset=utf-8',
-        ])->post(self::baseUrl(), $payload);
-
-        PaymentLog::create([
-            'endpoint' => 'pay.create',
-            'request' => json_encode($payload),
-            'response' => $response->body(),
-            'status' => $response->status(),
-        ]);
-
-        return $response->json();
-    }
-
-    public static function payConfirm(array $data)
-    {
-        $token = self::getToken();
-        if (!$token) {
-            return ['error' => 'Token olinmadi'];
-        }
-
-        $params = ['pay_id' => $data['pay_id']];
-        if (!empty($data['confirm_code'])) {
-            $params['confirm_code'] = $data['confirm_code'];
-        }
-        if (isset($data['hold'])) {
-            $params['hold'] = (bool)$data['hold'];
-        }
-
-        $payload = [
-            "jsonrpc" => "2.0",
-            "method" => "pay.confirm",
-            "params" => [$params],
-            "id" => (string) Str::uuid(),
-        ];
-
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $token,
-            'Content-Type' => 'application/json; charset=utf-8',
-        ])->post(self::baseUrl(), $payload);
-
-        PaymentLog::create([
-            'endpoint' => 'pay.confirm',
-            'request' => json_encode($payload),
-            'response' => $response->body(),
-            'status' => $response->status(),
-        ]);
-
-        return $response->json();
-    }
-
-
-
-
-    /** ✅ 1. Karta balansi */
-    public static function checkCardBalanceIsAvailable($request)
-    {
-        $token = self::getToken();
-        if (!$token) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Token olinmadi'
-            ], 500);
-        }
-
-        $payload = [
-            "jsonrpc" => "2.0",
-            "method"  => "card.info",
-            "params"  => [[
-                "card_id" => $request->card_id,
-                "amount" => $request->amount
-            ]],
-            "id" => (string) Str::uuid()
-        ];
-
-
-        $response = Http::withToken($token)
-            ->withHeaders(['Content-Type' => 'application/json'])
-            ->post(self::baseUrl(), $payload);
-
-        PaymentLog::create([
-            'request' => json_encode($payload),
-            'response' => $response->body(),
-        ]);
-
-        return $response->json();
-
-        if ($response->failed()) {
-            return response()->json([
-                'status' => false,
-                'error' => $response->json(),
-            ], $response->status());
-        }
-
-        return response()->json([
-            'status' => true,
-            'data' => $response->json()['result'] ?? null
-        ]);
-    }
-
-
-    public static function checkBalanceByCardId($request)
     {
         try {
             $token = self::getToken();
             if (!$token) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Token olinmadi'
-                ], 500);
+                return ['error' => ['message' => 'Token olinmadi']];
             }
 
             $payload = [
                 "jsonrpc" => "2.0",
-                "method"  => "card.info",
+                "method"  => "card.verify",
                 "params"  => [[
-                    "card_id" => $request['card_id'],
+                    "key" => $request->input('card_key'),
+                    "confirm_code" => $request->input('confirm_code'),
                 ]],
-                "id" => (string) Str::uuid()
+                "id" => (string) \Illuminate\Support\Str::uuid(),
             ];
 
-            $response = Http::withToken($token)
-                ->withHeaders(['Content-Type' => 'application/json'])
+            $response = \Illuminate\Support\Facades\Http::withToken($token)
+                ->withHeaders(['Content-Type' => 'application/json; charset=utf-8'])
                 ->post(self::baseUrl(), $payload);
 
-            PaymentLog::create([
+            \App\Models\V1\PaymentLog::create([
                 'request' => json_encode($payload),
                 'response' => $response->body(),
             ]);
 
+            if ($response->failed()) {
+                return ['status' => 'error', 'message' => 'Verification failed' . $response->body()];
+            }
+
             return $response->json();
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'error' => $e->getMessage(),
-            ], 500);
+            return ['status' => 'error', 'message' => 'Verification failed' . $e->getMessage()];
         }
     }
+
+    // ### DONE ###################### --- DONE -------- #############################
+    // public static function getCardInfo($request)
+    // {
+    //     try {
+    //         $token = self::getToken();
+    //         if (!$token) {
+    //             return [
+    //                 'status' => 'error',
+    //                 'message' => 'Token olinmadi'
+    //             ];
+    //         }
+
+    //         $payload = [
+    //             "jsonrpc" => "2.0",
+    //             "method"  => "card.info",
+    //             "params"  => [[
+    //                 "card_id" => $request->input('card_key'),
+    //             ]],
+    //             "id" => (string) Str::uuid(),
+    //         ];
+
+    //         $response = Http::withToken($token)
+    //             ->withHeaders(['Content-Type' => 'application/json; charset=utf-8'])
+    //             ->post(self::baseUrl(), $payload);
+
+    //         PaymentLog::create([
+    //             'request' => json_encode($payload),
+    //             'response' => $response->body(),
+    //         ]);
+
+    //         // Agar so‘rov muvaffaqiyatsiz bo‘lsa
+    //         if ($response->failed()) {
+    //             return [
+    //                 'status' => 'error',
+    //                 'message' => 'HTTP so‘rov bajarilmadi',
+    //                 'error' => $response->json()
+    //             ];
+    //         }
+
+
+    //         // Agar server error qaytarsa
+    //         if (isset($json['error'])) {
+    //             return [
+    //                 'status' => 'error',
+    //                 'message' => $response['error']['message'] ?? 'Noma’lum xatolik',
+    //             ];
+    //         }
+
+    //         return [
+    //             'status' => 'success',
+    //             'message' => 'Card info',
+    //             'data' => $response->json()
+    //         ];
+    //     } catch (\Exception $e) {
+    //         return [
+    //             'status' => 'error',
+    //             'message' => 'Unexpected error: ' . $e->getMessage(),
+
+    //         ];
+    //     }
+    // }
+
+     //    DONE ###################### --- DONE -------- #############################
+    public static function checkCardBalance($request)
+    {
+        try {
+            $token = self::getToken();
+            if (!$token) {
+                return [
+                    'status' => 'error',
+                    'message' => 'Token olinmadi'
+                ];
+            }
+
+            $payload = [
+                "jsonrpc" => "2.0",
+                "method"  => "card.check.balance",
+                "params"  => [[
+                    "card_id" => $request->input('card_key'),
+                    "amount"  => (int) $request->input('amount'),
+                ]],
+                "id" => (string) Str::uuid(),
+            ];
+
+            $response = Http::withToken($token)
+                ->withHeaders(['Content-Type' => 'application/json; charset=utf-8'])
+                ->post(self::baseUrl(), $payload);
+
+            // Log yozamiz
+            \App\Models\V1\PaymentLog::create([
+                'request' => json_encode($payload),
+                'response' => $response->body(),
+            ]);
+
+            // Agar HTTP so‘rov xato bo‘lsa
+            if ($response->failed()) {
+                return [
+                    'status' => 'error',
+                    'message' => 'HTTP so‘rov bajarilmadi',
+                    'error' => $response->json()
+                ];
+            }
+
+            $json = $response->json();
+
+            // Agar server xatolik yuborsa
+            if (isset($json['error'])) {
+                return [
+                    'status' => 'error',
+                    'message' => $json['error']['message'] ?? 'Noma’lum xatolik',
+                ];
+            }
+
+            // Muvaffaqiyatli natija
+            return [
+                'status' => 'success',
+                'message' => 'Card balance check completed successfully',
+                'data' => $json['result'] ?? null,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Unexpected error: ' . $e->getMessage(),
+            ];
+        }
+    }
+
 }

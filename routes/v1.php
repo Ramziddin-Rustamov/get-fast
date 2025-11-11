@@ -113,9 +113,12 @@ Route::prefix('auth')->middleware('auth:api')->group(function () {
 Route::prefix('bank')->middleware('auth:api')->group(function () {
     Route::post('/card-list/{phoneNumber}', [CardController::class, 'cardList']);
     Route::post('/add-card', [CardController::class, 'addCard']);
-    Route::post('/check-card-balance', [CardController::class, 'checkCardBalanceIsAvailable']);
-    Route::post('/check-card-balance-by-card-id', [CardController::class, 'checkBalanceByCardId']);
     Route::post('/verify-card', [CardController::class, 'verifyCard']);
+    Route::post('/get-info-about-card', [CardController::class, 'getCardInfo']);
+
+
+
+    Route::post('/check-card-balance', [CardController::class, 'checkCardBalance']);
     Route::post('/create-payment', [CardController::class, 'createPayment']);
     Route::post('/confirm-payment', [CardController::class, 'confirmPayment']);
 });
