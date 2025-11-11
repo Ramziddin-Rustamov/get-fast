@@ -1,10 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\V1\APIAuthController;
-use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\HamkorBankController;
+use App\Http\Controllers\Api\V1\CardController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\PaymentController;
 
 
 // Route::post('login', [AuthController::class, 'login']);
@@ -110,6 +108,20 @@ Route::prefix('auth')->middleware('auth:api')->group(function () {
     Route::post('reject-driver', [APIAuthController::class, 'rejectClientAsDriver']);
 });
 
+
+// Route::post('/card-list/{phoneNumber}', [CardController::class, 'cardList']);
+Route::prefix('bank')->middleware('auth:api')->group(function () {
+    Route::post('/card-list/{phoneNumber}', [CardController::class, 'cardList']);
+    Route::post('/add-card', [CardController::class, 'addCard']);
+    Route::post('/verify-card', [CardController::class, 'verifyCard']);
+    Route::post('/get-info-about-card', [CardController::class, 'getCardInfo']);
+
+
+
+    Route::post('/check-card-balance', [CardController::class, 'checkCardBalance']);
+    Route::post('/create-payment', [CardController::class, 'createPayment']);
+    Route::post('/confirm-payment', [CardController::class, 'confirmPayment']);
+});
 
 // Hamkorbank payment entegratin here 
 // Route::prefix('payments')->group(function () {
