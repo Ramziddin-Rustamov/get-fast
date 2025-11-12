@@ -35,26 +35,25 @@ return [
         ],
     ],
 
-<<<<<<< HEAD
-   /*
-   |--------------------------------------------------------------------------
-   | SMS
-   |--------------------------------------------------------------------------
-   |
-   | playmobilening username va parollarini envdan olib kelish
-   |
-   */
+    /*
+    |--------------------------------------------------------------------------
+    | SMS
+    |--------------------------------------------------------------------------
+    |
+    | playmobilening username va parollarini envdan olib kelish
+    |
+    */
     'sms' => [
         'url' => env('SMS_API_URL'),
         'face_name' => env('SMS_API_FACE_NAME'),
         'username' => env('SMS_API_USERNAME'),
         'password' => env('SMS_API_PASSWORD'),
-=======
+    ],
+
     'hamkorbank' => [
         'url' => env('BANK_URL_HAMKORBANK'),
         'key' => env('ACQUIRING_KEY'),
         'secret' => env('ACQUIRING_SECRET'),
->>>>>>> e8bc5411f3f2d15e9ce17c7a4cbf205d802ca00a
     ],
 
 ];
