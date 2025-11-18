@@ -11,6 +11,9 @@ use Illuminate\Http\Request;
 
 class HamkorbankService
 {
+
+
+
     public static function baseUrl(): string
     {
         return rtrim(config('services.hamkorbank.url'), '/');
@@ -307,7 +310,6 @@ class HamkorbankService
                 ->withHeaders(['Content-Type' => 'application/json; charset=utf-8'])
                 ->post(self::baseUrl(), $payload);
 
-            dd($response->json());
             PaymentLog::create([
                 'request'  => json_encode($payload),
                 'response' => $response->body(),
@@ -327,30 +329,120 @@ class HamkorbankService
     /** ------------------ 🟩 pay.confirm ------------------ */
     public static function payConfirm(array $data)
     {
-        $token = self::getToken();
-        if (!$token) {
+
+        try {
+            $token = self::getToken();
+            if (!$token) {
+                return [
+                    'status' => 'error',
+                    'message' => 'Token is not found'
+                ];
+            }
+
+            $payload = [
+                "jsonrpc" => "2.0",
+                "method"  => "pay.confirm",
+                "params"  => [$data],
+                "id" => (string) Str::uuid(),
+            ];
+
+            $response = Http::withToken($token)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post(self::baseUrl(), $payload);
+
+            PaymentLog::create([
+                'request' => json_encode($payload),
+                'response' => $response->body(),
+            ]);
+
+            return $response->json();
+        } catch (\Exception $e) {
             return [
-                'status' => false,
-                'message' => 'Token olinmadi'
+                'status'  => 'error',
+                'message' => $e->getMessage()
             ];
         }
+    }
 
-        $payload = [
-            "jsonrpc" => "2.0",
-            "method"  => "pay.confirm",
-            "params"  => [$data],
-            "id" => (string) Str::uuid(),
-        ];
+    /** ------------------ 🟧 sms.resend ------------------ */
+    public static function smsResend(string $payId)
+    {
+        try {
+            $token = self::getToken();
 
-        $response = Http::withToken($token)
-            ->withHeaders(['Content-Type' => 'application/json'])
-            ->post(self::baseUrl(), $payload);
+            if (!$token) {
+                return [
+                    'status' => 'error',
+                    'message' => 'There is no token available'
+                ];
+            }
 
-        PaymentLog::create([
-            'request' => json_encode($payload),
-            'response' => $response->body(),
-        ]);
+            $payload = [
+                "jsonrpc" => "2.0",
+                "method"  => "sms.resend",
+                "params"  => [[
+                    "pay_id" => $payId,
+                ]],
+                "id" => (string) Str::uuid(),
+            ];
 
-        return $response->json();
+            $response = Http::withToken($token)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post(self::baseUrl(), $payload);
+
+            // Log yozamiz
+            PaymentLog::create([
+                'request'  => json_encode($payload),
+                'response' => $response->body(),
+            ]);
+
+            return $response->json();
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+
+    /** ------------------ 🟦 pay.get ------------------ */
+    public static function payGet(string $payId)
+    {
+        try {
+            $token = self::getToken();
+            if (!$token) {
+                return [
+                    'status' => 'error',
+                    'message' => 'Token olinmadi'
+                ];
+            }
+
+            $payload = [
+                "jsonrpc" => "2.0",
+                "method"  => "pay.get",
+                "params"  => [[
+                    "pay_id" => $payId
+                ]],
+                "id" => (string) Str::uuid(),
+            ];
+
+            $response = Http::withToken($token)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post(self::baseUrl(), $payload);
+
+            // Log
+            PaymentLog::create([
+                'request'  => json_encode($payload),
+                'response' => $response->body(),
+            ]);
+
+            return $response->json();
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ];
+        }
     }
 }
