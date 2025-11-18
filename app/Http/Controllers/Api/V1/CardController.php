@@ -124,6 +124,11 @@ class CardController extends Controller
                 ], 400);
             }
 
+            $card = Card::where('id', $request->id)->first();
+            $card->status = 'verified';
+            $card->card_id = $response['result']['id'];
+            $card->save();
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Card verified successfully',
@@ -143,10 +148,12 @@ class CardController extends Controller
             ], 500);
         }
     }
- 
+
 
     public function checkCardBalance(Request $request) // return 1 if emaount is exist in this card if not returns 0 
     {
+
+
         try {
             $request->validate([
                 'id' => 'required|exists:cards,id',
@@ -156,15 +163,8 @@ class CardController extends Controller
 
             $response = HamkorbankService::checkCardBalance($request);
 
-            if ($response['status'] === 'error') {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $response['message'],
-                    'error' => $response['error'] ?? null,
-                ], 400);
-            }
 
-            return $response['data']['response']; 
+            return $response;
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',

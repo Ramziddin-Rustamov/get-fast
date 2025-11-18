@@ -5,6 +5,7 @@ namespace App\Models;
 
 use App\Models\V1\Balance;
 use App\Models\V1\Booking;
+use App\Models\V1\Card;
 use App\Models\V1\CreditCard;
 use App\Models\V1\Region;
 use App\Models\V1\District;
@@ -148,7 +149,12 @@ class User  extends Authenticatable implements JWTSubject
 
     public function cards()
     {
-        return $this->hasMany(PaymentCard::class);
+        return $this->hasMany(Card::class);
+    }
+
+    public function isDefaultCard()
+    {
+        return $this->hasOne(Card::class)->where('status', 'verified')->where('is_default', true);
     }
 
     public function activeCard()

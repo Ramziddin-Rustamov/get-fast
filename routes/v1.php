@@ -119,8 +119,9 @@ Route::prefix('bank')->middleware('auth:api')->group(function () {
 
 
     Route::post('/check-card-balance', [CardController::class, 'checkCardBalance']);
-    Route::post('/create-payment', [CardController::class, 'createPayment']);
-    Route::post('/confirm-payment', [CardController::class, 'confirmPayment']);
+
+    Route::post('create-payment', [\App\Http\Controllers\Api\V1\PaymentController::class, 'createPayment']);
+    Route::post('confirm-payment', [\App\Http\Controllers\Api\V1\PaymentController::class, 'confirmPayment']);
 });
 
 // Hamkorbank payment entegratin here 

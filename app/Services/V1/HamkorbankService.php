@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 class HamkorbankService
 {
-    protected static function baseUrl(): string
+    public static function baseUrl(): string
     {
         return rtrim(config('services.hamkorbank.url'), '/');
     }
@@ -215,8 +215,10 @@ class HamkorbankService
     //    DONE ###################### --- DONE -------- #############################
     public static function checkCardBalance($request)
     {
+
         try {
             $token = self::getToken();
+
             if (!$token) {
                 return [
                     'status' => 'error',
@@ -224,12 +226,14 @@ class HamkorbankService
                 ];
             }
 
+
+
             $payload = [
                 "jsonrpc" => "2.0",
                 "method"  => "card.check.balance",
                 "params"  => [[
-                    "card_id" => $request->input('card_key'),
-                    "amount"  => (int) $request->input('amount'),
+                    "card_id" => $request['card_key'],
+                    "amount"  => (int) $request['amount'],
                 ]],
                 "id" => (string) Str::uuid(),
             ];
@@ -238,11 +242,11 @@ class HamkorbankService
                 ->withHeaders(['Content-Type' => 'application/json; charset=utf-8'])
                 ->post(self::baseUrl(), $payload);
 
-            // Log yozamiz
-            \App\Models\V1\PaymentLog::create([
-                'request' => json_encode($payload),
-                'response' => $response->body(),
-            ]);
+            // // Log yozamiz
+            // \App\Models\V1\PaymentLog::create([
+            //     'request' => json_encode($payload),
+            //     'response' => $response->body(),
+            // ]);
 
             // Agar HTTP so‘rov xato bo‘lsa
             if ($response->failed()) {
@@ -263,17 +267,90 @@ class HamkorbankService
                 ];
             }
 
+
             // Muvaffaqiyatli natija
-            return [
-                'status' => 'success',
-                'message' => 'Card balance check completed successfully',
-                'data' => $json['result'] ?? null,
-            ];
+            return $json['result']['response'];
         } catch (\Exception $e) {
             return [
                 'status' => 'error',
                 'message' => 'Unexpected error: ' . $e->getMessage(),
             ];
         }
+    }
+
+
+
+    /** ------------------ 🟦 pay.create ------------------ */
+    public static function payCreate($data)
+    {
+        try {
+            $token = self::getToken();
+
+            if (!$token) {
+                return [
+                    'status'  => false,
+                    'message' => 'Token olinmadi'
+                ];
+            }
+
+            // Build JSON-RPC request
+            $payload = [
+                "jsonrpc" => "2.0",
+                "method"  => "pay.create",
+                "params"  => [
+                    $data
+                ],
+                "id"      => (string) Str::uuid(),
+            ];
+
+            $response = Http::withToken($token)
+                ->withHeaders(['Content-Type' => 'application/json; charset=utf-8'])
+                ->post(self::baseUrl(), $payload);
+
+            dd($response->json());
+            PaymentLog::create([
+                'request'  => json_encode($payload),
+                'response' => $response->body(),
+            ]);
+
+            return $response->json();
+        } catch (\Exception $e) {
+            return [
+                'status'  => 'error',
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+
+
+    /** ------------------ 🟩 pay.confirm ------------------ */
+    public static function payConfirm(array $data)
+    {
+        $token = self::getToken();
+        if (!$token) {
+            return [
+                'status' => false,
+                'message' => 'Token olinmadi'
+            ];
+        }
+
+        $payload = [
+            "jsonrpc" => "2.0",
+            "method"  => "pay.confirm",
+            "params"  => [$data],
+            "id" => (string) Str::uuid(),
+        ];
+
+        $response = Http::withToken($token)
+            ->withHeaders(['Content-Type' => 'application/json'])
+            ->post(self::baseUrl(), $payload);
+
+        PaymentLog::create([
+            'request' => json_encode($payload),
+            'response' => $response->body(),
+        ]);
+
+        return $response->json();
     }
 }
