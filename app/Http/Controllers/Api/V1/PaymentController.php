@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PaymentHistoryRepository;
 use App\Models\BalanceTransaction;
 use App\Models\UserBalance;
 use App\Models\V1\Card;
@@ -12,7 +13,6 @@ use App\Services\V1\BankErrorService;
 use App\Services\V1\HamkorbankService;
 use Exception;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class PaymentController extends Controller
@@ -28,32 +28,31 @@ class PaymentController extends Controller
 
             // 1. Faqat amount validatsiya
             $data = $request->validate([
-                'amount' => 'required|numeric|min:1000'
+                'amount' => 'required|numeric|min:1000',
+                'card_id' => 'nullable|exists:cards,id',
             ]);
 
-            // 2. Userning default kartasini olish
-            $card = Card::where('user_id', $user->id)
+
+            if($data['card_id']){
+                $card = Card::where('id', $data['card_id'])->where('status', 'verified')->first();
+            }else{
+                 // 2. Userning default kartasini olish
+                $card = Card::where('user_id', $user->id)
                 ->where('is_default', 1)->where('status', 'verified')
                 ->first();
+            }
 
             if (!$card) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Default karta topilmadi'
+                    'message' => 'User has no  card'
                 ], 400);
             }
 
-            // 2.1 Userning default kartasini olish
-            if ($user->isDefaultCard->card_id == null) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'User has no default card'
-                ]);
-            }
 
             // 3. Check balance: karta parametrlari + amount retur 0 or 1 
             $check = HamkorbankService::checkCardBalance([
-                'card_key'    => $user->isDefaultCard->card_id,
+                'card_key'    => $card->card_id,
                 'amount'      => $data['amount'],
             ]);
 
@@ -109,7 +108,7 @@ class PaymentController extends Controller
             // 4. SMS bo‘lsa
             if ($method === 'SMS') {
 
-                
+
 
                 $payment = new Payment();
                 $payment->user_id = $user->id;
@@ -148,7 +147,7 @@ class PaymentController extends Controller
 
                 // it will be confirmed automatically then we don't need to confirm to make payment
                 $payment = Payment::where('pay_id', $result['result']['pay_id'])->where('status', 'confirmed')->where('user_id', $user->id)->first();
-                if($payment){
+                if ($payment) {
                     $trx = new BalanceTransaction();
                     $trx->user_id = $user->id;
                     $trx->type = 'credit';
@@ -160,7 +159,7 @@ class PaymentController extends Controller
                     $trx->reason = 'Balance filled manually by user and confirmed by none sms ';
                     $trx->reference_id = null;
                     $trx->save();
-    
+
                     $userBalance = UserBalance::firstOrCreate(['user_id' => $user->id]);
                     $userBalance->user_id = $user->id;
                     $userBalance->balance = $user->balance->balance + $payment->amount;
@@ -181,9 +180,6 @@ class PaymentController extends Controller
                     'status' => 'error',
                     'message' => 'payment status now' . ' ' . $payment->status
                 ]);
-
-
-                
             }
         } catch (Exception $e) {
 
@@ -396,4 +392,19 @@ class PaymentController extends Controller
             ], 500);
         }
     }
+
+
+    public function getPaymentHistory()
+    {
+        $payment = Payment::where('user_id', auth()->user()->id)->get();
+        if (!$payment) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Payment history not found',
+            ], 404);
+        }
+        return  PaymentHistoryRepository::collection($payment);
+    }
+
+    
 }

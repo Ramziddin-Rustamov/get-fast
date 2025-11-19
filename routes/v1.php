@@ -125,6 +125,8 @@ Route::prefix('bank')->middleware('auth:api')->group(function () {
 
     Route::post('resend-sms', [\App\Http\Controllers\Api\V1\PaymentController::class, 'resendSms']);
     Route::post('get-payment-info', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentInfo']);
+
+    Route::get('payment-history', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentHistory']);
 });
 
 // Hamkorbank payment entegratin here 
