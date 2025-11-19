@@ -181,4 +181,9 @@ class User  extends Authenticatable implements JWTSubject
     {
         return $this->hasOne(UserBalance::class);
     }
+
+    public function balance()
+    {
+        return $this->hasOne(UserBalance::class);
+    }
 }

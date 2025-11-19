@@ -29,11 +29,11 @@ class CardController extends Controller
                 'number' => 'required|string|min:16|max:19|unique:cards,number',
                 'expiry' => 'required|string|size:4',
                 'holder_name' => 'required|string',
-                'phone' => 'required',
+                'phone' => 'required|unique:cards,phone',
             ]);
 
             $response = HamkorbankService::addCard($request);
-
+           
             if (!isset($response['result'])) {
                 return response()->json([
                     'status' => 'error',

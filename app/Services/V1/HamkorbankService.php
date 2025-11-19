@@ -319,7 +319,7 @@ class HamkorbankService
         } catch (\Exception $e) {
             return [
                 'status'  => 'error',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage() . ' ' . BankErrorService::getMessage($e->getCode())
             ];
         }
     }
@@ -400,7 +400,7 @@ class HamkorbankService
         } catch (\Exception $e) {
             return [
                 'status' => 'error',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage() . '' . BankErrorService::getMessage($e->getCode())
             ];
         }
     }
@@ -438,6 +438,7 @@ class HamkorbankService
             ]);
 
             return $response->json();
+            
         } catch (\Exception $e) {
             return [
                 'status' => 'error',
