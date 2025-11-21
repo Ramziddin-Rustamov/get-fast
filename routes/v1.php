@@ -65,7 +65,7 @@ Route::middleware('auth:api')->group(function () {
     Route::prefix('/user/balance-transactions')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\BalanceTransactionController::class, 'getAllUserBalanceTransactions']);
         Route::get('/pdf', [App\Http\Controllers\Api\V1\BalanceTransactionController::class, 'downloadPdfTransactions']);
-        Route::get('/pdf/{id}', [App\Http\Controllers\Api\V1\BalanceTransactionController::class, 'downloadOnePdfTransactions']);
+        Route::get('/pdf/{id}', [App\Http\Controllers\Api\V1\BalanceTransactionController::class, 'downloadOnePdfTransaction']);
     });
 
 
@@ -102,30 +102,23 @@ Route::prefix('auth')->middleware('auth:api')->group(function () {
     Route::post('/upload-driver-passport-driving-licence', [APIAuthController::class, 'uploadDriverDocuments']);
     Route::post('/update-profile', [APIAuthController::class, 'updateProfile']);
     Route::get('/me', [APIAuthController::class, 'me']);
-    Route::post('/fill-balance', [APIAuthController::class, 'fillBalance']);
-
-    Route::post('approve-driver', [APIAuthController::class, 'approveClientAsDriver']);
-    Route::post('reject-driver', [APIAuthController::class, 'rejectClientAsDriver']);
+    
 });
 
 
 // Route::post('/card-list/{phoneNumber}', [CardController::class, 'cardList']);
 Route::prefix('bank')->middleware('auth:api')->group(function () {
+
+
     Route::post('/card-list/{phoneNumber}', [CardController::class, 'cardList']);
     Route::post('/add-card', [CardController::class, 'addCard']);
     Route::post('/verify-card', [CardController::class, 'verifyCard']);
     Route::post('/get-info-about-card', [CardController::class, 'getCardInfo']);
-
-
-
     Route::post('/check-card-balance', [CardController::class, 'checkCardBalance']);
-
     Route::post('create-payment', [\App\Http\Controllers\Api\V1\PaymentController::class, 'createPayment']);
     Route::post('confirm-payment', [\App\Http\Controllers\Api\V1\PaymentController::class, 'confirmPayment']);
-
     Route::post('resend-sms', [\App\Http\Controllers\Api\V1\PaymentController::class, 'resendSms']);
     Route::post('get-payment-info', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentInfo']);
-
     Route::get('payment-history', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentHistory']);
 });
 

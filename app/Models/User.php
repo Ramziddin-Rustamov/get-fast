@@ -186,4 +186,15 @@ class User  extends Authenticatable implements JWTSubject
     {
         return $this->hasOne(UserBalance::class);
     }
+
+    public function balanceTransactions()
+    {
+        return $this->hasMany(BalanceTransaction::class);
+    }
+
+
+    public function images()
+    {
+        return $this->hasMany(UserImage::class, 'user_id');
+    }
 }

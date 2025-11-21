@@ -51,7 +51,7 @@
                     @else
                         <li class="nav-item dropdown d-flex "  id="navbarDropdown" >
                             <a style="padding-top:16px" id="navbarDropdown" class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                {{ Auth::user()->name }}
+                               {{__("Boshqaruv")}}
                             </a>
         
                             <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown" style="background-color: rgba(255, 244, 239, 1);
@@ -85,10 +85,10 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="dropdown-item  {{ request()->routeIs('driver-payments.index') ? 'active bg-success rounded' : '' }}"
+                                    {{-- <a class="dropdown-item  {{ request()->routeIs('driver-payments.index') ? 'active bg-success rounded' : '' }}"
                                        href="{{ route('driver-payments.index') }}">
                                         {{ __('Driver Payment History') }}
-                                    </a>
+                                    </a> --}}
                                 </li>
                             </ul>
                         @endcan

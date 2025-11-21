@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('first_name')->nullable();
             $table->string('last_name')->nullable();
             $table->string('father_name')->nullable();
-            $table->string('email')->unique();
+            $table->string('email')->unique()->nullable();
             $table->string('phone')->unique();
             $table->string('password')->nullable();
             $table->string('image')->nullable()->default('default.jpg');
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->string('driving_licence_number')->nullable();
             $table->string('driving_licence_expiry')->nullable();
             $table->string('birth_date')->nullable();
-            $table->enum('driving_verification_status', ['none', 'pending', 'approved', 'rejected', 'blocked'])->default('none');
+            $table->enum('driving_verification_status', ['none', 'pending', 'approved', 'rejected', 'blocked'])->default('none')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

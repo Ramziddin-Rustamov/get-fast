@@ -5,131 +5,69 @@ use App\Http\Controllers\Admin\DriverController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\Auth\Clients\ClientAuthController;
-use App\Http\Controllers\Admin\DriverPaymentController;
 use App\Http\Controllers\Admin\OrderController;
-use App\Http\Controllers\Auth\Clients\ClientParcelController;
-use App\Http\Controllers\Auth\Driver\Trip\TripController as DriverTripController;
-use App\Http\Controllers\Auth\Driver\DriverAuthController;
-use App\Http\Controllers\Auth\Driver\Trip\ExpiredTrips\ExpiredTripsController;
 use App\Http\Controllers\WelcomeController;
-use App\Http\Controllers\Auth\Clients\ClientTripController;
-use App\Http\Controllers\GeneralTripController;
-use App\Http\Controllers\Auth\Clients\ClientBankController;
+
 
 Route::get('/', [WelcomeController::class, 'index']);
-
-Route::get('/search', [WelcomeController::class, 'search'])->name('welcome.trips.search');
-
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
-// for drivers 
-Route::prefix('auth/driver')->group(function () {
-    // get methods   
-    Route::get('register', [DriverAuthController::class, 'register'])->name('driver.auth.register.index');
-    Route::get('register-vehicle', [DriverAuthController::class, 'vehicleIndex'])->name('driver.auth.register.vehicle.index');
 
-    // post methods   
-    Route::post('register', [DriverAuthController::class, 'registerDriver'])->name('driver.auth.register.post');
-    Route::post('verify', [DriverAuthController::class, 'verfiyDriver'])->name('driver.auth.verify.post');
-});
-
-Route::prefix('auth/driver')->middleware('auth', 'can:driver_web')->group(function () {
-    Route::post('register-vehicle', [DriverAuthController::class, 'createVehicle'])->name('driver.auth.register.vehicle');
-});
-
-Route::prefix('auth/client')->group(function () {
-    // get methods   
-    Route::get('register', [ClientAuthController::class, 'register'])->name('client.auth.register.index')->middleware('guest');
-
-    // post methods   
-    Route::post('register', [ClientAuthController::class, 'registerClient'])->name('client.auth.register.post');
-    Route::post('register/extra-information', [ClientAuthController::class, 'registerExtraPost'])->name('client.auth.register.extra-info.post');
-    Route::get('register/extra-info', [ClientAuthController::class, 'registerExtra'])->name('client.auth.register.extra-info.index');
-    Route::post('login', [ClientAuthController::class, 'login'])->name('client.auth.login.post');
-});
-
-Route::prefix('auth')->middleware('guest')->group(function () {
-    // GET methods   
-    Route::get('login', [AuthController::class, 'login'])->name('auth.login.index');
-    Route::get('verify/index', [AuthController::class, 'verifiyPage'])->name('auth.verify.index');
-
-    // POST methods   
-    Route::post('login', [AuthController::class, 'loginUser'])->name('auth.login.post');
-    Route::post('verify/user', [AuthController::class, 'verify'])->name('auth.verify.post');
-});
+Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('login', [AuthController::class, 'login'])->name('auth.login');
+Route::post('logout', [AuthController::class, 'logout'])->name('auth.logout.post')->middleware('auth');
 
 
-Route::post('auth/logout', [AuthController::class, 'logout'])->name('auth.logout.post')->middleware('auth');
-// driver profile
-Route::prefix('profile')->middleware(['auth', 'can:driver_web'])->group(function () {
-    Route::get('driver/info', [DriverAuthController::class, 'profileInformation'])->name('profile.index.driver');
-    Route::get('driver/edit/{id}', [DriverAuthController::class, 'profileEdit'])->name('profile.edit.driver');
-    Route::put('driver/update', [DriverAuthController::class, 'updateDriver'])->name('profile.update.driver');
-    Route::put('update/profile/image', [DriverAuthController::class, 'uploadProfileImage'])->name('profile.edit.driver.image');
-    Route::get('driver/create/vehicle', [DriverAuthController::class, 'addVehicleView'])->name('driver.create.vehicle.get');
-    Route::post('driver/create/vehicle', [DriverAuthController::class, 'addVehicle'])->name('driver.create.vehicle.post');
-    Route::get('driver/edit/vehicle/{id}', [DriverAuthController::class, 'editVehicle'])->name('driver.edit.vehicle.get');
-    Route::put('driver/edit/vehicle', [DriverAuthController::class, 'updateVehicle'])->name('driver.edit.vehicle.post');
-    Route::delete('driver/delete/vehicle/by-id/{id}', [DriverAuthController::class, 'deleteVehicle'])->name('driver.delete.vehicle');
-    Route::get('driver/get/vehicles', [DriverAuthController::class, 'getDriverVehicles'])->name('driver.get.vehicle');
-});
+Route::middleware(['can:admin', 'auth'])->group(function () {
 
-// client profile
-Route::prefix('profile')->middleware(['auth', 'can:client_web'])->group(function () {
-    Route::get('client/info', [ClientAuthController::class, 'profileInformation'])->name('profile.index.client');
-    Route::get('client/edit/{id}', [ClientAuthController::class, 'profileEdit'])->name('profile.edit.client');
-    Route::put('client/update', [ClientAuthController::class, 'updateDriver'])->name('profile.update.client');
-});
-// client profile end
+    // DRIVERS
+    Route::get('drivers', [DriverController::class, 'index'])->name('drivers.index');          // List all drivers
+    Route::get('drivers/create', [DriverController::class, 'create'])->name('drivers.create'); // Show form to create a driver
+    Route::post('drivers', [DriverController::class, 'store'])->name('drivers.store');         // Save new driver
+    Route::get('drivers/{driver}', [DriverController::class, 'show'])->name('drivers.show');  // Show single driver
+    Route::get('drivers/{driver}/edit', [DriverController::class, 'edit'])->name('drivers.edit'); // Edit driver
+    Route::put('drivers/{driver}', [DriverController::class, 'update'])->name('drivers.update'); // Update driver
+    Route::delete('drivers/{driver}', [DriverController::class, 'destroy'])->name('drivers.destroy'); // Delete driver
+    Route::post('drivers/{driver}/send-sms', [DriverController::class, 'sendSms'])
+        ->name('drivers.sendSms');
+    Route::post('drivers/{driver}/transfer', [DriverController::class, 'transferBalance'])
+        ->name('drivers.transfer');
+    Route::post('drivers/{driver}/update-status', [DriverController::class, 'updateStatus'])
+        ->name('drivers.updateStatus');
+    // Driver – hamma rasmlarni o'chirish
+    Route::delete('/driver/{driverId}/images', [DriverController::class, 'deleteAllDriverImages'])
+        ->name('driver.images.deleteAll');
+
+    // Vehicle – hamma rasmlarni o'chirish
+    Route::delete('/vehicle/{vehicleId}/images', [DriverController::class, 'deleteAllVehicleImages'])
+        ->name('vehicle.images.deleteAll');
 
 
 
+    // CLIENTS
+    Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
+    Route::get('clients/create', [ClientController::class, 'create'])->name('clients.create');
+    Route::post('clients', [ClientController::class, 'store'])->name('clients.store');
+    Route::get('clients/{client}', [ClientController::class, 'show'])->name('clients.show');
+    Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
+    Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
+    Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
 
+    // ADMINS
+    Route::get('admins', [AdminController::class, 'index'])->name('admins.index');
+    Route::get('admins/create', [AdminController::class, 'create'])->name('admins.create');
+    Route::post('admins', [AdminController::class, 'store'])->name('admins.store');
+    Route::get('admins/{admin}', [AdminController::class, 'show'])->name('admins.show');
+    Route::get('admins/{admin}/edit', [AdminController::class, 'edit'])->name('admins.edit');
+    Route::put('admins/{admin}', [AdminController::class, 'update'])->name('admins.update');
+    Route::delete('admins/{admin}', [AdminController::class, 'destroy'])->name('admins.destroy');
 
-
-Route::middleware(['can:admin'])->group(function () {
-    Route::resource('drivers', DriverController::class);
-    Route::resource('clients', ClientController::class);
-    Route::resource('admins', AdminController::class);
-    Route::resource('orders', OrderController::class);
-    Route::post('/drivers/{driver}/reset-balance', [DriverController::class, 'resetBalance'])->name('drivers.reset-balance');
-    Route::resource('driver-payments', DriverPaymentController::class);
-});
-
-
-Route::middleware(['can:driver_web'])->group(function () {
-    Route::get('driver/trips', [DriverTripController::class, 'index'])->name('driver.trips.index');
-    Route::get('driver/create/trip', [DriverTripController::class, 'create'])->name('driver.trips.create');
-    Route::post('driver/store/trip', [DriverTripController::class, 'store'])->name('driver.trips.store');
-    Route::get('expired-trips', [ExpiredTripsController::class, 'index'])->name('driver.expired-trips.index');
-});
-
-Route::middleware(['auth'])->group(function () {
-    Route::get('client/my/trips', [ClientTripController::class, 'index'])->name('client.trips.index');
-    Route::get('client/create/trip', [ClientTripController::class, 'create'])->name('client.trips.create');
-    Route::get('client/store/trip', [ClientTripController::class, 'store'])->name('client.trips.store');
-    Route::get('cleint/trip/{id}/book', [ClientTripController::class, 'bookView'])->name('trip.book');
-    Route::post('client/trip/book', [ClientTripController::class, 'bookPost'])->name('client.trips.book.post'); // client.trips.book
-});
-
-Route::get('login', [AuthController::class, 'login'])->name('login');
-
-Route::prefix('trip')->group(function () {
-    Route::get('/{id}', [GeneralTripController::class, 'show'])->name('trip.show');
-});
-
-
-Route::middleware(['auth', 'can:client_web'])->group(function () { // parcel.show
-    Route::get('client/my/parcels', [ClientParcelController::class, 'index'])->name('client.parcels.index');
-    Route::get('client/parcel/{id}', [ClientParcelController::class, 'show'])->name('client.parcel.show'); // client.parcel.send
-    Route::post('client/send/parcel', [ClientParcelController::class, 'sendParcel'])->name('client.parcel.send'); // client.parcel.send
-});
-
-
-// for banking
-Route::middleware(['auth', 'can:client_web'])->group(function () { // parcel.show
-    Route::get('client/bank', [ClientBankController::class, 'index'])->name('client.banks.index');
-    Route::post('client/bank', [ClientBankController::class, 'store'])->name('client.banks.store');
-    Route::delete('client/bank/{id}', [ClientBankController::class, 'destroy'])->name('client.banks.destroy');
+    // ORDERS
+    Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::get('orders/create', [OrderController::class, 'create'])->name('orders.create');
+    Route::post('orders', [OrderController::class, 'store'])->name('orders.store');
+    Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::get('orders/{order}/edit', [OrderController::class, 'edit'])->name('orders.edit');
+    Route::put('orders/{order}', [OrderController::class, 'update'])->name('orders.update');
+    Route::delete('orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
 });

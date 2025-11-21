@@ -90,6 +90,8 @@ class CardController extends Controller
             ], 500);
         }
     }
+
+
     //DONE ###################### --- DONE -------- #############################
     /** ✅ Kartani verify qilish (SMS kod bilan) */
     public function verifyCard(Request $request)
@@ -150,6 +152,7 @@ class CardController extends Controller
     }
 
 
+    // DONE ###################### --- DONE -------- #############################
     public function checkCardBalance(Request $request) // return 1 if emaount is exist in this card if not returns 0 
     {
 

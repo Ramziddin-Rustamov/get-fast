@@ -30,13 +30,6 @@ class AppServiceProvider extends ServiceProvider
             return $user->role === 'admin' || $user->email == "rustamovvramziddin@gmail.com";
         });
 
-        Gate::define('client_web', function (User $user) {
-            return $user->role === 'client';
-        });
-
-        Gate::define('driver_web', function (User $user) {
-            return $user->role === 'driver';
-        });
         JsonResource::withoutWrapping(); // tried both
 
         $lang = Request::header('Accept-Language') ?? Request::get('lang') ?? 'en';

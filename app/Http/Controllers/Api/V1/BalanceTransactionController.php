@@ -37,7 +37,7 @@ class BalanceTransactionController extends Controller
             ->header('Content-Disposition', 'attachment; filename="balance-transactions.pdf"');
     }
 
-    public function downloadOnePdfTransactions($id)
+    public function downloadOnePdfTransaction($id)
     {
         $transaction = BalanceTransaction::where('user_id', auth()->user()->id)->find($id);
         if(!$transaction) {

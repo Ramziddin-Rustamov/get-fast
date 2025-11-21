@@ -24,16 +24,17 @@ use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 class APIAuthController extends Controller
 {
 
-    protected SmsService $smsService;
+    // protected SmsService $smsService;
 
-    public function __construct(SmsService $smsService)
-    {
-        $this->smsService = $smsService;
-    }
+    // public function __construct(SmsService $smsService)
+    // {
+    //     $this->smsService = $smsService;
+    // }
 
 
     public function register(Request $request)
     {
+
         // Step 1: Validatsiya
         $validator = Validator::make($request->all(), [
             'phone' => 'required|string|unique:users,phone',
@@ -51,7 +52,7 @@ class APIAuthController extends Controller
         // Step 2: Tasdiqlash kodi generatsiya qilish
         $code = rand(100000, 999999); // 6 xonali kod
         // SMS uchun xabar
-        $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+        // $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
 
         // Step 3: Foydalanuvchini vaqtincha yaratish (is_verified = false)
         $user = \App\Models\User::create([
@@ -66,7 +67,7 @@ class APIAuthController extends Controller
         ]);
 
         // smsni navbatga yuborish
-        $this->smsService->sendQueued($user->phone, $text, 'register');
+        // $this->smsService->sendQueued($user->phone, $text, 'register');
 
         return response()->json([
             'status' => 'success',
@@ -141,7 +142,7 @@ class APIAuthController extends Controller
         $user->save();
 
         // smsni navbatga yuborish
-        $this->smsService->sendQueued($user->phone, $text, 'register');
+        // $this->smsService->sendQueued($user->phone, $text, 'register');
         return response()->json([
             'status' => 'success',
             'message' => 'New verification code sent to your phone',
@@ -174,6 +175,13 @@ class APIAuthController extends Controller
             ], 403);
         }
 
+        if ($user->driving_verification_status == 'blocked') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Siz havolani qabul qilishdan oldin bloklangansiz. Xohlasangiz  bizga murojat qiling.',
+            ]);
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Login successful',
@@ -197,7 +205,7 @@ class APIAuthController extends Controller
         $user->verification_code = $code;
         $user->save();
         $text = "Parolni tiklash uchun tasdiqlash kodi: $code";
-        $this->smsService->sendQueued($user->phone, $text, 'password_reset');
+        // $this->smsService->sendQueued($user->phone, $text, 'password_reset');
         // SMS yuborish joyi (integratsiya qilasiz)
         // SmsService::send($user->phone, "Your password reset code is: $code");
 
@@ -238,12 +246,6 @@ class APIAuthController extends Controller
     }
 
 
-
-
-
-
-
-
     public function logout()
     {
         Auth::logout();
@@ -268,28 +270,31 @@ class APIAuthController extends Controller
 
     public function becomeDriver(Request $request)
     {
-        $request->validate([
-            'driving_license_number' => 'required|string',
-            'driving_license_expiration_date' => 'required|string',
-            'birthday' => 'required|string',
-            'region_id' => 'required|exists:regions,id',
-            'district_id' => 'required|exists:districts,id',
-            'quarter_id' => 'required|exists:quarters,id',
-            'home_address' => 'required|string',
-            'vehicle_number' => 'required|string|unique:vehicles,car_number',
-            'car_model' => 'required|string',
-            'car_color_id' => 'required|exists:colors,id',
-            'seats' => 'required|integer|min:1|max:8',
-            'tech_passport_number' => 'required|string|unique:vehicles,tech_passport_number',
-        ]);
+
 
         try {
+
+            $request->validate([
+                'driving_license_number' => 'required|string',
+                'driving_license_expiration_date' => 'required|string',
+                'birthday' => 'required|string',
+                'region_id' => 'required|exists:regions,id',
+                'district_id' => 'required|exists:districts,id',
+                'quarter_id' => 'required|exists:quarters,id',
+                'home_address' => 'required|string',
+                'vehicle_number' => 'required|string|unique:vehicles,car_number',
+                'car_model' => 'required|string',
+                'car_color_id' => 'required|exists:colors,id',
+                'seats' => 'required|integer|min:1|max:8',
+                'tech_passport_number' => 'required|string|unique:vehicles,tech_passport_number',
+            ]);
             DB::beginTransaction();
 
             $user = Auth::user();
             $user->driving_licence_number = $request->driving_license_number;
             $user->driving_licence_expiry = $request->driving_license_expiration_date;
             $user->birth_date = $request->birthday;
+            $user->role = 'driver';
             $user->driving_verification_status = 'pending';
             $user->region_id = $request->region_id;
             $user->district_id = $request->district_id;
@@ -325,15 +330,16 @@ class APIAuthController extends Controller
 
     public function uploadVehicleImages(Request $request)
     {
-        $request->validate([
-            'vehicle_id' => 'required|exists:vehicles,id',
-            'tech_passport_front' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
-            'tech_passport_back' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
-            'car_images' => 'nullable|array|min:1',
-            'car_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
-        ]);
 
         try {
+
+            $request->validate([
+                'vehicle_id' => 'required|exists:vehicles,id',
+                'tech_passport_front' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+                'tech_passport_back' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+                'car_images' => 'nullable|array|min:1',
+                'car_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            ]);
             $vehicleId = $request->vehicle_id;
 
             // ✅ CAR IMAGES: avval eski rasm va fayllarni o‘chirish
@@ -415,13 +421,17 @@ class APIAuthController extends Controller
 
     public function uploadDriverDocuments(Request $request)
     {
-        $request->validate([
-            'driving_licence_front' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
-            'driving_licence_back' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
-            'driver_passport_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
-        ]);
+
 
         try {
+
+            $request->validate([
+                'driving_licence_front' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+                'driving_licence_back' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+                'driver_passport_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            ]);
+
+
             $user = Auth::user();
             $userId = $user->id;
 
@@ -501,16 +511,18 @@ class APIAuthController extends Controller
     public function updateProfile(Request $request)
     {
 
-        $request->validate([
-            'first_name' => 'nullable|string|max:255',
-            'last_name' => 'nullable|string|max:255',
-            'father_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // rasm
-        ]);
 
-        DB::beginTransaction();
         try {
+
+            $request->validate([
+                'first_name' => 'nullable|string|max:255',
+                'last_name' => 'nullable|string|max:255',
+                'father_name' => 'required|string|max:255',
+                'email' => 'required|email|max:255',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // rasm
+            ]);
+
+            DB::beginTransaction();
             // Foydalanuvchini topish
             $user = User::find(Auth::user()->id);
 
@@ -551,160 +563,41 @@ class APIAuthController extends Controller
 
     public function me()
     {
-        $user = Auth::user();
-
-        $image = UserImage::where('user_id', $user->id)->where('type', 'profile')->first();
-        $passport = UserImage::where('user_id', $user->id)->where('type', 'passport')->first();
-        $drivingLicence = UserImage::where('user_id', $user->id)->where('type', 'driving_licence')->first();
-        $image = $user->profileImage;
-        return response()->json([
-            'status' => 'success',
-            'user' => [
-                'id' => $user->id,
-                'first_name' => $user->first_name,
-                'last_name' => $user->last_name,
-                'father_name' => $user->father_name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'role' => $user->role,
-                'birth_date' => $user->birth_date,
-                'driving_verification_status' => $user->driving_verification_status,
-                'created_at' => $user->created_at,
-                'image' => $image ? asset($image->image_path) : null,
-                'balance' => $user->myBalance ? [
-                    'balance' => $user->myBalance->balance,
-                    'after_tax' => $user->myBalance->after_tax,
-                    'tax' => $user->myBalance->tax,
-                    'locked_balance' => $user->myBalance->locked_balance,
-                    'currency' => $user->myBalance->currency
-                ] : 0,
-            ]
-        ]);
-    }
-
-
-    public function fillBalance(Request $request)
-    {
-        $request->validate([
-            'amount' => 'required|numeric|min:1000',
-        ]);
-
-        if ($request->amount <= 0) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Amount must be greater than 0',
-            ], 422);
-        }
-
         try {
-            DB::beginTransaction();
-
             $user = Auth::user();
-            $currentBalance = $user->myBalance?->balance ?? 0;
 
-            // 1. Tranzaksiya yozuvi
-            $balanceTransaction = BalanceTransaction::create([
-                'user_id' => $user->id,
-                'type' => 'credit',
-                'amount' => $request->amount,
-                'balance_before' => $currentBalance,
-                'balance_after' => $currentBalance + $request->amount,
-                'trip_id' => null,
-                'status' => 'success',
-                'reason' => 'Balance filled manually by user',
-                'reference_id' => null,
-            ]);
-
-            // 2. Balansni yangilash yoki yaratish
-            $user->myBalance()->updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'balance' => $currentBalance + $request->amount,
-                    'currency' => 'UZS',
-                    'tax' => '0.14',
-                    'after_taxes' => $currentBalance + $request->amount
-                ]
-            );
-
-            DB::commit();
-
-            //Hisob to'ldirish haqisa sms!
-            $text = "Sizning hisobingiz $balanceTransaction->amount so`mga to`ldirildi";
-
-            $this->smsService->sendQueued($user->phone, $text, 'register');
-
+            $image = UserImage::where('user_id', $user->id)->where('type', 'profile')->first();
+            $passport = UserImage::where('user_id', $user->id)->where('type', 'passport')->first();
+            $drivingLicence = UserImage::where('user_id', $user->id)->where('type', 'driving_licence')->first();
+            $image = $user->profileImage;
             return response()->json([
                 'status' => 'success',
-                'message' => 'Balance filled successfully',
-                'transaction' => [
-                    'id' => $balanceTransaction->id,
-                    'type' => $balanceTransaction->type,
-                    'amount' => number_format($balanceTransaction->amount, 2),
-                    'balance_before' => number_format($balanceTransaction->balance_before, 2),
-                    'balance_after' => number_format($balanceTransaction->balance_after, 2),
-
-                ],
+                'user' => [
+                    'id' => $user->id,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'father_name' => $user->father_name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'role' => $user->role,
+                    'birth_date' => $user->birth_date,
+                    'driving_verification_status' => $user->driving_verification_status,
+                    'created_at' => $user->created_at,
+                    'image' => $image ? asset($image->image_path) : null,
+                    'balance' => $user->myBalance ? [
+                        'balance' => $user->myBalance->balance,
+                        'after_tax' => $user->myBalance->after_tax,
+                        'tax' => $user->myBalance->tax,
+                        'locked_balance' => $user->myBalance->locked_balance,
+                        'currency' => $user->myBalance->currency
+                    ] : 0,
+                ]
             ]);
         } catch (\Exception $e) {
-            DB::rollBack();
-
             return response()->json([
                 'status' => 'error',
-                'message' => 'Something went wrong while filling balance.',
-                'error' => $e->getMessage(),
+                'message' => $e->getMessage()
             ], 500);
         }
-    }
-
-
-    public function approveClientAsDriver(Request $request)
-    {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-        ]);
-
-        $user = User::find($request->user_id);
-
-        if (!$user) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'User not found',
-            ], 404);
-        }
-
-        $user->role = 'driver';
-        $user->driving_verification_status = 'approved';
-        $user->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User approved as driver',
-        ]);
-    }
-
-    public function rejectClientAsDriver(Request $request)
-    {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-        ]);
-
-        $user = User::find($request->user_id);
-
-
-        if (!$user) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'User not found',
-            ], 404);
-        }
-
-        $user->role = 'client';
-        $user->driving_verification_status = 'rejected';
-        $user->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'User rejected for driving verification',
-        ]);
     }
 }
