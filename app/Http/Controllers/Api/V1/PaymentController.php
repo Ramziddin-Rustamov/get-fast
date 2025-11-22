@@ -34,7 +34,7 @@ class PaymentController extends Controller
 
 
             if($data['card_id']){
-                $card = Card::where('id', $data['card_id'])->where('status', 'verified')->first();
+                $card = Card::where('id', $data['card_id'])->where('user_id', $user->id)->where('status', 'verified')->first();
             }else{
                  // 2. Userning default kartasini olish
                 $card = Card::where('user_id', $user->id)
@@ -45,7 +45,7 @@ class PaymentController extends Controller
             if (!$card) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'User has no  card'
+                    'message' => 'User has no  card !'
                 ], 400);
             }
 

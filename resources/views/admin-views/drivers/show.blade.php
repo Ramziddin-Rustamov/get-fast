@@ -64,7 +64,7 @@
     <div class="card-body d-flex justify-content-between align-items-center">
         <div>
             <h5 class="card-title">💰 Balance</h5>
-            <p class="fs-4">So'm {{ number_format($driver->balance->sum('balance'), 2, '.', ' ') ?? '0' }}</p>
+            <p class="fs-4">So'm {{ number_format($driver->balance->balance, 2, '.', ' ') ?? '0' }}</p>
         </div>
 
         {{-- Transfer / Pay button --}}
@@ -73,6 +73,7 @@
         </button>
     </div>
 </div>
+
 
 {{-- Transfer Modal --}}
 <div class="modal fade" id="transferModal" tabindex="-1">

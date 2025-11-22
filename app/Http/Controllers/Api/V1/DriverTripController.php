@@ -34,7 +34,7 @@ class DriverTripController extends Controller
 
     public function store(DriverTripStoreRequest $request)
     {
-        return $this->driverTripService->createTrip($request->validated());
+        return $this->driverTripService->createTrip($request);
     }
 
     public function update(DriverTripUpdate $request, $id)

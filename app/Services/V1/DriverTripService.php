@@ -23,9 +23,9 @@ class DriverTripService
         return $this->driverTripRepository->getTripById($id);
     }
 
-    public function createTrip(array $data)
+    public function createTrip($request)
     {
-        return $this->driverTripRepository->createTrip($data);
+        return $this->driverTripRepository->createTrip($request);
     }
 
     public function updateTrip($id, array $data)

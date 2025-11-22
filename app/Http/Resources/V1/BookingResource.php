@@ -68,9 +68,7 @@ class BookingResource extends JsonResource
                 'car_number' => $this->trip->vehicle->car_number,
                 'total_seats' => $this->trip->vehicle->seats,
                 'color' => [
-                    'title_uz' => $this->trip->vehicle->color->title_uz,
-                    'title_ru' => $this->trip->vehicle->color->title_ru,
-                    'title_en' => $this->trip->vehicle->color->title_en,
+                    'id' => $this->trip->vehicle->color->id,
                     'color_code' => $this->trip->vehicle->color->code
                 ]
             ] : null,

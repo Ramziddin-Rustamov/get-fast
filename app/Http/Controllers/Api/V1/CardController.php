@@ -8,7 +8,6 @@ use App\Models\V1\PaymentLog;
 use App\Services\V1\HamkorbankService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Svg\Tag\Rect;
 
 class CardController extends Controller
@@ -29,11 +28,11 @@ class CardController extends Controller
                 'number' => 'required|string|min:16|max:19|unique:cards,number',
                 'expiry' => 'required|string|size:4',
                 'holder_name' => 'required|string',
-                'phone' => 'required|unique:cards,phone',
+                'phone' => 'required',
             ]);
 
             $response = HamkorbankService::addCard($request);
-           
+
             if (!isset($response['result'])) {
                 return response()->json([
                     'status' => 'error',

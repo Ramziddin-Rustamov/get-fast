@@ -14,6 +14,7 @@ use App\Models\V1\ParcelBooking;
 use App\Models\V1\PaymentCard;
 use App\Models\V1\Trip;
 use App\Models\V1\UserImage;
+use App\Models\V1\UserLanguage;
 use App\Models\V1\Vehicle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -56,6 +57,12 @@ class User  extends Authenticatable implements JWTSubject
     {
         return [];
     }
+
+    public function language()
+    {
+        return $this->hasOne(UserLanguage::class);
+    }
+
 
 
     public function bookings()
@@ -197,4 +204,6 @@ class User  extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(UserImage::class, 'user_id');
     }
+
+    
 }

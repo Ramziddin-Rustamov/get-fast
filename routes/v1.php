@@ -102,6 +102,7 @@ Route::prefix('auth')->middleware('auth:api')->group(function () {
     Route::post('/upload-driver-passport-driving-licence', [APIAuthController::class, 'uploadDriverDocuments']);
     Route::post('/update-profile', [APIAuthController::class, 'updateProfile']);
     Route::get('/me', [APIAuthController::class, 'me']);
+    Route::post('/update-user-language', [APIAuthController::class, 'updateUserLanguage']);
     
 });
 

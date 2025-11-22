@@ -27,8 +27,6 @@ class DriverExpiredTripsResource extends JsonResource
             : null;
         return [
             'id' => $this->id,
-            'from_where' => $this->startQuarter->name . ', ' . $this->startQuarter->district->name . ', ' . $this->startQuarter->district->region->name,
-            'to_where' => $this->endQuarter->name . ', ' . $this->endQuarter->district->name . ', ' . $this->endQuarter->district->region->name,
             'start_quarter_id' => $this->start_quarter_id,
             'end_quarter_id' => $this->end_quarter_id,
             'start_region_id' => $this->start_region_id,
@@ -41,10 +39,10 @@ class DriverExpiredTripsResource extends JsonResource
             'price_per_seat' => $this->price_per_seat,
             'total_seats' => $this->total_seats,
             'available_seats' => $this->available_seats,
-            'start_lat' => $this->startPoint->lat,
-            'start_long' => $this->startPoint->long,
-            'end_lat' => $this->endPoint->lat,
-            'end_long' => $this->endPoint->long,
+            'start_lat' => $this->startPoint->lat ?? null,
+            'start_long' => $this->startPoint->long ?? null,
+            'end_lat' => $this->endPoint->lat   ?? null,
+            'end_long' => $this->endPoint->long  ?? null,
             'status' => $this->status,
             'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
             'updated_at' => $this->updated_at ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s') : null,

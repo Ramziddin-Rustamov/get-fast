@@ -1,93 +1,206 @@
 <?php
-namespace App\Http\Controllers\Admin;
 
+namespace App\Http\Controllers\Admin;
 
 use Illuminate\Http\Request;
 use App\Models\User as Client;
-use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Hash;
 
 class ClientController extends Controller
 {
-    public function index()
+    /**
+     * Clients List
+     */
+    public function index(Request $request)
     {
-        $clients = Client::where('role', 'client')->get();
-        return view('admin-views.clients.index', compact('clients'));
+        $search = $request->search;
+        $status = $request->status;
+
+        $clients = Client::where('role', 'client')
+            ->with(['balance', 'bookings'])
+            ->when($search, function ($q) use ($search) {
+                $q->where('first_name', 'like', "%$search%")
+                    ->orWhere('last_name', 'like', "%$search%")
+                    ->orWhere('phone', 'like', "%$search%");
+            })
+            ->when($status, function ($q) use ($status) {
+                $q->where('is_verified', $status);
+            })
+            ->orderBy('id', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin-views.clients.index', compact('clients', 'search', 'status'));
     }
 
+    /**
+     * Create client form
+     */
     public function create()
     {
         return view('admin-views.clients.create');
     }
 
+    /**
+     * Store new client
+     */
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:255|unique:clients,phone',
-            'password' => 'nullable|string|min:6',
-            'image' => 'nullable|string|max:255',
-            'region_id' => 'nullable|string|max:20',
-            'district_id' => 'nullable|string|max:255',
-            'quarter_id' => 'nullable|string|max:255',
-            'home' => 'nullable|string|max:255',
+            'first_name'   => 'required|string|max:255',
+            'last_name'    => 'nullable|string|max:255',
+            'phone'        => 'required|unique:users,phone',
+            'password'     => 'required|min:6',
         ]);
 
-        Client::create([
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'password' => $request->password ? Hash::make($request->password) : null,
-            'image' => $request->image ?? 'default.jpg',
-            'region_id' => $request->region_id,
-            'district_id' => $request->district_id,
-            'quarter_id' => $request->quarter_id,
-            'home' => $request->home,
-            'role' => 'client',
+        $client = Client::create([
+            'first_name' => $request->first_name,
+            'last_name'  => $request->last_name,
+            'phone'      => $request->phone,
+            'password'   => Hash::make($request->password),
+            'role'       => 'client',
+            'is_verified' => true,
+            'verification_status' => 'approved',
         ]);
 
-        return redirect()->route('clients.index')->with('success', 'Client created successfully.');
+        return redirect()->route('clients.index')->with('success', 'Client muvaffaqiyatli qo‘shildi!');
     }
 
-    public function show(Client $client)
+    /**
+     * Show client details
+     */
+    public function show($client)
     {
-        return view('admin-views.clients.show', compact('client'));
+
+        $client = Client::where('role', 'client')
+            ->with(['balance', 'bookings'])
+            ->find($client);
+
+        if (!$client) {
+            return redirect()->route('clients.index')->with('error', 'Mijoz topilmadi!');
+        }
+
+        $trips = $client->bookings()->orderBy('id', 'desc')->paginate(5);
+
+        // Paginate qilingan buyurtmalar
+        $bookings = $client->bookings()->orderBy('id', 'desc')->paginate(4);
+
+        // Paginate qilingan tranzaksiyalar
+        $balanceTransactions = $client->balanceTransactions()->orderBy('created_at', 'desc')->paginate(5);
+
+
+        return view('admin-views.clients.show', compact(
+            'client',
+            'trips',
+            'balanceTransactions',
+            'bookings'
+        ));
     }
 
-    public function edit(Client $client)
+    /**
+     * Edit page
+     */
+    public function edit($client)
     {
+        $client = Client::where('role', 'client')->find($client);
+
+        if (!$client) {
+            return redirect()->route('clients.index')->with('error', 'Client topilmadi!');
+        }
+
         return view('admin-views.clients.edit', compact('client'));
     }
 
-    public function update(Request $request, Client $client)
+    /**
+     * Update client
+     */
+    public function update(Request $request, $client)
     {
+        $client = Client::where('role', 'client')->find($client);
+        if (!$client) {
+            return redirect()->route('clients.index')->with('error', 'Client topilmadi!');
+        }
+
         $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:255|unique:clients,phone,' . $client->id,
-            'password' => 'nullable|string|min:6',
-            'image' => 'nullable|string|max:255',
-            'region_id' => 'nullable|string|max:20',
-            'district_id' => 'nullable|string|max:255',
-            'quarter_id' => 'nullable|string|max:255',
-            'home' => 'nullable|string|max:255',
+            'first_name' => 'required|string',
+            'last_name'  => 'nullable|string',
+            'phone'      => 'required|unique:users,phone,' . $client->id,
         ]);
 
         $client->update([
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'password' => $request->password ? Hash::make($request->password) : $client->password,
-            'image' => $request->image ?? $client->image,
-            'region_id' => $request->region_id,
-            'district_id' => $request->district_id,
-            'quarter_id' => $request->quarter_id,
-            'home' => $request->home,
+            'first_name' => $request->first_name,
+            'last_name'  => $request->last_name,
+            'phone'      => $request->phone,
         ]);
 
-        return redirect()->route('clients.index')->with('success', 'Client updated successfully.');
+        return redirect()->route('clients.show', $client->id)->with('success', 'Client yangilandi!');
     }
 
-    public function destroy(Client $client)
+    /**
+     * Delete client
+     */
+    public function destroy($client)
     {
+        $client = Client::where('role', 'client')->find($client);
+
+        if (!$client) {
+            return redirect()->route('clients.index')->with('error', 'Client topilmadi!');
+        }
+
         $client->delete();
-        return redirect()->route('clients.index')->with('success', 'Client deleted successfully.');
+
+        return redirect()->route('clients.index')->with('success', 'Client o‘chirildi!');
+    }
+
+    /**
+     * Client trips
+     */
+    public function trips($client)
+    {
+        $client = Client::where('role', 'client')->findOrFail($client);
+        $trips = $client->bookings()->orderBy('id', 'desc')->paginate(10);
+
+        return view('admin-views.clients.trips', compact('client', 'trips'));
+    }
+
+    /**
+     * Client balance transactions
+     */
+    public function balance($client)
+    {
+        $client = Client::where('role', 'client')->with('balance')->findOrFail($client);
+        $balanceTransactions = $client->balanceTransactions()->orderBy('created_at', 'desc')->paginate(10);
+
+        return view('admin-views.clients.balance', compact('client', 'balanceTransactions'));
+    }
+
+    /**
+     * Client images (agar ishlatilsa)
+     */
+    public function images($client)
+    {
+        $client = Client::where('role', 'client')->with('images')->findOrFail($client);
+
+        return view('admin-views.clients.images', compact('client'));
+    }
+
+    /**
+     * Clientga SMS yuborish
+     */
+    public function sendSms(Request $request, $client)
+    {
+        $client = Client::where('role', 'client')->findOrFail($client);
+
+        $request->validate([
+            'message' => 'required|string|max:500',
+        ]);
+
+        $message = $request->input('message');
+
+        // Bu yerda sms provider chaqiriladi
+        // SmsService::send($client->phone, $message);
+
+        return back()->with('success', 'SMS muvaffaqiyatli yuborildi!');
     }
 }

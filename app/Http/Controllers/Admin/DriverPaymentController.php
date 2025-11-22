@@ -10,17 +10,5 @@ use Illuminate\Support\Facades\Auth;
 
 class DriverPaymentController extends Controller
 {
-    public function index()
-    {
-        $payments = DriverPayment::with(['admin', 'driver'])->latest()->paginate(10);
-        return view('admin-views.driver_payments.index', compact('payments'));
-    }
-
-
-
-    public function destroy($id)
-    {
-        DriverPayment::findOrFail($id)->delete();
-        return back()->with('success', 'To‘lov tarixi o‘chirildi!');
-    }
+    
 }

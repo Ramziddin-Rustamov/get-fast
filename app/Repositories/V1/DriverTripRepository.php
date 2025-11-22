@@ -49,9 +49,33 @@ class DriverTripRepository
         }
         return new DriverTripResource($trip);
     }
-    public function createTrip(array $data)
+    public function createTrip($request)
     {
         try {
+
+
+
+            if ($request->validated()) {
+                $data = $request->validated();
+            }
+
+            // Duplicate check
+            $existingTrip = Trip::where('driver_id', auth()->id())
+                ->where('vehicle_id', $data['vehicle_id'])
+                ->where('start_quarter_id', $data['start_quarter_id'])
+                ->where('end_quarter_id', $data['end_quarter_id'])
+                ->where('start_time', $data['start_time'])
+                ->where('end_time', $data['end_time'])
+                ->first();
+
+            if ($existingTrip) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Bu ma’lumotlar bilan avval yuborilgan trip topildi'
+                ], 409);
+            }
+
+
             DB::beginTransaction();
 
             $startPoint = Point::create([
@@ -89,8 +113,9 @@ class DriverTripRepository
             DB::rollBack();
 
             return response()->json([
-                'message' => 'Trip yaratishda xatolik yuz berdi.',
-                'error' => $e->getMessage()
+                'message' => 'Trip yaratishda xatolik yuz berdi.' . $e,
+                'status' => 'error',
+                'error' => $e
             ], 500);
         }
     }
@@ -138,10 +163,11 @@ class DriverTripRepository
                 'long' => $data['end_long'] ?? $endPoint->long,
             ]);
 
-            if($data['total_seats'] < $trip->available_seats){
+            if ($data['total_seats'] < $trip->available_seats) {
                 return response()->json([
                     'message' => 'Umumiy o`rindiqlar sonidan bo`sh o`rindiqlar soni kichik bo`lishi mumkin emas.',
-                    'error' => 'error'], 400);
+                    'error' => 'error'
+                ], 400);
             }
 
             // Trip yangilash

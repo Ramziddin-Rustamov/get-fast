@@ -52,6 +52,10 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
     Route::get('clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
     Route::put('clients/{client}', [ClientController::class, 'update'])->name('clients.update');
     Route::delete('clients/{client}', [ClientController::class, 'destroy'])->name('clients.destroy');
+    Route::get('clients/{client}/trips', [ClientController::class, 'trips'])->name('clients.trips');
+    Route::get('clients/{client}/balance', [ClientController::class, 'balance'])->name('clients.balance');
+    Route::get('clients/{client}/images', [ClientController::class, 'images'])->name('clients.images');
+    Route::post('clients/{client}/send-sms', [ClientController::class, 'sendSms'])->name('clients.sendSms');
 
     // ADMINS
     Route::get('admins', [AdminController::class, 'index'])->name('admins.index');

@@ -10,6 +10,7 @@ class PublicTripResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+
         $start_time = $this->start_time ? Carbon::parse($this->start_time) : null;
         $end_time = $this->end_time ? Carbon::parse($this->end_time) : null;
 
@@ -27,8 +28,6 @@ class PublicTripResource extends JsonResource
             : null;
         return [
             'id' => $this->id,
-            'from_where' => $this->startQuarter->name . ', ' . $this->startQuarter->district->name . ', ' . $this->startQuarter->district->region->name,
-            'to_where' => $this->endQuarter->name . ', ' . $this->endQuarter->district->name . ', ' . $this->endQuarter->district->region->name,
             'from_region_id' => $this->start_region_id,
             'to_region_id' => $this->end_region_id,
             'from_district_id' => $this->start_district_id,
@@ -41,16 +40,17 @@ class PublicTripResource extends JsonResource
             'price_per_seat' => $this->price_per_seat,
             'total_seats' => $this->total_seats,
             'available_seats' => $this->available_seats,
-            'start_lat' => $this->startPoint->lat,
-            'start_long' => $this->startPoint->long,
-            'end_lat' => $this->endPoint->lat,
-            'end_long' => $this->endPoint->long,
+            'start_lat' => $this->startPoint->lat ?? null,
+            'start_long' => $this->startPoint->long ?? null,
+            'end_lat' => $this->endPoint->lat ?? null,
+            'end_long' => $this->endPoint->long ?? null,
             'status' => $this->status,
             'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
             'updated_at' => $this->updated_at ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s') : null,
-           'driver' => $this->driver ? [
+            'driver' => $this->driver ? [
                 'id' => $this->driver->id,
-                'name' => $this->driver->name ?? null,
+                'name' => $this->driver->first_name ?? null,
+                'last_name' => $this->driver->last_name ?? null,
                 'role' => $this->driver->role ?? null,
             ] : 'No driver data',
 
@@ -61,10 +61,6 @@ class PublicTripResource extends JsonResource
                 'car_number' => $this->vehicle->car_number ?? null,
                 'color' => [
                     'id' => $this->vehicle->color->id,
-                    'title_uz' => $this->vehicle->color->title_uz,
-                    'title_ru' => $this->vehicle->color->title_ru,
-                    'title_en' => $this->vehicle->color->title_en,
-                    'code' => $this->vehicle->color->code
                 ] ?? null,
             ] : 'No vehicle data',
 
@@ -74,11 +70,11 @@ class PublicTripResource extends JsonResource
                 'long' => $this->startPoint->long,
             ] : 'No starting point data',
 
-             'ending_point' => $this->endPoint ? [
-                    'id' => $this->endPoint->id,
-                    'lat' => $this->endPoint->lat,
-                    'long' => $this->endPoint->long,
-              ] : 'No ending point data',
+            'ending_point' => $this->endPoint ? [
+                'id' => $this->endPoint->id,
+                'lat' => $this->endPoint->lat,
+                'long' => $this->endPoint->long,
+            ] : 'No ending point data',
 
         ];
     }

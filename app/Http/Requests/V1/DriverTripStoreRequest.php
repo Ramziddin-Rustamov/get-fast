@@ -1,8 +1,11 @@
 <?php
 
 namespace App\Http\Requests\V1;
+
 use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class DriverTripStoreRequest extends FormRequest
 {
@@ -17,18 +20,21 @@ class DriverTripStoreRequest extends FormRequest
 
     protected function failedAuthorization()
     {
-        abort(response()->json([
-            'message' => 'Only drivers are allowed to perform this action.',
-            'status' => 403,
-        ], 403));
+        throw new HttpResponseException(
+            response()->json([
+                'status' => 'error',
+                'message' => 'Only drivers are allowed to perform this action.',
+            ], 403)
+        );
     }
-
-
     
+
+
+
     public function rules()
     {
         return [
-            
+
             'vehicle_id' => 'required|exists:vehicles,id',
             'start_quarter_id' => 'required|string|exists:quarters,id',
             'end_quarter_id' => 'required|string|exists:quarters,id',
@@ -43,9 +49,9 @@ class DriverTripStoreRequest extends FormRequest
                 }
                 $start_time = Carbon::parse(request()->input('start_time'));
                 $end_time = Carbon::parse($value);
-    
+
                 $diffInMinutes = $start_time->diffInMinutes($end_time, false); // false: negative values if end_time < start_time
-    
+
                 if ($diffInMinutes < 10) {
                     $fail('The time difference between start time and end time must be at least 10 minutes.');
                 }
@@ -72,5 +78,16 @@ class DriverTripStoreRequest extends FormRequest
             }],
         ];
     }
+
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(
+            response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 422)
+        );
+    }
+
     
 }

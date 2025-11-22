@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log as FacadesLog;
 use Laravel\Ui\Presets\React;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+use App\Models\V1\UserLanguage;
 
 class APIAuthController extends Controller
 {
@@ -35,78 +36,100 @@ class APIAuthController extends Controller
     public function register(Request $request)
     {
 
-        // Step 1: Validatsiya
-        $validator = Validator::make($request->all(), [
-            'phone' => 'required|string|unique:users,phone',
-            'email' => 'required|string|unique:users,email',
-            'password' => 'required|string|min:6|confirmed', // confirmation uchun `password_confirmation` kerak
-        ]);
+        try {
+            // Step 1: Validatsiya
+            $validator = Validator::make($request->all(), [
+                'phone' => 'required|string|unique:users,phone',
+                'email' => 'required|string|unique:users,email',
+                'password' => 'required|string|min:6|confirmed', // confirmation uchun `password_confirmation` kerak
+            ]);
 
-        if ($validator->fails()) {
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Step 2: Tasdiqlash kodi generatsiya qilish
+            $code = rand(100000, 999999); // 6 xonali kod
+            // SMS uchun xabar
+            // $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+
+            // Step 3: Foydalanuvchini vaqtincha yaratish (is_verified = false)
+            $user = \App\Models\User::create([
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'father_name' => $request->father_name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'password' => Hash::make($request->password),
+                'verification_code' => $code,
+                'is_verified' => false,
+            ]);
+
+            UserLanguage::updateOrCreate([
+                'user_id' => $user->id,
+                'language' => 'uz'
+            ]);
+
+            // smsni navbatga yuborish
+            // $this->smsService->sendQueued($user->phone, $text, 'register');
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Verification code sent to your phone',
+                'user_phone' => $user->phone,
+                'code' => $code
+            ]);
+        } catch (\Throwable $th) {
             return response()->json([
                 'status' => 'error',
-                'errors' => $validator->errors()
-            ], 422);
+                'message' => $th->getMessage()
+            ], 500);
         }
-
-        // Step 2: Tasdiqlash kodi generatsiya qilish
-        $code = rand(100000, 999999); // 6 xonali kod
-        // SMS uchun xabar
-        // $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
-
-        // Step 3: Foydalanuvchini vaqtincha yaratish (is_verified = false)
-        $user = \App\Models\User::create([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'father_name' => $request->father_name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'verification_code' => $code,
-            'is_verified' => false,
-        ]);
-
-        // smsni navbatga yuborish
-        // $this->smsService->sendQueued($user->phone, $text, 'register');
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Verification code sent to your phone',
-            'user_phone' => $user->phone,
-            'code' => $code
-        ]);
     }
 
     public function verifyCode(Request $request)
     {
-        $request->validate([
-            'phone' => 'required|exists:users,phone',
-            'code' => 'required|string'
-        ]);
-
-        $user = \App\Models\User::where('phone', $request->phone)->first();
-
-        if ($user->verification_code === $request->code) {
-            $user->is_verified = true;
-            $user->verification_code = null;
-            $user->save();
-
-            $userbalalce = UserBalance::create([
-                'user_id' => $user->id,
-                'balance' => 0.00,
+        try {
+            $request->validate([
+                'phone' => 'required|exists:users,phone',
+                'code' => 'required|string'
             ]);
 
+            $user = \App\Models\User::where('phone', $request->phone)->first();
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Phone number verified. User registered.',
-                'go' => 'login page',
-            ]);
-        } else {
+            if ($user->verification_code === $request->code) {
+                $user->is_verified = true;
+                $user->verification_code = null;
+                $user->save();
+
+                $userbalalce = UserBalance::create([
+                    'user_id' => $user->id,
+                    'balance' => 0.00,
+                ]);
+
+                UserLanguage::updateOrCreate([
+                    'user_id' => $user->id,
+                    'language' => 'uz'
+                ]);
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'Phone number verified. User registered.',
+                    'go' => 'login page',
+                ]);
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid verification code',
+                ], 400);
+            }
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Invalid verification code',
-            ], 400);
+                'message' => 'Something went wrong' . $e
+            ], 500);
         }
     }
 
@@ -592,6 +615,32 @@ class APIAuthController extends Controller
                         'currency' => $user->myBalance->currency
                     ] : 0,
                 ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function updateUserLanguage(Request $request)
+    {
+        try {
+            $request->validate([
+                'language' => 'required|in:uz,en,ru',
+            ]);
+
+            $lang = UserLanguage::updateOrCreate(
+                ['user_id' => auth()->id()],
+                ['language' => $request->language]
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Language updated successfully',
+                'language' => $lang->language,
             ]);
         } catch (\Exception $e) {
             return response()->json([
