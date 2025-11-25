@@ -73,11 +73,18 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="dropdown-item  {{ request()->routeIs('admins.index') ? 'active bg-success rounded' : '' }}"
-                                       href="{{ route('admins.index') }}">
-                                        {{ __('Admins') }}
+                                    <a class="dropdown-item  {{ request()->routeIs('company.dashboard') ? 'active bg-success rounded' : '' }}"
+                                       href="{{ route('company.dashboard') }}">
+                                        {{ __('Company Dashboard') }}
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="dropdown-item  {{ request()->routeIs('company.transactions') ? 'active bg-success rounded' : '' }}"
+                                       href="{{ route('company.transactions') }}">
+                                        {{ __('Company Transactions') }}
+                                    </a>
+                                </li>
+                                
                                 <li class="nav-item">
                                     <a class="dropdown-item  {{ request()->routeIs('orders.index') ? 'active bg-success rounded' : '' }}"
                                        href="{{ route('orders.index') }}">
@@ -85,11 +92,14 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    {{-- <a class="dropdown-item  {{ request()->routeIs('driver-payments.index') ? 'active bg-success rounded' : '' }}"
-                                       href="{{ route('driver-payments.index') }}">
-                                        {{ __('Driver Payment History') }}
-                                    </a> --}}
+                                    <a class="dropdown-item  {{ request()->routeIs('payments.index') ? 'active bg-success rounded' : '' }}"
+                                       href="{{ route('payments.index') }}">
+                                        {{ __('Payments') }}
+                                    </a>
                                 </li>
+
+                              
+                                
                             </ul>
                         @endcan
                              

@@ -11,111 +11,181 @@ use Illuminate\Support\Carbon;
 class ClientTripRepository
 {
 
+
+    public $language = 'uz';
+
+    public function __construct()
+    {
+        $this->language = auth()->user()->authLanguage->language ?? 'uz';
+    }
     public $errorResponse = [
-        'status' => 'error',
-        "message" => "Not found !"
+        'uz' => [
+            'status' => 'error',
+            'message' => 'Topilmadi!'
+        ],
+        'ru' => [
+            'status' => 'error',
+            'message' => 'Не найдено!'
+        ],
+        'en' => [
+            'status' => 'error',
+            'message' => 'Not found!'
+        ]
     ];
 
     public $successResponse = [
-        'status' => 'seccess',
-        "message" => "Deleted successsfully !"
+        'uz' => [
+            'status' => 'success',
+            'message' => 'Muvaffaqiyatli o‘chirildi!'
+        ],
+        'ru' => [
+            'status' => 'success',
+            'message' => 'Удалено успешно!'
+        ],
+        'en' => [
+            'status' => 'success',
+            'message' => 'Deleted successfully!'
+        ]
     ];
 
     public function getAllTrips()
     {
-        $trips =  Trip::whereIn('status', ['active', 'full'])->paginate(10);
-        return ClientTripResource::collection($trips);
+        try {
+            $trips =  Trip::whereIn('status', ['active', 'full'])->paginate(10);
+            return ClientTripResource::collection($trips);
+        } catch (\Exception $e) {
+            return response()->json($this->errorResponse[$this->language], 404);
+        }
     }
 
     public function getTripById($id)
     {
-        $booking = Trip::whereHas('bookings', function ($q) use ($id) {
-            $q->where('user_id', auth()->id())->where('id', $id);
-        })
-            ->orderBy('id', 'asc')
-            ->first();
+        try {
+            $booking = Trip::whereHas('bookings', function ($q) use ($id) {
+                $q->where('user_id', auth()->id())->where('id', $id);
+            })
+                ->orderBy('id', 'asc')
+                ->first();
 
-        if (is_null($booking)) {
-            return response()->json($this->errorResponse, 404);
+            if (is_null($booking)) {
+                return response()->json($this->errorResponse[$this->language], 404);
+            }
+
+            return new ClientTripWithMoreInfoResource($booking);
+        } catch (\Exception $e) {
+            return response()->json($this->errorResponse[$this->language], 404);
         }
-
-        return new ClientTripWithMoreInfoResource($booking);
     }
 
     public function canceledTripsForClient()
     {
-        // ✅ Cancelled
-        $cancelledTrips = Trip::whereHas('bookings', function ($q) {
-            $q->where('user_id', auth()->id())
-                ->where('status', 'cancelled');
-        })
-            // ->orWhere(function ($q) {
-            //     $q->whereIn('status', ['cancelled'])
-            //         ->whereHas('bookings', function ($q2) {
-            //             $q2->where('user_id', auth()->id());
-            //         });
-            // })
-            ->orderBy('id', 'asc')
-            ->paginate(10);
+        try {
+            // ✅ Cancelled
+            $cancelledTrips = Trip::whereHas('bookings', function ($q) {
+                $q->where('user_id', auth()->id())
+                    ->where('status', 'cancelled');
+            })
+                // ->orWhere(function ($q) {
+                //     $q->whereIn('status', ['cancelled'])
+                //         ->whereHas('bookings', function ($q2) {
+                //             $q2->where('user_id', auth()->id());
+                //         });
+                // })
+                ->orderBy('id', 'asc')
+                ->paginate(10);
 
-        if (count($cancelledTrips) == 0) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'you have no cancelled trips'
-            ], 404);
+            if (count($cancelledTrips) == 0) {
+                $messages = [
+                    'uz' => 'Sizda bekor qilingan sayohatlar yo‘q',
+                    'ru' => 'У вас нет отменённых поездок',
+                    'en' => 'You have no cancelled trips',
+                ];
+
+                $message = $messages[$this->language];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message,
+                ], 404);
+            }
+            return CompetedInProgressCanceledTripsForClientsResources::collection($cancelledTrips);
+        } catch (\Exception $e) {
+            return response()->json($this->errorResponse[$this->language], 404);
         }
-
-        return CompetedInProgressCanceledTripsForClientsResources::collection($cancelledTrips);
     }
 
     public function getInprogressTripsForClient()
     {
-        $now = Carbon::now();
-        // ✅ In Progress
-        $inProgressTrips = Trip::whereHas('bookings', function ($q) {
-            $q->where('user_id', auth()->id())
-                ->where('status', 'confirmed');
-        })
-            ->where('status', 'active')
-            ->where('start_time', '<=', $now)
-            ->where('end_time', '>=', $now)
-            ->orderBy('id', 'asc')
-            ->paginate(10);
+        try {
+            $now = Carbon::now();
+            // ✅ In Progress
+            $inProgressTrips = Trip::whereHas('bookings', function ($q) {
+                $q->where('user_id', auth()->id())
+                    ->where('status', 'confirmed');
+            })
+                ->where('status', 'active')
+                ->where('start_time', '<=', $now)
+                ->where('end_time', '>=', $now)
+                ->orderBy('id', 'asc')
+                ->paginate(10);
 
-        if (count($inProgressTrips) == 0) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'you have no in progress trips'
-            ], 404);
+            $messages = [
+                'uz' => 'Sizda davom etayotgan sayohatlar yo‘q',
+                'ru' => 'У вас нет поездок в процессе',
+                'en' => 'You have no in progress trips',
+            ];
+
+            $message = $messages[$this->language];
+
+            if (count($inProgressTrips) == 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message
+                ], 404);
+            }
+
+            return CompetedInProgressCanceledTripsForClientsResources::collection($inProgressTrips);
+        } catch (\Exception $e) {
+            return response()->json($this->errorResponse[$this->language], 404);
         }
-
-        return CompetedInProgressCanceledTripsForClientsResources::collection($inProgressTrips);
     }
 
 
     public function getCompletedTripsForClient()
     {
-        $now = Carbon::now();
-        $completedTrips = Trip::whereHas('bookings', function ($q) {
-            $q->where('user_id', auth()->id())
-                ->where('status', 'completed');
-        })
-            // ->orWhere(function ($q) {
-            //     $q->where('status', 'completed')
-            //         ->whereHas('bookings', function ($q2) {
-            //             $q2->where('user_id', auth()->id());
-            //         });
-            // })
-            ->orderBy('id', 'asc')
-            ->paginate(10);
+        try {
+            $now = Carbon::now();
+            $completedTrips = Trip::whereHas('bookings', function ($q) {
+                $q->where('user_id', auth()->id())
+                    ->where('status', 'completed');
+            })
+                // ->orWhere(function ($q) {
+                //     $q->where('status', 'completed')
+                //         ->whereHas('bookings', function ($q2) {
+                //             $q2->where('user_id', auth()->id());
+                //         });
+                // })
+                ->orderBy('id', 'asc')
+                ->paginate(10);
 
 
-        if (count($completedTrips) == 0) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'you have no completed trips'
-            ], 404);
+            if (count($completedTrips) == 0) {
+                $messages = [
+                    'uz' => 'Sizda yakunlangan sayohatlar yo‘q',
+                    'ru' => 'У вас нет завершённых поездок',
+                    'en' => 'You have no completed trips',
+                ];
+
+                $message = $messages[$this->language];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message
+                ], 404);
+            }
+            return CompetedInProgressCanceledTripsForClientsResources::collection($completedTrips);
+        } catch (\Exception $e) {
+            return response()->json($this->errorResponse[$this->language], 404);
         }
-        return CompetedInProgressCanceledTripsForClientsResources::collection($completedTrips);
     }
 }

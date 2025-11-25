@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Services\V1\SmsService;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
-use App\Models\BalanceTransaction;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use App\Models\User;
@@ -13,30 +12,29 @@ use App\Models\UserBalance;
 use App\Models\V1\UserImage;
 use App\Models\V1\Vehicle;
 use App\Models\V1\VehicleImages;
-use Illuminate\Container\Attributes\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log as FacadesLog;
-use Laravel\Ui\Presets\React;
-use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use App\Models\V1\UserLanguage;
 
 class APIAuthController extends Controller
 {
 
-    // protected SmsService $smsService;
+    protected SmsService $smsService;
+    public $language;
 
-    // public function __construct(SmsService $smsService)
-    // {
-    //     $this->smsService = $smsService;
-    // }
+    public function __construct(SmsService $smsService)
+    {
+        $this->smsService = $smsService;
+        $this->language = $user->authLanguage->language ?? 'en';
+    }
 
 
     public function register(Request $request)
     {
 
         try {
+            DB::beginTransaction();
             // Step 1: Validatsiya
             $validator = Validator::make($request->all(), [
                 'phone' => 'required|string|unique:users,phone',
@@ -54,7 +52,7 @@ class APIAuthController extends Controller
             // Step 2: Tasdiqlash kodi generatsiya qilish
             $code = rand(100000, 999999); // 6 xonali kod
             // SMS uchun xabar
-            // $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+            $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
 
             // Step 3: Foydalanuvchini vaqtincha yaratish (is_verified = false)
             $user = \App\Models\User::create([
@@ -72,17 +70,28 @@ class APIAuthController extends Controller
                 'user_id' => $user->id,
                 'language' => 'uz'
             ]);
+            DB::commit();
 
             // smsni navbatga yuborish
-            // $this->smsService->sendQueued($user->phone, $text, 'register');
+            $this->smsService->sendQueued($user->phone, $text, 'register');
+
+            $messages = [
+                'uz' => 'Tasdiqlash kodi telefoningizga yuborildi',
+                'ru' => 'Код подтверждения отправлен на ваш телефон',
+                'en' => 'Verification code sent to your phone',
+            ];
+
+            // Agar til mavjud bo‘lmasa, "en" ga tushadi
+            $message = $messages[$this->language];
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Verification code sent to your phone',
+                'message' => $message,
                 'user_phone' => $user->phone,
                 'code' => $code
             ]);
         } catch (\Throwable $th) {
+            DB::rollback();
             return response()->json([
                 'status' => 'error',
                 'message' => $th->getMessage()
@@ -93,6 +102,7 @@ class APIAuthController extends Controller
     public function verifyCode(Request $request)
     {
         try {
+            DB::beginTransaction();
             $request->validate([
                 'phone' => 'required|exists:users,phone',
                 'code' => 'required|string'
@@ -114,18 +124,38 @@ class APIAuthController extends Controller
                     'user_id' => $user->id,
                     'language' => 'uz'
                 ]);
+
+                DB::commit();
+                $messages = [
+                    'uz' => "Telefon raqami tasdiqlandi. Foydalanuvchi ro'yxatdan o'tdi.",
+                    'ru' => 'Номер телефона подтверждён. Пользователь зарегистрирован.',
+                    'en' => 'Phone number verified. User registered.',
+                ];
+
+                $message = $messages[$this->language];
+
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Phone number verified. User registered.',
+                    'message' => $message,
                     'go' => 'login page',
                 ]);
             } else {
+
+                $messages = [
+                    'uz' => 'Tasdiqlash kodi noto‘g‘ri.',
+                    'ru' => 'Неверный код подтверждения.',
+                    'en' => 'Invalid verification code.',
+                ];
+
+                $message = $messages[$this->language];
+
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Invalid verification code',
+                    'message' => $message,
                 ], 400);
             }
         } catch (\Exception $e) {
+            DB::rollback();
             return response()->json([
                 'status' => 'error',
                 'message' => 'Something went wrong' . $e
@@ -136,152 +166,300 @@ class APIAuthController extends Controller
 
     public function resendCode(Request $request)
     {
-        $request->validate([
-            'phone' => 'required|string',
-        ]);
+        try {
+            DB::beginTransaction();
+            $request->validate([
+                'phone' => 'required|string',
+            ]);
 
-        $user = \App\Models\User::where('phone', $request->phone)->first();
+            $user = \App\Models\User::where('phone', $request->phone)->first();
 
-        if (!$user) {
+            if (!$user) {
+                $messages = [
+                    'uz' => 'Foydalanuvchi topilmadi.',
+                    'ru' => 'Пользователь не найден.',
+                    'en' => 'User not found.',
+                ];
+
+                $message = $messages[$this->language];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message,
+                ], 404);
+            }
+
+            if ($user->is_verified) {
+                $messages = [
+                    'uz' => 'Telefon raqami allaqachon tasdiqlangan.',
+                    'ru' => 'Номер телефона уже подтверждён.',
+                    'en' => 'Phone number already verified.',
+                ];
+
+                $message = $messages[$this->language];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message,
+                ], 400);
+            }
+
+            // Yangi tasdiqlash kodi generatsiyasi
+            $code = rand(100000, 999999);
+            // SMS uchun xabar
+            $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+
+            $user->verification_code = $code;
+            $user->save();
+
+            DB::commit();
+
+            // smsni navbatga yuborish
+            $this->smsService->sendQueued($user->phone, $text, 'register');
+            $messages = [
+                'uz' => "Telefoningizga yangi tasdiqlash kodi yuborildi.",
+                'ru' => "Новый код подтверждения отправлен на ваш телефон.",
+                'en' => "New verification code sent to your phone.",
+            ];
+
+            $message = $messages[$this->language];
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+                'code' => $code
+            ]);
+        } catch (\Exception $e) {
+            DB::rollback();
             return response()->json([
                 'status' => 'error',
-                'message' => 'User not found'
-            ], 404);
+                'message' => 'Something went wrong' . $e
+            ], 500);
         }
-
-        if ($user->is_verified) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Phone number already verified'
-            ], 400);
-        }
-
-        // Yangi tasdiqlash kodi generatsiyasi
-        $code = rand(100000, 999999);
-        // SMS uchun xabar
-        $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
-
-        $user->verification_code = $code;
-        $user->save();
-
-        // smsni navbatga yuborish
-        // $this->smsService->sendQueued($user->phone, $text, 'register');
-        return response()->json([
-            'status' => 'success',
-            'message' => 'New verification code sent to your phone',
-            'code' => $code
-        ]);
     }
 
     public function login(Request $request)
     {
-        $request->validate([
-            'phone' => 'required|string|exists:users,phone',
-            'password' => 'required|string',
-        ]);
+        try {
 
-        $credentials = $request->only('phone', 'password');
-
-        if (!$token = Auth::guard('api')->attempt($credentials)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Invalid phone or password',
-            ], 401);
-        }
-
-        $user = Auth::guard('api')->user();
-
-        if (!$user->is_verified) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Please verify your phone number first.',
-            ], 403);
-        }
-
-        if ($user->driving_verification_status == 'blocked') {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Siz havolani qabul qilishdan oldin bloklangansiz. Xohlasangiz  bizga murojat qiling.',
+            DB::beginTransaction();
+            $request->validate([
+                'phone' => 'required|string|exists:users,phone',
+                'password' => 'required|string',
             ]);
-        }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Login successful',
-            'user' => $user,
-            'authorisation' => [
-                'token' => $token,
-                'type' => 'bearer',
-            ]
-        ]);
+            $credentials = $request->only('phone', 'password');
+
+            if (!$token = Auth::guard('api')->attempt($credentials)) {
+                $messages = [
+                    'uz' => 'Telefon raqami yoki parol noto‘g‘ri.',
+                    'ru' => 'Неверный номер телефона или пароль.',
+                    'en' => 'Invalid phone or password.',
+                ];
+
+                $message = $messages[$this->language];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message,
+                ], 401);
+            }
+
+            $user = Auth::guard('api')->user();
+
+            if (!$user->is_verified) {
+                $messages = [
+                    'uz' => 'Avvalo telefon raqamingizni tasdiqlang.',
+                    'ru' => 'Сначала подтвердите свой номер телефона.',
+                    'en' => 'Please verify your phone number first.',
+                ];
+
+                $message = $messages[$this->language];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message,
+                ], 403);
+            }
+
+            if ($user->driving_verification_status == 'blocked') {
+                $messages = [
+                    'uz' => 'Siz havolani qabul qilishdan oldin bloklangansiz. Xohlasangiz bizga murojaat qiling.',
+                    'ru' => 'Вы были заблокированы до того, как приняли ссылку. Если хотите, свяжитесь с нами.',
+                    'en' => 'You have been blocked before accepting the link. If you want, contact us.',
+                ];
+
+                $message = $messages[$this->language];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message,
+                ]);
+            }
+
+            DB::commit();
+
+            $messages = [
+                'uz' => 'Tizimga kirish muvaffaqiyatli amalga oshirildi.',
+                'ru' => 'Вход выполнен успешно.',
+                'en' => 'Login successful.',
+            ];
+
+            $message = $messages[$this->language];
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+                'user' => $user,
+                'authorisation' => [
+                    'token' => $token,
+                    'type' => 'bearer',
+                ]
+            ]);
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Something went wrong' . $e
+            ], 500);
+        }
     }
     public function sendResetCode(Request $request)
     {
-        $request->validate([
-            'phone' => 'required|string|exists:users,phone',
-        ]);
+        try {
+            DB::beginTransaction();
+            $request->validate([
+                'phone' => 'required|string|exists:users,phone',
+            ]);
 
-        $user = \App\Models\User::where('phone', $request->phone)->first();
+            $user = \App\Models\User::where('phone', $request->phone)->first();
 
-        // 6 xonali random kod
-        $code = rand(100000, 999999);
-        $user->verification_code = $code;
-        $user->save();
-        $text = "Parolni tiklash uchun tasdiqlash kodi: $code";
-        // $this->smsService->sendQueued($user->phone, $text, 'password_reset');
-        // SMS yuborish joyi (integratsiya qilasiz)
-        // SmsService::send($user->phone, "Your password reset code is: $code");
+            // 6 xonali random kod
+            $code = rand(100000, 999999);
+            $user->verification_code = $code;
+            $user->save();
+            $messages = [
+                'uz' => "Parolni tiklash uchun tasdiqlash kodi: $code",
+                'ru' => "Код подтверждения для сброса пароля: $code",
+                'en' => "Your password reset code is: $code",
+            ];
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Reset code sent via SMS',
-            'code' => $code
-        ]);
+            $text = $messages[$this->language];
+
+            // SMS yuborish (Queue yoki to‘g‘ridan-to‘g‘ri)
+            $this->smsService->sendQueued($user->phone, $text, 'password_reset');
+            // SMS yuborish joyi (integratsiya qilasiz)
+
+            DB::commit();
+            $messages = [
+                'uz' => "Parolni tiklash kodi SMS orqali yuborildi.",
+                'ru' => "Код для сброса пароля отправлен через SMS.",
+                'en' => "Reset code sent via SMS.",
+            ];
+
+            $message = $messages[$this->language];
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+                'code' => $code
+            ]);
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Something went wrong' . $e
+            ], 500);
+        }
     }
 
     public function resetPassword(Request $request)
     {
-        $request->validate([
-            'phone' => 'required|string|exists:users,phone',
-            'verification_code' => 'required|string',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
+        try {
+            DB::beginTransaction();
+            $request->validate([
+                'phone' => 'required|string|exists:users,phone',
+                'verification_code' => 'required|string',
+                'password' => 'required|string|min:6|confirmed',
+            ]);
 
-        $user = \App\Models\User::where('phone', $request->phone)->first();
+            $user = \App\Models\User::where('phone', $request->phone)->first();
 
-        if ($user->verification_code !== $request->verification_code) {
+            if ($user->verification_code !== $request->verification_code) {
+                $messages = [
+                    'uz' => 'Tasdiqlash kodi noto‘g‘ri.',
+                    'ru' => 'Неверный код подтверждения.',
+                    'en' => 'Invalid verification code.',
+                ];
+
+                $message = $messages[$this->language];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message,
+                ], 400);
+            }
+
+            // Parolni yangilash
+            $user->password = bcrypt($request->password);
+            $user->verification_code = null; // Kodni tozalash
+            $user->save();
+
+            DB::commit();
+            $messages = [
+                'uz' => "Parol muvaffaqiyatli tiklandi.",
+                'ru' => "Пароль успешно сброшен.",
+                'en' => "Password has been reset successfully.",
+            ];
+
+            $message = $messages[$this->language];
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+                'return' => 'login page'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollback();
             return response()->json([
                 'status' => 'error',
-                'message' => 'Invalid verification code',
-            ], 400);
+                'message' => 'Something went wrong' . $e
+            ], 500);
         }
-
-        // Parolni yangilash
-        $user->password = bcrypt($request->password);
-        $user->verification_code = null; // Kodni tozalash
-        $user->save();
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Password has been reset successfully',
-            'return' => 'login page'
-        ]);
     }
 
 
     public function logout()
     {
         Auth::logout();
+
+        $messages = [
+            'uz' => "Muvaffaqiyatli tizimdan chiqildi.",
+            'ru' => "Вы успешно вышли из системы.",
+            'en' => "Successfully logged out.",
+        ];
+
+        $message = $messages[$this->language];
+
         return response()->json([
             'status' => 'success',
-            'message' => 'Successfully logged out',
+            'message' => $message,
         ]);
     }
 
     public function refresh()
     {
+        $messages = [
+            'uz' => "Token muvaffaqiyatli yangilandi.",
+            'ru' => "Токен успешно обновлён.",
+            'en' => "Token refreshed successfully.",
+        ];
+
+        $message = $messages[$this->language];
+
         return response()->json([
             'status' => 'success',
+            'message' => $message,
             'user' => Auth::user(),
             'authorisation' => [
                 'token' => Auth::refresh(),
@@ -335,9 +513,17 @@ class APIAuthController extends Controller
             ]);
 
             DB::commit();
+            $messages = [
+                'uz' => "Mashina muvaffaqiyatli yaratildi, keyingi bosqichga o‘ting.",
+                'ru' => "Автомобиль успешно создан, переходите к следующему шагу.",
+                'en' => "Vehicle created successfully, jump to the next step.",
+            ];
+
+            $message = $messages[$this->language];
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Vehicle created successfully, jump to the next step',
+                'message' => $message,
                 'vehicle_id' => $vehicle->id,
             ], 201);
         } catch (\Exception $e) {
@@ -350,9 +536,9 @@ class APIAuthController extends Controller
     }
 
 
-
     public function uploadVehicleImages(Request $request)
     {
+        DB::beginTransaction();
 
         try {
 
@@ -428,17 +614,39 @@ class APIAuthController extends Controller
                 ]);
             }
 
+            DB::commit();
+
+            $messages = [
+                'uz' => "Mashina rasmlari muvaffaqiyatli yuklandi.",
+                'ru' => "Изображения автомобиля успешно загружены.",
+                'en' => "Vehicle images uploaded successfully.",
+            ];
+
+            $message = $messages[$this->language];
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Vehicle images uploaded successfully.',
+                'message' => $message,
             ]);
         } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            $messages = [
+                'uz' => "Mashina rasmlarini yuklashda xatolik yuz berdi. Xato: ",
+                'ru' => "Не удалось загрузить изображения автомобиля. Ошибка: ",
+                'en' => "Failed to upload vehicle images. Error: ",
+            ];
+
+            $message = $messages[$this->language] . $e->getMessage();
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to upload vehicle images. Error: ' . $e->getMessage(),
+                'message' => $message,
             ], 500);
         }
     }
+
 
 
 
@@ -447,7 +655,7 @@ class APIAuthController extends Controller
 
 
         try {
-
+            DB::beginTransaction();
             $request->validate([
                 'driving_licence_front' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
                 'driving_licence_back' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
@@ -515,15 +723,36 @@ class APIAuthController extends Controller
                 );
             }
 
+            DB::commit();
+
+            $messages = [
+                'uz' => "Haydovchi hujjatlari yuklandi. Iltimos, admin tasdiqlashini kuting.",
+                'ru' => "Документы водителя загружены. Пожалуйста, дождитесь одобрения администратора.",
+                'en' => "Driver documents uploaded. Please wait for admin approval.",
+            ];
+
+            $message = $messages[$this->language];
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Driver documents uploaded. Please wait for admin approval.'
+                'message' => $message,
             ]);
         } catch (\Exception $e) {
+
+            DB::rollBack();
+
+
+            $messages = [
+                'uz' => "Haydovchi hujjatlarini yuklashda xatolik yuz berdi. Xato: ",
+                'ru' => "Не удалось загрузить документы водителя. Ошибка: ",
+                'en' => "Failed to upload driver documents. Error: ",
+            ];
+
+            $message = $messages[$this->language] . $e->getMessage();
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Failed to upload driver documents.',
-                'error' => $e->getMessage(),
+                'message' => $message,
             ], 500);
         }
     }
@@ -536,7 +765,7 @@ class APIAuthController extends Controller
 
 
         try {
-
+            DB::beginTransaction();
             $request->validate([
                 'first_name' => 'nullable|string|max:255',
                 'last_name' => 'nullable|string|max:255',
@@ -545,14 +774,22 @@ class APIAuthController extends Controller
                 'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // rasm
             ]);
 
-            DB::beginTransaction();
+
             // Foydalanuvchini topish
             $user = User::find(Auth::user()->id);
 
             if (!$user) {
+                $messages = [
+                    'uz' => 'Foydalanuvchi topilmadi.',
+                    'ru' => 'Пользователь не найден.',
+                    'en' => 'User not found.',
+                ];
+
+                $message = $messages[$this->language];
+
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'User not found',
+                    'message' => $message,
                 ], 404);
             }
 
@@ -569,14 +806,30 @@ class APIAuthController extends Controller
 
 
             DB::commit();
+            $messages = [
+                'uz' => "Foydalanuvchi muvaffaqiyatli yangilandi.",
+                'ru' => "Пользователь успешно обновлён.",
+                'en' => "User updated successfully.",
+            ];
+
+            $message = $messages[$this->language];
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Foydalanuvchi muvaffaqiyatli yangilandi.'
+                'message' => $message,
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
+            $messages = [
+                'uz' => "Xatolik yuz berdi! Xato: ",
+                'ru' => "Произошла ошибка! Ошибка: ",
+                'en' => "An error occurred! Error: ",
+            ];
+
+            $message = $messages[$this->language] . $e->getMessage();
+
             return response()->json([
-                'message' => 'Xatolik yuz berdi!',
+                'message' => $message,
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -628,6 +881,7 @@ class APIAuthController extends Controller
     public function updateUserLanguage(Request $request)
     {
         try {
+            DB::beginTransaction();
             $request->validate([
                 'language' => 'required|in:uz,en,ru',
             ]);
@@ -637,12 +891,23 @@ class APIAuthController extends Controller
                 ['language' => $request->language]
             );
 
+            DB::commit();
+
+            $messages = [
+                'uz' => "Til muvaffaqiyatli yangilandi.",
+                'ru' => "Язык успешно обновлён.",
+                'en' => "Language updated successfully.",
+            ];
+
+            $message = $messages[$this->language];
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Language updated successfully',
+                'message' => $message,
                 'language' => $lang->language,
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage()

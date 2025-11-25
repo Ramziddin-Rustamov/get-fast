@@ -10,6 +10,14 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class BalanceTransactionController extends Controller
 {
+
+    public $language;
+
+
+    public function __construct()
+    {
+        $this->language = auth()->user()->authLanguage->language ?? 'uz';
+    }
     public function getAllUserBalanceTransactions(Request $request)
     {
         $userTransaction = BalanceTransaction::where('user_id', $request->user()->id)->paginate(20);
@@ -17,20 +25,65 @@ class BalanceTransactionController extends Controller
             return BalanceTransactionResource::collection($userTransaction);
         }
 
-        return response()->json(
-            [ 
-                'message' => 'No balance transactions found',
-                'status' => 'error'
-            ],
-            404
-        );
+        $messages = [
+            'uz' => "Balans tranzaksiyalari topilmadi.",
+            'ru' => "Транзакции баланса не найдены.",
+            'en' => "No balance transactions found.",
+        ];
+
+        $message = $messages[$this->language];
+
+        return response()->json([
+            'status' => 'error',
+            'message' => $message
+        ], 404);
     }
 
     public function downloadPdfTransactions(Request $request)
     {
+
         $transactions = BalanceTransaction::where('user_id', $request->user()->id)->get();
 
-        $pdf = Pdf::loadView('pdf.transactions', compact('transactions'));
+        // Tilga mos sarlavha va ustun nomlarini tayyorlash
+        $titles = [
+            'uz' => [
+                'title' => 'Balans tranzaksiyalari',
+                'id' => 'ID',
+                'type' => 'Turi',
+                'amount' => 'Summasi',
+                'before' => 'Oldingi balans',
+                'after' => 'Keyingi balans',
+                'status' => 'Holati',
+                'reason' => 'Sababi',
+                'created_at' => 'Yaratilgan vaqti',
+            ],
+            'ru' => [
+                'title' => 'Транзакции баланса',
+                'id' => 'ID',
+                'type' => 'Тип',
+                'amount' => 'Сумма',
+                'before' => 'Баланс до',
+                'after' => 'Баланс после',
+                'status' => 'Статус',
+                'reason' => 'Причина',
+                'created_at' => 'Дата создания',
+            ],
+            'en' => [
+                'title' => 'Balance Transactions',
+                'id' => 'ID',
+                'type' => 'Type',
+                'amount' => 'Amount',
+                'before' => 'Balance Before',
+                'after' => 'Balance After',
+                'status' => 'Status',
+                'reason' => 'Reason',
+                'created_at' => 'Created At',
+            ],
+        ];
+
+        $t = $titles[$this->language];
+
+        $pdf = Pdf::loadView('pdf.transactions', compact('transactions', 't'));
 
         return response($pdf->output(), 200)
             ->header('Content-Type', 'application/pdf')
@@ -39,17 +92,63 @@ class BalanceTransactionController extends Controller
 
     public function downloadOnePdfTransaction($id)
     {
-        $transaction = BalanceTransaction::where('user_id', auth()->user()->id)->find($id);
-        if(!$transaction) {
-            return response()->json(
-                [
-                    'message' => 'No balance transactions found',
-                    'status' => 'error'
-                ],
-                404
-            );
+
+        $transaction = BalanceTransaction::where('user_id', $request->user->id)->find($id);
+        if (!$transaction) {
+            $messages = [
+                'uz' => "Balans tranzaksiyalari topilmadi.",
+                'ru' => "Транзакции баланса не найдены.",
+                'en' => "No balance transactions found.",
+            ];
+
+            $message = $messages[$this->language];
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $message
+            ], 404);
         }
-        $pdf = Pdf::loadView('pdf.transaction', compact('transaction'));
+
+        // Tilga mos sarlavha va ustun nomlari
+        $titles = [
+            'uz' => [
+                'title' => 'Balans tranzaksiyasi',
+                'id' => 'ID',
+                'type' => 'Turi',
+                'amount' => 'Summasi',
+                'before' => 'Oldingi balans',
+                'after' => 'Keyingi balans',
+                'status' => 'Holati',
+                'reason' => 'Sababi',
+                'created_at' => 'Yaratilgan vaqti',
+            ],
+            'ru' => [
+                'title' => 'Транзакция баланса',
+                'id' => 'ID',
+                'type' => 'Тип',
+                'amount' => 'Сумма',
+                'before' => 'Баланс до',
+                'after' => 'Баланс после',
+                'status' => 'Статус',
+                'reason' => 'Причина',
+                'created_at' => 'Дата создания',
+            ],
+            'en' => [
+                'title' => 'Balance Transaction',
+                'id' => 'ID',
+                'type' => 'Type',
+                'amount' => 'Amount',
+                'before' => 'Balance Before',
+                'after' => 'Balance After',
+                'status' => 'Status',
+                'reason' => 'Reason',
+                'created_at' => 'Created At',
+            ],
+        ];
+
+        $t = $titles[$this->language];
+
+        $pdf = Pdf::loadView('pdf.transaction', compact('transaction', 't'));
 
         return response($pdf->output(), 200)
             ->header('Content-Type', 'application/pdf')

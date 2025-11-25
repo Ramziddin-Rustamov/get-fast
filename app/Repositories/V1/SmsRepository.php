@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Repositories\V1;
+
 use App\Models\Sms;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -44,13 +45,11 @@ class SmsRepository
             ];
 
             Http::withBasicAuth($this->smsUsername, $this->smsPassword)->post($this->smsUrl, $message);
-
         } catch (\Exception $exception) {
             DB::rollBack();
             Log::error('SMS sending failed: ' . $exception->getMessage());
             return response()->json(['error' => 'Server error occurred'], 500);
         }
-
     }
 
     protected function getMessageID($action, $phone, $message): string
@@ -63,7 +62,7 @@ class SmsRepository
             $model->save();
 
             $message_id = $model->action . '_' . $model->id;
-        } catch (\Exception $exception){
+        } catch (\Exception $exception) {
             DB::rollBack();
             Log::error('SMS messageID generate failed: ' . $exception->getMessage());
             return response()->json(['error' => 'Server error occurred'], 500);

@@ -1,102 +1,52 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
+
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\V1\Booking;
-use App\Models\V1\Trip;
 
 class OrderController extends Controller
 {
-    /**
-     * Buyurtmalar ro‘yxatini chiqarish
-     */
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Booking::all();
-        return view('admin-views.orders.index', compact('orders'));
+        $status = $request->get('status');
+        $dateFilter = $request->get('date');
+
+        $query = Booking::with(['trip.startQuarter', 'trip.endQuarter', 'user']);
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        // DATE FILTER
+        if ($dateFilter == 'today') {
+            $query->whereDate('created_at', now());
+        }
+
+        if ($dateFilter == 'week') {
+            $query->whereBetween('created_at', [
+                now()->startOfWeek(),
+                now()->endOfWeek(),
+            ]);
+        }
+
+        if ($dateFilter == 'last_week') {
+            $query->whereBetween('created_at', [
+                now()->subWeek()->startOfWeek(),
+                now()->subWeek()->endOfWeek(),
+            ]);
+        }
+
+        $bookings = $query->latest()->paginate(20);
+
+        return view('admin-views.orders.index', compact('bookings', 'status', 'dateFilter'));
     }
 
-    /**
-     * Yangi buyurtma qo'shish formasi
-     */
-    public function create()
-    {
-        $users = User::where('role', 'client')->get();
-        $trips = Trip::where('status', 'active')->get();
-        return view('admin-views.orders.create',compact('users', 'trips'));
-    }
 
-    /**
-     * Yangi buyurtmani saqlash
-     */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'trip_id' => 'required|integer',
-            'user_id' => 'required|integer',
-            'seats_booked' => 'required|integer|min:1',
-            'total_price' => 'required|numeric|min:0',
-            'status' => 'required|string|in:pending,confirmed,canceled',
-        ]);
-
-        Booking::create([
-            'trip_id' => $request->trip_id,
-            'user_id' => $request->user_id,
-            'seats_booked' => $request->seats_booked,
-            'total_price' => $request->total_price,
-            'status' => $request->status,
-        ]);
-
-        return redirect()->route('orders.index')->with('success', 'Booking added successfully!');
-    }
-
-    /**
-     * Bitta buyurtma ma'lumotlarini ko'rsatish
-     */
     public function show(Booking $order)
     {
+        $order->load(['trip.startQuarter', 'trip.endQuarter', 'user', 'passengers']);
         return view('admin-views.orders.show', compact('order'));
-    }
-
-    /**
-     * Buyurtmani tahrirlash formasi
-     */
-    public function edit(Booking $order)
-    {
-        return view('admin-views.orders.edit', compact('order'));
-    }
-
-    /**
-     * Buyurtmani yangilash
-     */
-    public function update(Request $request, Booking $order)
-    {
-        $request->validate([
-            'trip_id' => 'required|integer',
-            'user_id' => 'required|integer',
-            'seats_booked' => 'required|integer|min:1',
-            'total_price' => 'required|numeric|min:0',
-            'status' => 'required|string|in:pending,confirmed,canceled',
-        ]);
-
-        $order->update([
-            'trip_id' => $request->trip_id,
-            'user_id' => $request->user_id,
-            'seats_booked' => $request->seats_booked,
-            'total_price' => $request->total_price,
-            'status' => $request->status,
-        ]);
-
-        return redirect()->route('orders.index')->with('success', 'Booking updated successfully!');
-    }
-
-    /**
-     * Buyurtmani o'chirish
-     */
-    public function destroy(Booking $order)
-    {
-        $order->delete();
-        return redirect()->route('admin-views.orders.index')->with('success', 'Booking deleted successfully!');
     }
 }

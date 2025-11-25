@@ -12,6 +12,11 @@ use Svg\Tag\Rect;
 
 class CardController extends Controller
 {
+    private $language;
+    public function __construct()
+    {
+        $this->language = auth()->user()->authLanguage->language ?? 'uz';
+    }
     /** ✅ Karta ro‘yxati (foydalanuvchi telefon raqami bilan) */
     //DONE ###################### --- DONE -------- #############################
     public function cardList($phoneNumber)
@@ -64,24 +69,27 @@ class CardController extends Controller
 
             DB::commit();
 
+
+            $messages = [
+                'uz' => 'Karta muvaffaqiyatli qo‘shildi. SMS kodi orqali tasdiqlang.',
+                'ru' => 'Карта успешно добавлена. Подтвердите с помощью SMS кода.',
+                'en' => 'Card added successfully. Verify with SMS code.',
+            ];
+
+            $message = $messages[$this->language];
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Card added successfully. Verify with SMS code.',
+                'message' => $message,
                 'card' => [
                     'id' => $card->id,
-                    'lable' => $card->label,
+                    'label' => $card->label, // small typo tuzatildi: 'lable' -> 'label'
                     'phone' => $card->phone,
                     'key' => $response['result']['key'] ?? null,
                 ],
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
-
-            // // xatolikni logga yozish (debug uchun foydali)
-            // Log::error('Card creation failed', [
-            //     'error' => $e->getMessage(),
-            //     'trace' => $e->getTraceAsString(),
-            // ]);
 
             return response()->json([
                 'status' => 'error',
@@ -108,10 +116,20 @@ class CardController extends Controller
 
             $card = Card::where('id', $request->id)->first();
             if (!$card) {
+
+                $messages = [
+                    'uz' => 'Karta topilmadi',
+                    'ru' => 'Карта не найдена',
+                    'en' => 'Card not found',
+                ];
+                
+                $message = $messages[$this->language];
+                
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Card not found',
+                    'message' => $message,
                 ], 404);
+                
             }
 
             $card->status = 'verified';
@@ -130,9 +148,17 @@ class CardController extends Controller
             $card->card_id = $response['result']['id'];
             $card->save();
 
+            $messages = [
+                'uz' => 'Karta muvaffaqiyatli tasdiqlandi',
+                'ru' => 'Карта успешно подтверждена',
+                'en' => 'Card verified successfully',
+            ];
+            
+            $message = $messages[$this->language];
+            
             return response()->json([
                 'status' => 'success',
-                'message' => 'Card verified successfully',
+                'message' => $message,
                 'card' => $response['result'] ?? null,
             ]);
         } catch (\Illuminate\Http\Client\RequestException $e) {

@@ -9,28 +9,51 @@ use App\Models\V1\ExpiredTrip;
 
 class DriverExpiredTripsControllerApi extends Controller
 {
+
+    public $language;
+
+    public function __construct()
+    {
+        $this->language = auth()->user()->authLanguage->language ?? 'uz';
+    }
+
     public function getExpeiredTrips()
     {
         $expiredTrips = ExpiredTrip::where('driver_id', auth()->user()->id)->paginate(20);
+
         if (count($expiredTrips) == 0 || !$expiredTrips) {
+            $messages = [
+                'uz' => 'Muddati o‘tgan sayohatlar topilmadi',
+                'ru' => 'Истёкшие поездки не найдены',
+                'en' => 'No expired trips found',
+            ];
+
             return response()->json([
-                'message' => 'No expired trips found',
-                'status' => 'error'
+                'status' => 'error',
+                'message' => $messages[$this->language]
             ], 404);
         }
-        
+
         return DriverExpiredTripsResource::collection($expiredTrips);
     }
 
     public function getExpiredTrip($id)
     {
         $trip = ExpiredTrip::where('driver_id', auth()->user()->id)->find($id);
+
         if (!$trip) {
+            $messages = [
+                'uz' => 'Muddati o‘tgan sayohat topilmadi',
+                'ru' => 'Истёкшая поездка не найдена',
+                'en' => 'No expired trip found',
+            ];
+
             return response()->json([
-                'message' => 'No expired trip found',
-                'status' => 'error'
+                'status' => 'error',
+                'message' => $messages[$this->language]
             ], 404);
         }
+
         return response()->json(new DriverExpiredTripsResource($trip), 200);
     }
 }

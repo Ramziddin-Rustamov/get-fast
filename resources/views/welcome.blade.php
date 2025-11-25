@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+@auth
+    
 <div class="vh-100 d-flex align-items-center justify-content-center" >
     <div class="container text-center">
         <div class="row justify-content-center">
@@ -28,5 +30,11 @@
         </div>
     </div>
 </div>
+@endauth
 
+@guest
+     <div>
+            Hello 
+     </div>
+@endguest
 @endsection

@@ -216,13 +216,13 @@
             @if($driver->driverTrips->count())
                 @foreach($driver->driverTrips as $trip)
                     <div class="border rounded p-3 mb-2">
-                        <div><strong>From:</strong> {{ $trip->startQuarter->name ?? 'N/A' }}, {{ $trip->startQuarter->district->name ?? '' }}</div>
+                        <div><strong>From:</strong> {{ $trip->startQuarter->name ?? 'N/A' }}, {{ $trip->startQuarter->district->name_uz ?? '' }}</div> =>
                         <div><strong>To:</strong> {{ $trip->endQuarter->name ?? 'N/A' }}, {{ $trip->endQuarter->district->name ?? '' }}</div>
                         <div><strong>Time:</strong> {{ \Carbon\Carbon::parse($trip->start_time)->format('d.m.Y H:i') }} - {{ \Carbon\Carbon::parse($trip->end_time)->format('d.m.Y H:i') }}</div>
                         <div><strong>Price:</strong> {{ number_format($trip->price_per_seat, 0, '.', ' ') }} so'm</div>
                         <div><strong>Seats:</strong> {{ $trip->available_seats }} / {{ $trip->total_seats }}</div>
                         <div><strong>Status:</strong> 
-                            <span class="badge {{ $trip->status === 'expired' ? 'bg-danger' : 'bg-success' }}">
+                            <span class="badge {{ $trip->status === 'cancelled' ? 'bg-danger' : 'bg-success' }}">
                                 {{ ucfirst($trip->status) }}
                             </span>
                         </div>

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->unsignedBigInteger('trip_id')->nullable(); // booking/trip manbasi
             $table->unsignedBigInteger('booking_id')->nullable();
             $table->string('type')->default('income'); // income/outcome
-            $table->string('reason')->nullable();
+            $table->text('reason')->nullable();
             $table->string('currency', 3)->default('UZS');
             $table->timestamps();
         });

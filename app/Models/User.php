@@ -205,5 +205,10 @@ class User  extends Authenticatable implements JWTSubject
         return $this->hasMany(UserImage::class, 'user_id');
     }
 
+    public function authLanguage()
+    {
+        return $this->hasOne(UserLanguage::class);
+    }
+
     
 }

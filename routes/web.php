@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\WelcomeController;
 
 
@@ -74,4 +75,12 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
     Route::get('orders/{order}/edit', [OrderController::class, 'edit'])->name('orders.edit');
     Route::put('orders/{order}', [OrderController::class, 'update'])->name('orders.update');
     Route::delete('orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
+
+
+    Route::get('/company/dashboard', [WelcomeController::class, 'companyDashboard'])->name('company.dashboard');
+    Route::get('/company/transactions', [WelcomeController::class, 'companyTransactions'])->name('company.transactions');
+
+
+    Route::get('/company/payments', [PaymentController::class, 'index'])->name('payments.index');
+    Route::get('/company/payments/{id}', [PaymentController::class, 'show'])->name('payments.show');
 });
