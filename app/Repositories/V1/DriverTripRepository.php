@@ -10,24 +10,15 @@ use App\Models\V1\Trip;
 use App\Models\V1\Point;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Models\V1\CompanyBalance;
+use App\Models\V1\CompanyBalanceTransaction;
 
 class DriverTripRepository
 {
 
-    public $errorResponse = [
-        'status' => 'error',
-        "message" => "Not found !"
-    ];
-
-    public $successResponse = [
-        'status' => 'seccess',
-        "message" => "Deleted successsfully !"
-    ];
 
     public function getAllTrips()
     {
-
-
         $activeTrips = Trip::where('driver_id', auth()->user()->id)
             ->where('end_time', '>=', now())
             ->paginate(10);
@@ -45,15 +36,26 @@ class DriverTripRepository
 
 
         if (is_null($trip) && empty($trip)) {
-            return response()->json($this->errorResponse, 404);
+            $messages = [
+                'uz' => 'Safar topilmadi',
+                'ru' => 'Поездка не найдена',
+                'en' => 'Trip not found',
+            ];
+
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $message,
+            ], 404);
         }
         return new DriverTripResource($trip);
     }
+
+
     public function createTrip($request)
     {
         try {
-
-
 
             if ($request->validated()) {
                 $data = $request->validated();
@@ -69,9 +71,17 @@ class DriverTripRepository
                 ->first();
 
             if ($existingTrip) {
+                $messages = [
+                    'uz' => 'Bu ma’lumotlar bilan avval yuborilgan poezdka topildi',
+                    'ru' => 'По этим данным уже была создана поездка',
+                    'en' => 'A trip with this information has already been submitted',
+                ];
+
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Bu ma’lumotlar bilan avval yuborilgan trip topildi'
+                    'message' => $message,
                 ], 409);
             }
 
@@ -112,10 +122,18 @@ class DriverTripRepository
         } catch (\Throwable $e) {
             DB::rollBack();
 
+            $messages = [
+                'uz' => 'Trip yaratishda xatolik yuz berdi.',
+                'ru' => 'Ошибка при создании поездки.',
+                'en' => 'Error occurred while creating the trip.',
+            ];
+
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
             return response()->json([
-                'message' => 'Trip yaratishda xatolik yuz berdi.' . $e,
                 'status' => 'error',
-                'error' => $e
+                'message' => $message . ' ' . $e->getMessage(),
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -129,25 +147,52 @@ class DriverTripRepository
                 ->where('driver_id', auth()->user()->id)
                 ->first();
             if (!$trip) {
+                $messages = [
+                    'uz' => 'Trip topilmadi.',
+                    'ru' => 'Поездка не найдена.',
+                    'en' => 'Trip not found.',
+                ];
+
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
                 return response()->json([
-                    'message' => 'Trip topilmadi.',
-                    'error' => 'error'
+                    'status' => 'error',
+                    'message' => $message,
+                    'error' => 'error',
                 ], 404);
             }
 
             $startPoint = Point::find($trip->start_point_id);
             if (!$startPoint) {
+                $messages = [
+                    'uz' => 'Start point topilmadi.',
+                    'ru' => 'Стартовая точка не найдена.',
+                    'en' => 'Start point not found.',
+                ];
+
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
                 return response()->json([
-                    'message' => 'Start point topilmadi.',
-                    'error' => 'error'
+                    'status' => 'error',
+                    'message' => $message,
+                    'error' => 'error',
                 ], 404);
             }
 
             $endPoint = Point::find($trip->end_point_id);
             if (!$endPoint) {
+                $messages = [
+                    'uz' => 'End point topilmadi.',
+                    'ru' => 'Конечная точка не найдена.',
+                    'en' => 'End point not found.',
+                ];
+
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
                 return response()->json([
-                    'message' => 'End point topilmadi.',
-                    'error' => 'error'
+                    'status' => 'error',
+                    'message' => $message,
+                    'error' => 'error',
                 ], 404);
             }
 
@@ -164,9 +209,18 @@ class DriverTripRepository
             ]);
 
             if ($data['total_seats'] < $trip->available_seats) {
+                $messages = [
+                    'uz' => 'Umumiy o‘rindiqlar sonidan bo‘sh o‘rindiqlar soni kichik bo‘lishi mumkin emas.',
+                    'ru' => 'Количество свободных мест не может быть меньше общего числа мест.',
+                    'en' => 'The number of empty seats cannot be less than the total seats.',
+                ];
+
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
                 return response()->json([
-                    'message' => 'Umumiy o`rindiqlar sonidan bo`sh o`rindiqlar soni kichik bo`lishi mumkin emas.',
-                    'error' => 'error'
+                    'status' => 'error',
+                    'message' => $message,
+                    'error' => 'error',
                 ], 400);
             }
 
@@ -190,15 +244,18 @@ class DriverTripRepository
             return response()->json(new DriverTripResource($trip), 200);
         } catch (\Throwable $e) {
             DB::rollBack();
+            $messages = [
+                'uz' => 'Trip yangilashda xatolik yuz berdi.',
+                'ru' => 'Ошибка при обновлении поездки.',
+                'en' => 'An error occurred while updating the trip.',
+            ];
 
-            Log::error('Trip yangilashda xatolik: ' . $e->getMessage(), [
-                'trip_id' => $id,
-                'user_id' => auth()->id(),
-            ]);
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
             return response()->json([
-                'message' => 'Trip yangilashda xatolik yuz berdi.',
-                'error' => $e->getMessage()
+                'status' => 'error',
+                'message' => $message,
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -206,24 +263,48 @@ class DriverTripRepository
 
     public function cancel($id)
     {
-        $trip = Trip::findOrFail($id);
+        try {
 
-        if ($trip->status == 'cancelled') {
-            return response()->json(
-                [
-                    'message' => 'Trip already cancelled',
-                    'status' => 'error'
-                ],
-                400
-            );
-        }
+            DB::beginTransaction();
+            $trip = Trip::where('driver_id', auth()->user()->id)->find($id);
 
-        DB::transaction(function () use ($trip) {
+            if (!$trip) {
+                $messages = [
+                    'uz' => 'Trip topilmadi.',
+                    'ru' => 'Поездка не найдена.',
+                    'en' => 'Trip not found.',
+                ];
+
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message,
+                ], 404);
+            }
+
+            if ($trip->status == 'cancelled') {
+                $messages = [
+                    'uz' => 'Trip allaqachon bekor qilingan.',
+                    'ru' => 'Поездка уже отменена.',
+                    'en' => 'Trip already cancelled.',
+                ];
+
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message,
+                ], 400);
+            }
+
+
+
             $trip->status = 'cancelled';
             $trip->expired_at = now();
             $trip->save();
 
-            // Agar expired_trips jadvali bo‘lsa, unga ko‘chirish
+            // Expired trips ga ko‘chirish
             DB::table('expired_trips')->insert([
                 'driver_id' => $trip->driver_id,
                 'vehicle_id' => $trip->vehicle_id,
@@ -242,59 +323,223 @@ class DriverTripRepository
                 'updated_at' => now(),
             ]);
 
-            // Shu tripga tegishli barcha bookinglar
-            $bookings = Booking::where('trip_id', $trip->id)->get();
+            // Foizlar
+            $companyPercent = env('SERVICE_FEE_FOR_DRIVERS_TO_CANCEL_TRIP', 4);
+            $clientCompensationPercent = env('REFOUND_COMPENSATION_FOR_CLIENTS', 1);
 
+
+            $bookings = Booking::where('trip_id', $trip->id)->get();
             foreach ($bookings as $booking) {
-                $userId = $booking->user_id;
-                $user = User::find($userId);
+
+                // Driver va Company balanslari
+                $driver = $trip->driver;
+                $driverBefore = $trip->driver->balance->balance;
+
+                $companyBalance = CompanyBalance::first();
+                $companyBefore = $companyBalance->balance;
+
+                // Shu tripga tegishli barcha bookinglar
+
+
+                $client = User::find($booking->user_id);
                 $totalPrice = $booking->total_price;
 
-                // Driver o‘zi cancel qilganmi?
-                if ($userId == $trip->driver_id) {
-                    // 15% jarima, 85% qaytariladi
-                    $penalty = $totalPrice * 0.15;
-                    $refund = $totalPrice - $penalty;
-                } else {
-                    // 100% refund
-                    $refund = $totalPrice;
-                    $penalty = 0;
-                }
-
-                // Balansni yangilash (user_balances)
-                $balance = $user->myBalance;
-                $before = $balance->balance;
-                $after = $before + $refund;
-
-                $balance->update([
-                    'balance' => $after,
-                ]);
-
-                $reason = $userId == $trip->driver_id
-                    ? __('messages.driver_cancel_self')
-                    : __('messages.driver_cancel_user');
+                $clientCompensation = $totalPrice * ($clientCompensationPercent / 100); // 50000 * 0.01 = 500
+                $companyAmount = $totalPrice * ($companyPercent / 100); // 50000 * 0.04 = 2000
 
 
-                // balance_transactions jadvaliga yozish
+                $driverWithdrawal = $totalPrice - ($clientCompensation + $companyAmount); // 50000 - ( 500 + 2000) = 50000
+                $driverPaidForCompanyAndClient = $clientCompensation + $companyAmount; // 500 + 2000 = 2500
+                $paidForClient  = $totalPrice + $clientCompensation; // 50000 + 500 = 50500
+
+                $driverReasons = [
+                    'uz' => "Sayohatni bekor qildingiz. Sizning haydovchi balansingizdan $driverWithdrawal so‘m yechildi. Kompaniya esa $driverPaidForCompanyAndClient so‘mni qayta ishladi va mijozlarga oldingi to‘lovlarini qaytarib berdi. Shuningdek, sizdan mijoz uchun qo‘shimcha kompensatsiya sifatida $clientCompensation va kompaniya uchun $companyAmount so‘m yechildi.",
+                    'ru' => "Вы отменили поездку. С вашего водительского баланса было списано $driverWithdrawal сум. Компания обработала $driverPaidForCompanyAndClient сум и вернула клиентам их предыдущие платежи. Также с вас была удержана дополнительная компенсация клиенту в размере $clientCompensation и компании в размере $companyAmount сум.",
+                    'en' => "You cancelled the trip. An amount of $driverWithdrawal was deducted from your driver balance. The company processed $driverPaidForCompanyAndClient and refunded the clients their previous payments. Additionally, an extra  client compensation of $clientCompensation was deducted from you. The company received $companyAmount.",
+                ];
+
+                $driverAfter = ($driverBefore - ($driverWithdrawal + $clientCompensation + $companyAmount)); // 142500 - (47500 + 500 + 2000) = 92500 
+
+
+
+                $a = ($driverWithdrawal + $clientCompensation + $companyAmount); // 47500 - 500 + 2000 = 50000
+                // Driver transaction
                 BalanceTransaction::create([
-                    'user_id' => $userId,
-                    'type' => 'credit',
-                    'amount' => $refund,
-                    'balance_before' => $before,
-                    'balance_after' => $after,
+                    'user_id' => $driver->id,
+                    'type' => 'debit',
+                    'amount' => $a,
+                    'balance_before' => $driverBefore,
+                    'balance_after' => $driverAfter,
                     'trip_id' => $trip->id,
                     'status' => 'success',
-                    'reason' =>  $reason,
-                    'reference_id' => null,
+                    'reason' => $driverReasons[$driver->authLanguage->language ?? 'uz'],
+                    'reference_id' => $booking->id,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-            }
-        });
 
-        return response()->json([
-            'message' => 'Trip cancelled and refunds processed successfully.',
-            'status' => 'success'
-        ]);
+                $driver->balance->update(['balance' => $driverAfter]);
+
+                $clientReasons = [
+                    'uz' => "Sayohat haydovchi tomonidan bekor qilindi. Haydovchi sizga $totalPrice so'mni qaytarib berdi va qo'shimcha $clientCompensation so'm kompensatsiya to'lab berdi.",
+                    'ru' => "Поездка была отменена водителем. Водитель вернул вам $totalPrice сум и дополнительно выплатил компенсацию в размере $clientCompensation сум.",
+                    'en' => "The trip was cancelled by the driver. The driver refunded you $totalPrice UZS and additionally paid $clientCompensation UZS as compensation.",
+                ];
+                
+
+                BalanceTransaction::create([
+                    'user_id' => $booking->user_id,
+                    'type' => 'credit',
+                    'amount' => $totalPrice + $clientCompensation,
+                    'balance_before' => $client->myBalance->balance,
+                    'balance_after' => $client->myBalance->balance + ($totalPrice + $clientCompensation),
+                    'trip_id' => $trip->id,
+                    'status' => 'success',
+                    'reason' => $clientReasons[$client->authLanguage->language ?? 'uz'],
+                    'reference_id' => $booking->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $booking->user->balance->update(['balance' => $client->balance->balance + ($totalPrice + $clientCompensation)]);
+
+
+                $companyBalance = CompanyBalance::first();
+                    $companyReason = [
+                        'uz' => "Haydovchi tomonidan sayohat bekor qilindi. Kompaniyaga $companyAmount so'm qaytarildi.",
+                    ];
+
+
+                CompanyBalanceTransaction::create([
+                    'company_balance_id' => $companyBalance->id,
+                    'amount' => $companyAmount,
+                    'balance_before' => $companyBalance->balance,
+                    'balance_after' => $companyBalance->balance - $companyAmount,
+                    'trip_id' => $trip->id,
+                    'booking_id' => $booking->id,
+                    'status' => 'success',
+                    'type' => 'debit',
+                    'reason' => '',
+                    'currency' => 'UZS',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $companyBalance->update([
+                    'balance' => $companyBalance->balance - $companyAmount
+                ]);
+
+
+
+
+
+
+
+
+
+                // // Driver transaction
+                // BalanceTransaction::create([
+                //     'user_id' => $driver->id,
+                //     'type' => 'debit',
+                //     'amount' => $driverAmount,
+                //     'balance_before' => $driverBefore,
+                //     'balance_after' => $driverAfter,
+                //     'trip_id' => $trip->id,
+                //     'status' => 'success',
+                //     'reason' => $driverReasons[$driver->authLanguage->language ?? 'uz'],
+                //     'reference_id' => $booking->id,
+                //     'created_at' => now(),
+                //     'updated_at' => now(),
+                // ]);
+
+                // $driverBefore = $driverAfter; // keyingi client uchun update
+
+                // // Client balansini yangilash
+                // $clientBalance = $client->myBalance;
+                // $clientBefore = $clientBalance->balance;
+                // $clientAfter = $clientBefore + $totalPrice;
+                // $clientBalance->update(['balance' => $clientAfter]);
+
+                // // Client transaction yozish
+                // $reasons = [
+                //     'uz' => "Trip bekor qilindi. Qaytarilgan summa: $totalPrice + Kompensatsiya: $clientCompensation",
+                //     'ru' => "Поездка отменена. Возврат: $totalPrice + Компенсация: $clientCompensation",
+                //     'en' => "Trip cancelled. Refund: $totalPrice + Compensation: $clientCompensation",
+                // ];
+                // $reason = $reasons[auth()->user()->authLanguage->language ?? 'uz'];
+
+
+                // // Client transaction
+                // BalanceTransaction::create([
+                //     'user_id' => $client->id,
+                //     'type' => 'credit',
+                //     'amount' => $totalPrice,
+                //     'balance_before' => $clientBefore,
+                //     'balance_after' => $clientAfter,
+                //     'trip_id' => $trip->id,
+                //     'status' => 'success',
+                //     'reason' => $reason,
+                //     'reference_id' => $booking->id,
+                //     'created_at' => now(),
+                //     'updated_at' => now(),
+                // ]);
+
+                // // Company balansini yangilash
+                // $companyAfter = $companyBefore + $companyAmount;
+                // $companyBalance->update(['balance' => $companyAfter]);
+
+                // $companyReasons = [
+                //     'uz' => "Trip bekor qilindi. Company ulushi $companyPercent%: $companyAmount, Booking ID: $booking->id, Driver: $driver->name, Client: $client->name",
+                //     'ru' => "Поездка отменена. Доля компании $companyPercent%: $companyAmount, Booking ID: $booking->id, Водитель: $driver->name, Клиент: $client->name",
+                //     'en' => "Trip cancelled. Company share $companyPercent%: $companyAmount, Booking ID: $booking->id, Driver: $driver->name, Client: $client->name",
+                // ];
+
+                // // Company transaction
+                // CompanyBalanceTransaction::create([
+                //     'company_balance_id' => $companyBalance->id,
+                //     'amount' => $companyAmount,
+                //     'balance_before' => $companyBefore,
+                //     'balance_after' => $companyAfter,
+                //     'trip_id' => $trip->id,
+                //     'booking_id' => $booking->id,
+                //     'type' => 'income',
+                //     'reason' => $companyReasons['uz'],
+                //     'currency' => 'UZS',
+                //     'created_at' => now(),
+                //     'updated_at' => now(),
+                // ]);
+
+                // $companyBefore = $companyAfter;
+                // $trip->delete();
+            }
+            DB::commit();
+
+            $messages = [
+                'uz' => 'Trip bekor qilindi va mablag‘lar qaytarildi.',
+                'ru' => 'Поездка отменена и возвраты обработаны успешно.',
+                'en' => 'Trip cancelled and refunds processed successfully.',
+            ];
+
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+            ]);
+        } catch (\Exception $e) {
+            $messages = [
+                'uz' => 'Xatolik yuz berdi.',
+                'ru' => 'Произошла ошибка.',
+                'en' => 'An error occurred.',
+            ];
+
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $message,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

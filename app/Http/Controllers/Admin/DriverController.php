@@ -16,10 +16,19 @@ use App\Models\BalanceTransaction;
 use App\Models\UserBalance;
 use App\Models\V1\Card;
 use App\Models\V1\VehicleImages;
-
+use App\Services\V1\SmsService;
 
 class DriverController extends Controller
 {
+
+    protected SmsService $smsService;
+
+    public function __construct(SmsService $smsService)
+    {
+        $this->smsService = $smsService;
+    }
+
+
     public function index(Request $request)
     {
         $search = $request->input('search');
@@ -54,7 +63,7 @@ class DriverController extends Controller
         return view('admin-views.drivers.index', compact('drivers', 'status', 'search'));
     }
 
-      /**
+    /**
      * Bitta driver ma'lumotlarini ko'rsatish
      */
     public function show($driver)
@@ -62,12 +71,12 @@ class DriverController extends Controller
 
         $driver = User::where('role', 'driver')->with(['balance', 'vehicles', 'driverTrips', 'myVehicle', 'cards'])->find($driver);
         if (!$driver) {
-            return redirect()->route('admin-views.drivers.index')->with('error', 'Haydavchi topilmadi ');
+            return redirect()->route('drivers.index')->with('error', 'Haydavchi topilmadi ');
         }
 
         $vehicles = Vehicle::where('user_id', $driver->id)->get();
         if (empty($vehicles)) {
-            return redirect()->route('admin-views.drivers.index')->with('error', 'Moshina topilmadi hozircha !');
+            return redirect()->view('admin-views.drivers.index')->with('error', 'Moshina topilmadi hozircha !');
         }
         $driverImages = $driver->images; // user_images
         $vehicleImages = VehicleImages::whereIn('vehicle_id', $vehicles->pluck('id'))->get();
@@ -107,8 +116,8 @@ class DriverController extends Controller
 
         $driver = User::where('role', 'driver')->find($driverId);
         $phone = $driver->phone;
-
         $message = $request->input('message');
+        $this->smsService->sendQueued($phone, $message, 'message-to-driver');
 
 
         return redirect()->back()->with('success', 'Xabar muvaffaqiyatli yuborildi ' . $phone . ': ' . $message);
@@ -137,6 +146,9 @@ class DriverController extends Controller
 
             $driverBalance->balance = $driverBalance->balance - $request->amount;
             $driverBalance->save();
+            // $message = ' Haydavchining ishlagan ' . $request->amount . ' so‘m puli muvaffaqiyatli transfer qilindi.' . $request->card_number . ' raqamiga';
+            // $this->smsService->sendQueued($driver->phone, $message, 'message-to-driver');
+
 
             return back()->with('success', 'Haydavchining ishlagan ' . $request->amount . ' so‘m puli muvaffaqiyatli transfer qilindi.' . $request->card_number . ' raqamiga');
         } catch (\Exception $e) {
@@ -153,7 +165,6 @@ class DriverController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'note' => 'required|string|max:255',
             'status' => 'required|in:none,pending,approved,rejected,blocked',
         ]);
 
@@ -161,7 +172,16 @@ class DriverController extends Controller
         $driver->driving_verification_status = $request->status;
         $driver->save();
 
-        // sms logic here 
+
+        $message = [
+            'uz' => 'Sizning haydovchi statusingiz muvaffaqiyatli yangilandi!' . $request->status,
+            'ru' => 'Ваш статус водителя успешно обновлен! ' . $request->status,
+            'en' => 'Your driver status has been successfully updated!' . $request->status,
+        ];
+
+        // sms logic here
+        // $this->smsService->sendQueued($driver->phone, $message[$driver->authLanguage->language], 'message-to-driver-about-driver-status');
+
 
         return redirect()->back()->with('success', 'Driver status muvaffaqiyatli yangilandi!, va bu haqida foydalanuvchiga xabar yuborildi.');
     }
@@ -188,8 +208,6 @@ class DriverController extends Controller
 
         return back()->with('success', 'Hamma haydovchi rasmlari o‘chirildi');
     }
-
-
 
     public function deleteAllVehicleImages($vehicleId)
     {

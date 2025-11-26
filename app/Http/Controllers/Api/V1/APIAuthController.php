@@ -21,12 +21,10 @@ class APIAuthController extends Controller
 {
 
     protected SmsService $smsService;
-    public $language;
 
     public function __construct(SmsService $smsService)
     {
         $this->smsService = $smsService;
-        $this->language = $user->authLanguage->language ?? 'en';
     }
 
 
@@ -34,6 +32,8 @@ class APIAuthController extends Controller
     {
 
         try {
+            $language = auth()->user()->authLanguage->language ?? 'uz';
+
             DB::beginTransaction();
             // Step 1: Validatsiya
             $validator = Validator::make($request->all(), [
@@ -82,7 +82,7 @@ class APIAuthController extends Controller
             ];
 
             // Agar til mavjud bo‘lmasa, "en" ga tushadi
-            $message = $messages[$this->language];
+            $message = $messages[$language] ?? $messages['uz'];
 
             return response()->json([
                 'status' => 'success',
@@ -103,6 +103,8 @@ class APIAuthController extends Controller
     {
         try {
             DB::beginTransaction();
+            $language = auth()->user()->authLanguage->language ?? 'uz'; 
+
             $request->validate([
                 'phone' => 'required|exists:users,phone',
                 'code' => 'required|string'
@@ -132,7 +134,7 @@ class APIAuthController extends Controller
                     'en' => 'Phone number verified. User registered.',
                 ];
 
-                $message = $messages[$this->language];
+                $message = $messages[$language];
 
                 return response()->json([
                     'status' => 'success',
@@ -147,7 +149,7 @@ class APIAuthController extends Controller
                     'en' => 'Invalid verification code.',
                 ];
 
-                $message = $messages[$this->language];
+                $message = $messages[$language];
 
                 return response()->json([
                     'status' => 'error',
@@ -168,6 +170,7 @@ class APIAuthController extends Controller
     {
         try {
             DB::beginTransaction();
+            $language = auth()->user()->authLanguage->language ?? 'uz';
             $request->validate([
                 'phone' => 'required|string',
             ]);
@@ -181,7 +184,7 @@ class APIAuthController extends Controller
                     'en' => 'User not found.',
                 ];
 
-                $message = $messages[$this->language];
+                $message = $messages[$language];
 
                 return response()->json([
                     'status' => 'error',
@@ -196,7 +199,7 @@ class APIAuthController extends Controller
                     'en' => 'Phone number already verified.',
                 ];
 
-                $message = $messages[$this->language];
+                $message = $messages[$language];
 
                 return response()->json([
                     'status' => 'error',
@@ -222,7 +225,7 @@ class APIAuthController extends Controller
                 'en' => "New verification code sent to your phone.",
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[$language];
 
             return response()->json([
                 'status' => 'success',
@@ -257,7 +260,7 @@ class APIAuthController extends Controller
                     'en' => 'Invalid phone or password.',
                 ];
 
-                $message = $messages[$this->language];
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
                 return response()->json([
                     'status' => 'error',
@@ -274,7 +277,7 @@ class APIAuthController extends Controller
                     'en' => 'Please verify your phone number first.',
                 ];
 
-                $message = $messages[$this->language];
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
                 return response()->json([
                     'status' => 'error',
@@ -289,7 +292,7 @@ class APIAuthController extends Controller
                     'en' => 'You have been blocked before accepting the link. If you want, contact us.',
                 ];
 
-                $message = $messages[$this->language];
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
                 return response()->json([
                     'status' => 'error',
@@ -305,7 +308,7 @@ class APIAuthController extends Controller
                 'en' => 'Login successful.',
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
             return response()->json([
                 'status' => 'success',
@@ -328,6 +331,7 @@ class APIAuthController extends Controller
     {
         try {
             DB::beginTransaction();
+            $language = auth()->user()->authLanguage->language ?? 'uz'; 
             $request->validate([
                 'phone' => 'required|string|exists:users,phone',
             ]);
@@ -344,7 +348,7 @@ class APIAuthController extends Controller
                 'en' => "Your password reset code is: $code",
             ];
 
-            $text = $messages[$this->language];
+            $text = $messages[$language];
 
             // SMS yuborish (Queue yoki to‘g‘ridan-to‘g‘ri)
             $this->smsService->sendQueued($user->phone, $text, 'password_reset');
@@ -357,7 +361,7 @@ class APIAuthController extends Controller
                 'en' => "Reset code sent via SMS.",
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[$language];
 
             return response()->json([
                 'status' => 'success',
@@ -377,6 +381,7 @@ class APIAuthController extends Controller
     {
         try {
             DB::beginTransaction();
+            $language = auth()->user()->authLanguage->language ?? 'uz';
             $request->validate([
                 'phone' => 'required|string|exists:users,phone',
                 'verification_code' => 'required|string',
@@ -392,7 +397,7 @@ class APIAuthController extends Controller
                     'en' => 'Invalid verification code.',
                 ];
 
-                $message = $messages[$this->language];
+                $message = $messages[$language];
 
                 return response()->json([
                     'status' => 'error',
@@ -412,7 +417,7 @@ class APIAuthController extends Controller
                 'en' => "Password has been reset successfully.",
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[$language];
 
             return response()->json([
                 'status' => 'success',
@@ -432,6 +437,8 @@ class APIAuthController extends Controller
     public function logout()
     {
         Auth::logout();
+        $language = auth()->user()->authLanguage->language ?? 'uz'; 
+
 
         $messages = [
             'uz' => "Muvaffaqiyatli tizimdan chiqildi.",
@@ -439,7 +446,7 @@ class APIAuthController extends Controller
             'en' => "Successfully logged out.",
         ];
 
-        $message = $messages[$this->language];
+        $message = $messages[$language];
 
         return response()->json([
             'status' => 'success',
@@ -455,7 +462,7 @@ class APIAuthController extends Controller
             'en' => "Token refreshed successfully.",
         ];
 
-        $message = $messages[$this->language];
+        $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
         return response()->json([
             'status' => 'success',
@@ -519,7 +526,7 @@ class APIAuthController extends Controller
                 'en' => "Vehicle created successfully, jump to the next step.",
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
             return response()->json([
                 'status' => 'success',
@@ -622,7 +629,7 @@ class APIAuthController extends Controller
                 'en' => "Vehicle images uploaded successfully.",
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
             return response()->json([
                 'status' => 'success',
@@ -638,7 +645,7 @@ class APIAuthController extends Controller
                 'en' => "Failed to upload vehicle images. Error: ",
             ];
 
-            $message = $messages[$this->language] . $e->getMessage();
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'] . $e->getMessage();
 
             return response()->json([
                 'status' => 'error',
@@ -731,7 +738,7 @@ class APIAuthController extends Controller
                 'en' => "Driver documents uploaded. Please wait for admin approval.",
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
             return response()->json([
                 'status' => 'success',
@@ -748,7 +755,7 @@ class APIAuthController extends Controller
                 'en' => "Failed to upload driver documents. Error: ",
             ];
 
-            $message = $messages[$this->language] . $e->getMessage();
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'] . $e->getMessage();
 
             return response()->json([
                 'status' => 'error',
@@ -765,6 +772,8 @@ class APIAuthController extends Controller
 
 
         try {
+            $language = auth()->user()->authLanguage->language ?? 'uz';
+
             DB::beginTransaction();
             $request->validate([
                 'first_name' => 'nullable|string|max:255',
@@ -785,7 +794,7 @@ class APIAuthController extends Controller
                     'en' => 'User not found.',
                 ];
 
-                $message = $messages[$this->language];
+                $message = $messages[$language];
 
                 return response()->json([
                     'status' => 'error',
@@ -812,7 +821,7 @@ class APIAuthController extends Controller
                 'en' => "User updated successfully.",
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[$language];
 
             return response()->json([
                 'status' => 'success',
@@ -826,7 +835,7 @@ class APIAuthController extends Controller
                 'en' => "An error occurred! Error: ",
             ];
 
-            $message = $messages[$this->language] . $e->getMessage();
+            $message = $messages[$language] . $e->getMessage();
 
             return response()->json([
                 'message' => $message,
@@ -899,7 +908,7 @@ class APIAuthController extends Controller
                 'en' => "Language updated successfully.",
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
             return response()->json([
                 'status' => 'success',

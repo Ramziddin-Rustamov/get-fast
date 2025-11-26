@@ -5,21 +5,41 @@ namespace App\Repositories\V1;
 use App\Models\V1\Trip;
 use App\Http\Resources\V1\TripResource;
 use App\Models\V1\Point;
-use Illuminate\Container\Attributes\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class TripRepository
 {
-
-    public $errorResponse = [
-        'status' => 'error',
-        "message" => "Not found !"
+    public $errorMessages = [
+        'uz' => [
+            'status' => 'error',
+            'message' => 'Trip topilmadi.'
+        ],
+        'ru' => [
+            'status' => 'error',
+            'message' => 'Поездка не найдена.'
+        ],
+        'en' => [
+            'status' => 'error',
+            'message' => 'Trip not found.'
+        ],
     ];
 
-    public $successResponse = [
-        'status' => 'seccess',
-        "message" => "Deleted successsfully !"
+
+
+     public $successMessages = [
+        'uz' => [
+            'status' => 'success',
+            'message' => 'Trip muvaffaqiyatli o‘chirildi.'
+        ],
+        'ru' => [
+            'status' => 'success',
+            'message' => 'Поездка успешно удалена.'
+        ],
+        'en' => [
+            'status' => 'success',
+            'message' => 'Trip deleted successfully.'
+        ],
     ];
 
     public function getAllTrips()
@@ -29,11 +49,14 @@ class TripRepository
 
     public function getTripById($id)
     {
-        $trip  =  Trip::where('driver_id', auth()->user()->id)->find($id);
-        if (is_null($trip) && empty($trip)) {
-            return response()->json($this->errorResponse, 404);
+        $trip = Trip::where('driver_id', auth()->user()->id)->find($id);
+
+        if (!$trip) {
+            $lang = auth()->user()->authLanguage->language ?? 'uz';
+            return response()->json($this->errorMessages[$lang], 404);
         }
-        return response()->json(new TripResource($trip), 200);
+
+        return response()->json($trip, 200);
     }
     public function createTrip(array $data)
     {
@@ -66,12 +89,21 @@ class TripRepository
 
             DB::commit();
 
-            return response()->json(new TripResource($trip), 200);
+            return response()->json($trip, 200);
         } catch (\Throwable $e) {
             DB::rollBack();
 
+            $messages = [
+                'uz' => 'Sizning poezdka yaratishda xatolik yuz berdi.',
+                'ru' => 'Ошибка при создании поездки.',
+                'en' => 'Error occurred while creating trip.',
+            ];
+
+            $lang = auth()->user()->authLanguage->language ?? 'uz';
+
             return response()->json([
-                'message' => 'Trip yaratishda xatolik yuz berdi.',
+                'status' => 'error',
+                'message' => $messages[$lang],
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -83,28 +115,58 @@ class TripRepository
             DB::beginTransaction();
 
             $trip = Trip::find($id);
+            $messages = [
+                'uz' => 'Trip topilmadi.',
+                'ru' => 'Поездка не найдена.',
+                'en' => 'Trip not found.',
+            ];
+
+            $lang = auth()->user()->authLanguage->language ?? 'uz';
+
             if (!$trip) {
                 return response()->json([
-                    'message' => 'Trip topilmadi.',
+                    'status' => 'error',
+                    'message' => $messages[$lang],
                     'error' => 'error'
                 ], 404);
             }
+
+
+            $messages = [
+                'uz' => 'Start point topilmadi.',
+                'ru' => 'Начальная точка не найдена.',
+                'en' => 'Start point not found.',
+            ];
+
+            $lang = auth()->user()->authLanguage->language ?? 'uz';
 
             $startPoint = Point::find($trip->start_point_id);
             if (!$startPoint) {
                 return response()->json([
-                    'message' => 'Start point topilmadi.',
+                    'status' => 'error',
+                    'message' => $messages[$lang],
                     'error' => 'error'
                 ], 404);
             }
 
+
+            $messages = [
+                'uz' => 'End point topilmadi.',
+                'ru' => 'Конечная точка не найдена.',
+                'en' => 'End point not found.',
+            ];
+
+            $lang = auth()->user()->authLanguage->language ?? 'uz';
+
             $endPoint = Point::find($trip->end_point_id);
             if (!$endPoint) {
                 return response()->json([
-                    'message' => 'End point topilmadi.',
+                    'status' => 'error',
+                    'message' => $messages[$lang],
                     'error' => 'error'
                 ], 404);
             }
+
 
             // Start point yangilash
             $startPoint->update([
@@ -131,17 +193,22 @@ class TripRepository
 
             DB::commit();
 
-            return response()->json(new TripResource($trip), 200);
+            return response()->json($trip, 200);
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            Log::error('Trip yangilashda xatolik: ' . $e->getMessage(), [
-                'trip_id' => $id,
-                'user_id' => auth()->id(),
-            ]);
+
+            $messages = [
+                'uz' => 'Trip yangilashda xatolik yuz berdi.',
+                'ru' => 'Ошибка при обновлении поездки.',
+                'en' => 'Error occurred while updating trip.',
+            ];
+
+            $lang = auth()->user()->authLanguage->language ?? 'uz';
 
             return response()->json([
-                'message' => 'Trip yangilashda xatolik yuz berdi.',
+                'status' => 'error',
+                'message' => $messages[$lang],
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -150,11 +217,17 @@ class TripRepository
 
     public function deleteTrip($id)
     {
+        $lang = auth()->user()->authLanguage->language ?? 'uz';
+
+      
+        
         $trip = Trip::where('driver_id', auth()->user()->id)->find($id);
-        if (is_null($trip) && empty($trip)) {
-            return response()->json($this->errorResponse, 404);
+        if (!$trip) {
+            return response()->json($this->errorMessages[$lang], 404);
         }
+        
         $trip->delete();
-        return response()->json($this->successResponse, 200);
+        return response()->json($this->successMessages[$lang], 200);
+        
     }
 }

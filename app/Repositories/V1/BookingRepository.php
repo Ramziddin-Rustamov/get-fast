@@ -49,13 +49,6 @@ class BookingRepository
         ]
     ];
 
-    public $language;
-
-
-    public function __construct()
-    {
-        $this->language = auth()->user()->authLanguage->language ?? 'uz';
-    }
 
 
 
@@ -64,7 +57,7 @@ class BookingRepository
         try {
             return Booking::where('user_id', auth()->user()->id)->with('trip', 'trip.vehicle')->paginate(20);
         } catch (\Exception $e) {
-            return response()->json($this->errorResponse[$this->language], 404);
+            return response()->json($this->errorResponse[auth()->user()->authLanguage->language ?? 'uz'], 404);
         }
     }
 
@@ -73,7 +66,7 @@ class BookingRepository
         $booking = Booking::with('passengers', 'trip.vehicle', 'trip')->where('user_id', auth()->user()->id)->find($id);
 
         if (is_null($booking)) {
-            return response()->json($this->errorResponse[$this->language], 404);
+            return response()->json($this->errorResponse[auth()->user()->authLanguage->language ?? 'uz'], 404);
         }
 
         return response()->json(new BookingResource($booking), 200);
@@ -235,7 +228,7 @@ class BookingRepository
                 $driverBalanceTransaction->balance_after = $driverBalance->balance + $net_income;
                 $driverBalanceTransaction->trip_id = $trip->id;
                 $driverBalanceTransaction->status = 'success';
-                $driverBalanceTransaction->reason = $reasonForDriver[$authLan] ?? $reasonForDriver['uz'];
+                $driverBalanceTransaction->reason = $reasonForDriver[$trip->driver->authLanguage->language ?? 'uz'];
                 $driverBalanceTransaction->reference_id = $booking->id;
                 $driverBalanceTransaction->save();
 
@@ -290,7 +283,7 @@ class BookingRepository
                 $companyBalanceTransaction->balance_after = $companyBalance->balance + $serviceFee;
                 $companyBalanceTransaction->trip_id = $trip->id;
                 $companyBalanceTransaction->booking_id = $booking->id;
-                $companyBalanceTransaction->reason = $reasonCompany[$authLan] ?? $reasonCompany['uz'];
+                $companyBalanceTransaction->reason = $reasonCompany['uz'];
                 $companyBalanceTransaction->save();
 
                 $companyBalance->balance = ($companyBalance->balance) + ($serviceFee);
@@ -327,7 +320,7 @@ class BookingRepository
             $booking = Booking::where('user_id', auth()->user()->id)->find($id);
 
             if (is_null($booking)) {
-                return response()->json($this->errorResponse[$this->language], 404);
+                return response()->json($this->errorResponse[auth()->user()->authLanguage->language ?? 'uz'], 404);
             }
 
             DB::beginTransaction();

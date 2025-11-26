@@ -19,6 +19,7 @@ class PaymentController extends Controller
 {
 
 
+
     public function createPayment(Request $request)
     {
         try {
@@ -33,19 +34,27 @@ class PaymentController extends Controller
             ]);
 
 
-            if($data['card_id']){
+            if ($data['card_id']) {
                 $card = Card::where('id', $data['card_id'])->where('user_id', $user->id)->where('status', 'verified')->first();
-            }else{
-                 // 2. Userning default kartasini olish
+            } else {
+                // 2. Userning default kartasini olish
                 $card = Card::where('user_id', $user->id)
-                ->where('is_default', 1)->where('status', 'verified')
-                ->first();
+                    ->where('is_default', 1)->where('status', 'verified')
+                    ->first();
             }
 
             if (!$card) {
+                $messages = [
+                    'uz' => 'Foydalanuvchida karta mavjud emas!',
+                    'ru' => 'У пользователя нет карты!',
+                    'en' => 'User has no card!'
+                ];
+
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
                 return response()->json([
-                    'success' => false,
-                    'message' => 'User has no  card !'
+                    'status' => 'error',
+                    'message' => $message
                 ], 400);
             }
 
@@ -57,10 +66,18 @@ class PaymentController extends Controller
             ]);
 
 
-            if ($check == 0) {
+            if ($check == 0) { // 0 - balans yetarli emas
+                $messages = [
+                    'uz' => "Karta balansida mablag‘ yetarli emas",
+                    'ru' => "На балансе карты недостаточно средств",
+                    'en' => "Insufficient funds on card balance"
+                ];
+                
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+                
                 return response()->json([
                     'success' => false,
-                    'message' => 'Karta balansida mablag‘ yetarli emas'
+                    'message' => $message
                 ], 400);
             }
 
@@ -120,9 +137,15 @@ class PaymentController extends Controller
                 $payment->save();
                 DB::commit();
 
+                $messages = [
+                    'uz' => 'To‘lov muvaffaqiyatli yaratildi, iltimos, telefoningizga yuboriladigan SMS kodi orqali tasdiqlang',
+                    'ru' => 'Платёж успешно создан, пожалуйста, подтвердите платёж с помощью SMS кода, который будет отправлен на ваш телефон',
+                    'en' => 'Payment created successfully, please confirm the payment by SMS code which will be sent to your phone',
+                ];
+
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Payment created successfully, please confirm the payment by SMS code which will be sent to your phone',
+                    'message' => $messages[auth()->user()->authLanguage->language ?? 'uz'],
                     'pay_id' => $result['result']['pay_id'],
                     'fee_amount' => $result['result']['fee_amount'],
                     'confirmation' => $method,
@@ -156,19 +179,32 @@ class PaymentController extends Controller
                     $trx->balance_after = $user->balance->balance + $payment->amount;
                     $trx->trip_id = null;
                     $trx->status = 'success';
-                    $trx->reason = 'Balance filled manually by user and confirmed by none sms ';
+                    $reasons = [
+                        'uz' => 'Balans foydalanuvchi tomonidan qo‘lda to‘ldirildi va SMS tasdiqlashsiz tasdiqlandi',
+                        'ru' => 'Баланс пополнен вручную пользователем и подтвержден без SMS',
+                        'en' => 'Balance filled manually by user and confirmed without SMS'
+                    ];
+                    
+                    $trx->reason = $reasons[auth()->user()->authLanguage->language ?? 'uz'];
                     $trx->reference_id = null;
                     $trx->save();
-
                     $userBalance = UserBalance::firstOrCreate(['user_id' => $user->id]);
                     $userBalance->user_id = $user->id;
                     $userBalance->balance = $user->balance->balance + $payment->amount;
                     $userBalance->save();
                     DB::commit();
 
+                    $messages = [
+                        'uz' => 'To‘lov muvaffaqiyatli yaratildi, to‘lovni tasdiqlash shart emas',
+                        'ru' => 'Платёж успешно создан, подтверждение платежа не требуется',
+                        'en' => 'Payment created successfully, there is no need to confirm the payment',
+                    ];
+
+                    $messagereturn = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
                     return response()->json([
                         'status' => 'success',
-                        'message' => 'Payment created successfully, there is no need to confirm the payment',
+                        'message' => $messagereturn,
                         'pay_id' => $result['result']['pay_id'],
                         'fee_amount' => $result['result']['fee_amount'],
                         'confirmation' => $method,
@@ -229,9 +265,17 @@ class PaymentController extends Controller
 
                 DB::commit();
 
+                $messages = [
+                    'uz' => 'To‘lov holati allaqachon o‘zgartirilgan',
+                    'ru' => 'Статус платежа уже изменён',
+                    'en' => 'Payment status already changed',
+                ];
+                
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+                
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'Payment status already changed',
+                    'message' => $message,
                     'payment_status' => $stateText,
                     'amount' => $amount,
                     'created_at' => $resultData['created_at'],
@@ -282,7 +326,14 @@ class PaymentController extends Controller
             $trx->balance_after = $user->balance->balance + $payment->amount;
             $trx->trip_id = null;
             $trx->status = 'success';
-            $trx->reason = 'Balance filled manually by user and confirmed by sms';
+            $reasons = [
+                'uz' => 'Balans foydalanuvchi tomonidan qo‘lda to‘ldirildi va SMS orqali tasdiqlandi',
+                'ru' => 'Баланс пополнен вручную пользователем и подтверждён через SMS',
+                'en' => 'Balance filled manually by user and confirmed by SMS'
+            ];
+            
+            $trx->reason = $reasons[auth()->user()->authLanguage->language ?? 'uz'];
+            
             $trx->reference_id = null;
             $trx->save();
 
@@ -293,12 +344,21 @@ class PaymentController extends Controller
 
             DB::commit();
 
+            $messages = [
+                'uz' => 'To‘lov muvaffaqiyatli tasdiqlandi',
+                'ru' => 'Платёж успешно подтверждён',
+                'en' => 'Payment confirmed successfully',
+            ];
+            
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+            
             return response()->json([
                 'status' => 'success',
-                'message' => 'Payment confirmed successfully',
+                'message' => $message,
                 'payment_status' => $stateText,
                 'card' => $result['result']['card']['number'],
             ]);
+            
         } catch (Exception $e) {
             DB::rollBack();
 
@@ -331,10 +391,19 @@ class PaymentController extends Controller
                 ], 422);
             }
 
+            $messages = [
+                'uz' => 'SMS qayta yuborildi',
+                'ru' => 'SMS отправлено повторно',
+                'en' => 'SMS resent successfully',
+            ];
+            
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+            
             return response()->json([
-                'status'  => 'success',
-                'message' => 'SMS qayta yuborildi',
+                'status' => 'success',
+                'message' => $message,
             ], 200);
+            
         } catch (Exception $e) {
             return response()->json([
                 'status'  => 'error',
@@ -398,13 +467,20 @@ class PaymentController extends Controller
     {
         $payment = Payment::where('user_id', auth()->user()->id)->get();
         if (!$payment) {
+            $messages = [
+                'uz' => 'To‘lovlar tarixi topilmadi',
+                'ru' => 'История платежей не найдена',
+                'en' => 'Payment history not found',
+            ];
+            
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+            
             return response()->json([
-                'status'  => 'error',
-                'message' => 'Payment history not found',
+                'status' => 'error',
+                'message' => $message,
             ], 404);
+            
         }
         return  PaymentHistoryRepository::collection($payment);
     }
-
-    
 }

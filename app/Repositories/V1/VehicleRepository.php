@@ -17,15 +17,7 @@ use Illuminate\Support\Facades\Storage;
 class VehicleRepository
 {
 
-    public $errorResponse = [
-        'status' => 'error',
-        "message" => "Not found !"
-    ];
 
-    public $successResponse = [
-        'status' => 'seccess',
-        "message" => "Deleted successsfully !"
-    ];
 
     public function getAll()
     {
@@ -35,9 +27,22 @@ class VehicleRepository
     public function findById($id)
     {
         $vehicle = Vehicle::where('user_id', Auth::user()->id)->find($id);
-        if (is_null($vehicle) && empty($vehicle)) {
-            return response()->json($this->errorResponse, 404);
+
+        if (is_null($vehicle)) {
+            $messages = [
+                'uz' => 'Avtomobil topilmadi.',
+                'ru' => 'Автомобиль не найден.',
+                'en' => 'Vehicle not found.',
+            ];
+
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $message,
+            ], 404);
         }
+
         return response()->json(new VehicleResource($vehicle), 200);
     }
     public function create(StoreRequest $request)
@@ -89,13 +94,19 @@ class VehicleRepository
 
             return response()->json(new VehicleResource($vehicle), 201);
         } catch (\Exception $e) {
-            Log::error('Vehicle creation failed: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'trace' => $e->getTraceAsString()
-            ]);
+
+
+            $messages = [
+                'uz' => 'Xatolik yuz berdi. Iltimos, keyinroq urinib ko‘ring.',
+                'ru' => 'Произошла ошибка. Пожалуйста, попробуйте позже.',
+                'en' => 'An error occurred. Please try again later.',
+            ];
+
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
             return response()->json([
-                'message' => 'Xatolik yuz berdi. Iltimos, keyinroq urinib ko‘ring.',
+                'status' => 'error',
+                'message' => $message,
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -200,17 +211,25 @@ class VehicleRepository
     {
         try {
             $vehicle = Vehicle::where('user_id', Auth::id())->find($id);
-    
+
             if (is_null($vehicle)) {
+                $messages = [
+                    'uz' => 'Transport vositasi topilmadi.',
+                    'ru' => 'Транспортное средство не найдено.',
+                    'en' => 'Vehicle not found.',
+                ];
+
+                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Transport vositasi topilmadi.'
+                    'message' => $message,
                 ], 404);
             }
-    
+
             // Rasm fayllarini va yozuvlarni o‘chirish
             $images = VehicleImages::where('vehicle_id', $vehicle->id)->get();
-    
+
             foreach ($images as $image) {
                 if ($image->type === 'vehicle') {
                     $paths = json_decode($image->image_path, true);
@@ -222,27 +241,39 @@ class VehicleRepository
                 }
                 $image->delete(); // Yozuvni o‘chirish
             }
-    
+
             // Asosiy vehicle yozuvini o‘chirish
             $vehicle->delete();
-    
+
+            $messages = [
+                'uz' => 'Transport vositasi va rasmlari o‘chirildi.',
+                'ru' => 'Транспортное средство и изображения удалены.',
+                'en' => 'Vehicle and its images deleted successfully.',
+            ];
+            
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+            
             return response()->json([
                 'status' => 'success',
-                'message' => 'Transport vositasi va rasmlari o‘chirildi.'
+                'message' => $message,
             ], 200);
+            
         } catch (\Exception $e) {
-            Log::error('Vehicle delete failed: ' . $e->getMessage(), [
-                'vehicle_id' => $id,
-                'user_id' => Auth::id(),
-                'trace' => $e->getTraceAsString()
-            ]);
-    
+
+            $messages = [
+                'uz' => 'O‘chirishda xatolik yuz berdi.',
+                'ru' => 'Ошибка при удалении.',
+                'en' => 'Failed to delete.',
+            ];
+            
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+            
             return response()->json([
                 'status' => 'error',
-                'message' => 'O‘chirishda xatolik yuz berdi.',
+                'message' => $message,
                 'error' => $e->getMessage()
             ], 500);
+            
         }
     }
-    
 }

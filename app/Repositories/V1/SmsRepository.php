@@ -47,7 +47,6 @@ class SmsRepository
             Http::withBasicAuth($this->smsUsername, $this->smsPassword)->post($this->smsUrl, $message);
         } catch (\Exception $exception) {
             DB::rollBack();
-            Log::error('SMS sending failed: ' . $exception->getMessage());
             return response()->json(['error' => 'Server error occurred'], 500);
         }
     }

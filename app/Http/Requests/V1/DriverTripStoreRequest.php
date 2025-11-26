@@ -20,14 +20,22 @@ class DriverTripStoreRequest extends FormRequest
 
     protected function failedAuthorization()
     {
+
+        $messages = [
+            'uz' => "Faqat haydovchilar ushbu amalni bajarishi mumkin.",
+            'ru' => "Только водители могут выполнить это действие.",
+            'en' => "Only drivers are allowed to perform this action.",
+        ];
+
+
         throw new HttpResponseException(
             response()->json([
                 'status' => 'error',
-                'message' => 'Only drivers are allowed to perform this action.',
+                'message' => $messages[auth()->user()->authLanguage->language ?? 'uz'],
             ], 403)
         );
     }
-    
+
 
 
 
@@ -52,14 +60,47 @@ class DriverTripStoreRequest extends FormRequest
 
                 $diffInMinutes = $start_time->diffInMinutes($end_time, false); // false: negative values if end_time < start_time
 
+                $lang = auth()->user()->authLanguage->language ?? 'uz';
+
+                $messages = [
+                    'min_diff' => [
+                        'uz' => 'Boshlanish va tugash vaqtlarining farqi kamida 10 daqiqa bo‘lishi kerak.',
+                        'ru' => 'Разница между временем начала и окончания должна быть не менее 10 минут.',
+                        'en' => 'The time difference between start time and end time must be at least 10 minutes.',
+                    ],
+                    'max_diff' => [
+                        'uz' => 'Boshlanish va tugash vaqtlarining farqi 48 soatdan oshmasligi kerak.',
+                        'ru' => 'Разница между временем начала и окончания не должна превышать 48 часов.',
+                        'en' => 'The time difference between start time and end time must not exceed 48 hours.',
+                    ],
+                    'end_after_start' => [
+                        'uz' => 'Tugash vaqti boshlanish vaqtida keyin bo‘lishi kerak.',
+                        'ru' => 'Время окончания должно быть позже времени начала.',
+                        'en' => 'End time must be after start time.',
+                    ],
+                    'start_after_now' => [
+                        'uz' => 'Boshlanish vaqti hozirgi vaqtdan oldin bo‘lishi mumkin emas.',
+                        'ru' => 'Время начала не может быть раньше текущего времени.',
+                        'en' => 'Start time cannot be earlier than the current time.',
+                    ],
+                ];
+
+                // Boshlanish vaqti hozirgi vaqtdan oldin bo‘lsa
+                $now = now();
+                if ($start_time < $now) {
+                    $fail($messages['start_after_now'][$lang]);
+                }
+
                 if ($diffInMinutes < 10) {
-                    $fail('The time difference between start time and end time must be at least 10 minutes.');
+                    $fail($messages['min_diff'][$lang]);
                 }
+
                 if ($diffInMinutes > 48 * 60) {
-                    $fail('The time difference between start time and end time must not exceed 48 hours.');
+                    $fail($messages['max_diff'][$lang]);
                 }
+
                 if ($diffInMinutes <= 0) {
-                    $fail('End time must be after start time.');
+                    $fail($messages['end_after_start'][$lang]);
                 }
             }],
             'price_per_seat' => 'required|numeric|min:0',
@@ -72,8 +113,16 @@ class DriverTripStoreRequest extends FormRequest
                 $start_time = Carbon::parse($value);
                 $now = Carbon::now();
                 $limit = $now->copy()->addHours(48);
+                $messages = [
+                    'start_time_range' => [
+                        'uz' => 'Boshlanish vaqti keyingi 48 soat ichida bo‘lishi kerak.',
+                        'ru' => 'Время начала должно быть в пределах следующих 48 часов.',
+                        'en' => 'Start time must be within the next 48 hours.',
+                    ],
+                ];
+
                 if ($start_time->lessThan($now) || $start_time->greaterThan($limit)) {
-                    $fail('Start time must be within the next 48 hours.');
+                    $fail($messages['start_time_range'][auth()->user()->authLanguage->language ?? 'uz']);
                 }
             }],
         ];
@@ -88,6 +137,4 @@ class DriverTripStoreRequest extends FormRequest
             ], 422)
         );
     }
-
-    
 }

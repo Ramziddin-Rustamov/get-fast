@@ -350,8 +350,6 @@
                     <option value="rejected" {{ $driver->driving_verification_status == 'rejected' ? 'selected' : '' }}>Rejected</option>
                     <option value="blocked" {{ $driver->driving_verification_status == 'blocked' ? 'selected' : '' }}>Blocked</option>
                 </select>
- 
-                <textarea type="text" name="note" value="" class="form-control form-control"> </textarea> <br>
 
                 <button type="submit" class="btn btn-sm btn-success">
                     <i class="fas fa-check"></i> Saqlash

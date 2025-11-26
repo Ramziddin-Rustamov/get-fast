@@ -12,10 +12,7 @@ use Illuminate\Http\Request;
 class PublicTripController extends Controller
 {
 
-    public $errorResponse = [
-        'success' => false,
-        'message' => 'Trip not found'
-    ];
+  
 
     public function getTripsWithLessInfo()
     {   
@@ -65,12 +62,26 @@ class PublicTripController extends Controller
 
     public function getTripByIdForPublic($id)
     {
-        $trip  =  Trip::find($id);
-        if (is_null($trip) && empty($trip)) {
-            return response()->json($this->errorResponse, 404);
+        $trip = Trip::find($id);
+    
+        if (is_null($trip)) {
+            $messages = [
+                'uz' => 'Safar topilmadi.',
+                'ru' => 'Поездка не найдена.',
+                'en' => 'Trip not found.',
+            ];
+    
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+    
+            return response()->json([
+                'status' => 'error',
+                'message' => $message,
+            ], 404);
         }
+    
         return response()->json(new PublicTripResource($trip), 200);
     }
+    
 
 
 }

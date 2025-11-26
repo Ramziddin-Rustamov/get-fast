@@ -11,13 +11,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class BalanceTransactionController extends Controller
 {
 
-    public $language;
-
-
-    public function __construct()
-    {
-        $this->language = auth()->user()->authLanguage->language ?? 'uz';
-    }
+    
     public function getAllUserBalanceTransactions(Request $request)
     {
         $userTransaction = BalanceTransaction::where('user_id', $request->user()->id)->paginate(20);
@@ -31,7 +25,7 @@ class BalanceTransactionController extends Controller
             'en' => "No balance transactions found.",
         ];
 
-        $message = $messages[$this->language];
+        $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
         return response()->json([
             'status' => 'error',
@@ -81,7 +75,7 @@ class BalanceTransactionController extends Controller
             ],
         ];
 
-        $t = $titles[$this->language];
+        $t = $titles[$request->user()->authLanguage->language ?? 'uz'];
 
         $pdf = Pdf::loadView('pdf.transactions', compact('transactions', 't'));
 
@@ -93,7 +87,7 @@ class BalanceTransactionController extends Controller
     public function downloadOnePdfTransaction($id)
     {
 
-        $transaction = BalanceTransaction::where('user_id', $request->user->id)->find($id);
+        $transaction = BalanceTransaction::where('user_id', auth()->user()->id)->find($id);
         if (!$transaction) {
             $messages = [
                 'uz' => "Balans tranzaksiyalari topilmadi.",
@@ -101,7 +95,7 @@ class BalanceTransactionController extends Controller
                 'en' => "No balance transactions found.",
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
             return response()->json([
                 'status' => 'error',
@@ -146,7 +140,7 @@ class BalanceTransactionController extends Controller
             ],
         ];
 
-        $t = $titles[$this->language];
+        $t = $titles[auth()->user()->authLanguage->language ?? 'uz'];
 
         $pdf = Pdf::loadView('pdf.transaction', compact('transaction', 't'));
 
