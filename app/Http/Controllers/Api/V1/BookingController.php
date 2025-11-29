@@ -8,7 +8,7 @@ use App\Http\Requests\V1\BookingStoreRequest;
 use App\Http\Resources\V1\BookingResource;
 use App\Services\V1\BookingService;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Validator;
 class BookingController extends Controller
 {
     protected $bookingService;
@@ -28,10 +28,30 @@ class BookingController extends Controller
         return $this->bookingService->getBookingById($id);
     }
 
-    public function bookTrip(BookingStoreRequest $request)
+    public function bookTrip(Request $request)
     {
-        $data = $request->validated();
-        return $this->bookingService->createBooking($data);
+        $validator = Validator::make($request->all(), [
+            'trip_id' => 'required|exists:trips,id',
+            'passengers' => 'required|array|min:1',
+            'passengers.*.name' => 'required|string|max:255',
+            'passengers.*.phone' => 'required|string|max:20',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors(),
+            ], 422);
+        }
+    
+        try {
+            return $this->bookingService->createBooking($request);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Booking creation failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function update(Request $request, $id)

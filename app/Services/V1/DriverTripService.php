@@ -28,13 +28,24 @@ class DriverTripService
         return $this->driverTripRepository->createTrip($request);
     }
 
-    public function updateTrip($id, array $data)
-    {
-        return $this->driverTripRepository->updateTrip($id, $data);
-    }
 
     public function cancel($id)
     {
         return $this->driverTripRepository->cancel($id);
+    }
+
+    public function getCanceledTrips()
+    {
+        return $this->driverTripRepository->getCanceledTrips();
+    }
+
+    public function getActiveTrips()
+    {
+        return $this->driverTripRepository->getActiveTrips();
+    }
+
+    public function getCompletedTrips()
+    {
+        return $this->driverTripRepository->getCompletedTrips();
     }
 }

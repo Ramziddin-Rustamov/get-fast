@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('balance_after', 12, 2)->nullable();
             $table->unsignedBigInteger('trip_id')->nullable();
             $table->enum('status', ['success', 'pending', 'failed'])->default('success');
-            $table->string('reason')->nullable();
+            $table->text('reason')->nullable();
             $table->string('reference_id')->nullable(); // bankdan kelgan kod
             $table->timestamps();
         

@@ -34,8 +34,10 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\DriverTripController::class, 'index']);
         Route::post('/', [App\Http\Controllers\Api\V1\DriverTripController::class, 'store']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'show']);
-        Route::put('/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'update']);
         Route::delete('/cancel-trip/{id}', [App\Http\Controllers\Api\V1\DriverTripController::class, 'cancel']);
+        Route::get('/get-canceled-trips/driver', [App\Http\Controllers\Api\V1\DriverTripController::class, 'getCanceledTrips']);
+        Route::get('/get-active-trips/driver', [App\Http\Controllers\Api\V1\DriverTripController::class, 'getActiveTrips']);
+        Route::get('/get-completed-trips/driver', [App\Http\Controllers\Api\V1\DriverTripController::class, 'getCompletedTrips']);
     });
 
     Route::prefix('client/trips')->group(function () {

@@ -18,13 +18,13 @@ class DatabaseSeeder extends Seeder
 
         User::firstOrCreate(
             [
-                'phone' => '+998997713909',
+                'phone' => '+998997196871',
             ],
             [
                 'first_name'  => 'Ramziddin',
                 'last_name'   => 'Rustamov',
                 'father_name' => 'utkir ugli',
-                'email'       => 'rustamovvramziddin@gmail.com',
+                'email'       => 'rustamovvramziddin7@gmail.com',
                 'password'    => Hash::make('1236987456321aaSSdd'),
                 'role'        => 'admin',
                 'is_verified' => 1,

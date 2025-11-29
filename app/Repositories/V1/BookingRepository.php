@@ -72,10 +72,9 @@ class BookingRepository
         return response()->json(new BookingResource($booking), 200);
     }
 
-    public function createBooking(array $data)
+    public function createBooking($data)
     {
         try {
-
             $authLan = auth()->user()->authLanguage->language ?? 'uz';
 
 
@@ -104,13 +103,9 @@ class BookingRepository
                 ]);
             }
 
-
-            $maxSeats = $trip->vehicle->seats;
             $requestedSeats = count($data['passengers']);
 
-            if ($requestedSeats > $maxSeats) {
-                return response()->json(['status' => 'error', 'message' => 'Not enough seats available'], 422);
-            }
+
 
             DB::beginTransaction();
             if ($requestedSeats > $trip->available_seats) {
@@ -155,8 +150,6 @@ class BookingRepository
                 $userBalance = UserBalance::create([
                     'user_id' => auth()->user()->id,
                     'balance' => '00.00',
-                    'tax' => '', // 14%
-                    'after_taxes' => '0.00'
                 ]);
             }
 
@@ -164,8 +157,6 @@ class BookingRepository
                 $driverBalance = UserBalance::create([
                     'user_id' => $trip->driver_id,
                     'balance' => '00.00',
-                    'tax' => '',
-                    'after_taxes' => '0.00'
                 ]);
             }
 
@@ -190,12 +181,15 @@ class BookingRepository
             }
 
 
-            $serviceFeePercent = env('SERVICE_FEE_FOR_COMPLITING_ORDER', 0); // 5
-            $serviceFee = $totalPrice * ($serviceFeePercent / 100); // foizga o‘tkazish
-            $serviceFee = number_format((float)$serviceFee, 2, '.', '');
+            $serviceFeePercent =  env('SERVICE_FEE_FOR_COMPLITING_ORDER'); // 5
+            if(!$serviceFeePercent){
+                $serviceFeePercent = 5;
+            }
+            $serviceFee = $totalPrice * ($serviceFeePercent / 100); // 400000 * 5% = 200000
+            $serviceFee = number_format((float)$serviceFee, 2, '.', ''); // 20.000
 
-            $net_income = $totalPrice - $serviceFee; // for driver
-            $net_income = number_format((float)$net_income, 2, '.', '');
+            $net_income = $totalPrice - $serviceFee; // for driver 400000 - 20.000 = 380000
+            $net_income = number_format((float)$net_income, 2, '.', ''); // 380000
 
 
 
@@ -214,9 +208,14 @@ class BookingRepository
                 $endQuarterName = $trip->endQuarter->name ?? '';
 
                 $reasonForDriver = [
-                    'uz' => "Siz yangi booking oldingiz (Booking ID: $booking->id) haydovchining safari uchun (Trip: $startQuarterName → $endQuarterName). Jami tushum: $net_income UZS. Service fee: $serviceFee UZS. Umumiy daromad: $totalPrice UZS.",
-                    'en' => "You received a new booking (Booking ID: $booking->id) for your trip (Trip: $startQuarterName → $endQuarterName). Total received: $net_income UZS. Service fee: $serviceFee UZS. Overall earnings: $totalPrice UZS.",
-                    'ru' => "Вы получили новое бронирование (Booking ID: $booking->id) для вашей поездки (Trip: $startQuarterName → $endQuarterName). Получено всего: $net_income UZS. Комиссия: $serviceFee UZS. Общий доход: $totalPrice UZS."
+                    'uz' => "Siz yangi booking oldingiz (Booking ID: $booking->id) haydovchining safari uchun (Trip: $startQuarterName → $endQuarterName).
+                     Jami tushum: $net_income UZS. Service fee: $serviceFee UZS. Umumiy daromad: $totalPrice UZS.",
+                    'en' => "You received a new booking (Booking ID: $booking->id) for your trip
+                     (Trip: $startQuarterName → $endQuarterName). Total received: $net_income UZS.
+                      Service fee: $serviceFee UZS. Overall earnings: $totalPrice UZS.",
+                    'ru' => "Вы получили новое бронирование (Booking ID: $booking->id)
+                     для вашей поездки (Trip: $startQuarterName → $endQuarterName). 
+                     Получено всего: $net_income UZS. Комиссия: $serviceFee UZS. Общий доход: $totalPrice UZS."
                 ];
 
 

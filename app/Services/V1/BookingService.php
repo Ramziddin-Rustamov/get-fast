@@ -22,9 +22,9 @@ class BookingService
         return $this->bookingRepository->getBookingById($id);
     }
 
-    public function createBooking(array $data)
+    public function createBooking($request)
     {
-        return $this->bookingRepository->createBooking($data);
+        return $this->bookingRepository->createBooking($request);
     }
 
     public function updateBooking($id, array $data)

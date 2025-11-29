@@ -55,5 +55,8 @@ return [
         'key' => env('ACQUIRING_KEY'),
         'secret' => env('ACQUIRING_SECRET'),
     ],
+    [
+        'service_fee_for_compliting_order' => env('SERVICE_FEE_FOR_COMPLITING_ORDER'),
+    ],
 
 ];

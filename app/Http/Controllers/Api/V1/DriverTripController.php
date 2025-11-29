@@ -37,13 +37,25 @@ class DriverTripController extends Controller
         return $this->driverTripService->createTrip($request);
     }
 
-    public function update(DriverTripUpdate $request, $id)
-    {
-        return $this->driverTripService->updateTrip($id, $request->validated());
-    }
 
     public function cancel($id)
     {
         return  $this->driverTripService->cancel($id);
+    }
+
+
+    public function getCanceledTrips()
+    {
+        return $this->driverTripService->getCanceledTrips();
+    }
+
+    public function getActiveTrips()
+    {
+        return $this->driverTripService->getActiveTrips();
+    }
+
+    public function getCompletedTrips()
+    {
+        return $this->driverTripService->getCompletedTrips();
     }
 }
