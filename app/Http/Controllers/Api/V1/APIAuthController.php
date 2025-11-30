@@ -73,7 +73,7 @@ class APIAuthController extends Controller
             DB::commit();
 
             // smsni navbatga yuborish
-            $this->smsService->sendQueued($user->phone, $text, 'register');
+            // $this->smsService->sendQueued($user->phone, $text, 'register');
 
             $messages = [
                 'uz' => 'Tasdiqlash kodi telefoningizga yuborildi',
@@ -218,7 +218,7 @@ class APIAuthController extends Controller
             DB::commit();
 
             // smsni navbatga yuborish
-            $this->smsService->sendQueued($user->phone, $text, 'register');
+            // $this->smsService->sendQueued($user->phone, $text, 'register');
             $messages = [
                 'uz' => "Telefoningizga yangi tasdiqlash kodi yuborildi.",
                 'ru' => "Новый код подтверждения отправлен на ваш телефон.",
@@ -351,7 +351,7 @@ class APIAuthController extends Controller
             $text = $messages[$language];
 
             // SMS yuborish (Queue yoki to‘g‘ridan-to‘g‘ri)
-            $this->smsService->sendQueued($user->phone, $text, 'password_reset');
+            // $this->smsService->sendQueued($user->phone, $text, 'password_reset');
             // SMS yuborish joyi (integratsiya qilasiz)
 
             DB::commit();
@@ -923,4 +923,6 @@ class APIAuthController extends Controller
             ], 500);
         }
     }
+
+
 }
