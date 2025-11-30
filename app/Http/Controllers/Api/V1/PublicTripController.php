@@ -11,17 +11,39 @@ use Illuminate\Http\Request;
 
 class PublicTripController extends Controller
 {
-
-  
+    protected function getUserLang()
+    {
+        return auth()->user()->authLanguage->language ?? 'uz';
+    }
 
     public function getTripsWithLessInfo()
-    {   
-        $tripWithLessInfo =  Trip::whereIn('status', ['active', 'full'])->paginate(20);
-        return response()->json(PublicTripWithLessInfoResource::collection($tripWithLessInfo), 200);
+    {
+        $userLang = $this->getUserLang();
+        $trips = Trip::whereIn('status', ['active', 'full'])->paginate(20);
+
+        $messages = [
+            'uz' => 'Safarlar muvaffaqiyatli olindi',
+            'ru' => 'Поездки успешно получены',
+            'en' => 'Trips fetched successfully',
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $messages[$userLang] ?? $messages['uz'],
+            'data' => PublicTripWithLessInfoResource::collection($trips),
+            'meta' => [
+                'current_page' => $trips->currentPage(),
+                'last_page' => $trips->lastPage(),
+                'per_page' => $trips->perPage(),
+                'total' => $trips->total(),
+            ]
+        ], 200);
     }
 
     public function search(Request $request)
     {
+        $userLang = $this->getUserLang();
+
         $from = $request->query('start_quarter_id');
         $to = $request->query('end_quarter_id');
         $departureDate = $request->query('departure_date');
@@ -36,7 +58,6 @@ class PublicTripController extends Controller
             ->where('available_seats', '>', 0)
             ->get();
 
-
         $returnTrips = collect();
 
         if ($isRoundTrip && $returnDate) {
@@ -48,40 +69,75 @@ class PublicTripController extends Controller
                 ->get();
         }
 
+        $messages = [
+            'uz' => 'Qidiruv natijalari muvaffaqiyatli olindi',
+            'ru' => 'Результаты поиска успешно получены',
+            'en' => 'Search results fetched successfully',
+        ];
+
         return response()->json([
-            'departure_trips' => PublicTripResource::collection($departureTrips),
-            'return_trips' => PublicTripResource::collection($returnTrips),
-        ]);
+            'status' => 'success',
+            'message' => $messages[$userLang] ?? $messages['uz'],
+            'data' => [
+                'departure_trips' => PublicTripResource::collection($departureTrips),
+                'return_trips' => PublicTripResource::collection($returnTrips),
+            ]
+        ], 200);
     }
 
     public function getAllTripsForPublic()
     {
-        $trip =  Trip::whereIn('status', ['active', 'full'])->paginate(20);
-        return response()->json(PublicTripResource::collection($trip), 200);
+        $userLang = $this->getUserLang();
+        $trips = Trip::whereIn('status', ['active', 'full'])->paginate(20);
+
+        $messages = [
+            'uz' => 'Safarlar muvaffaqiyatli olindi',
+            'ru' => 'Поездки успешно получены',
+            'en' => 'Trips fetched successfully',
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $messages[$userLang] ?? $messages['uz'],
+            'data' => PublicTripResource::collection($trips),
+            'meta' => [
+                'current_page' => $trips->currentPage(),
+                'last_page' => $trips->lastPage(),
+                'per_page' => $trips->perPage(),
+                'total' => $trips->total(),
+            ]
+        ], 200);
     }
 
     public function getTripByIdForPublic($id)
     {
+        $userLang = $this->getUserLang();
         $trip = Trip::find($id);
-    
+
         if (is_null($trip)) {
             $messages = [
                 'uz' => 'Safar topilmadi.',
                 'ru' => 'Поездка не найдена.',
                 'en' => 'Trip not found.',
             ];
-    
-            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
-    
+
             return response()->json([
                 'status' => 'error',
-                'message' => $message,
+                'message' => $messages[$userLang] ?? $messages['uz'],
+                'data' => null
             ], 404);
         }
-    
-        return response()->json(new PublicTripResource($trip), 200);
+
+        $messages = [
+            'uz' => 'Safar muvaffaqiyatli olindi',
+            'ru' => 'Поездка успешно получена',
+            'en' => 'Trip fetched successfully',
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $messages[$userLang] ?? $messages['uz'],
+            'data' => new PublicTripResource($trip)
+        ], 200);
     }
-    
-
-
 }

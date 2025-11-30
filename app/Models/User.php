@@ -166,7 +166,7 @@ class User  extends Authenticatable implements JWTSubject
 
     public function activeCard()
     {
-        return $this->hasOne(PaymentCard::class)->where('is_active', true);
+        return $this->hasOne(PaymentCard::class)->where('is_active', true)->first();
     }
 
     // public function clientCard()

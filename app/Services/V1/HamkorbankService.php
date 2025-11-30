@@ -438,7 +438,6 @@ class HamkorbankService
             ]);
 
             return $response->json();
-            
         } catch (\Exception $e) {
             return [
                 'status' => 'error',
@@ -446,4 +445,28 @@ class HamkorbankService
             ];
         }
     }
+
+
+    /** 
+     * 5.9 → pay.a2c (refund to card)
+     */
+    public static function refundA2C(array $data)
+    {
+        $token = self::getToken();
+        if (!$token) return ['status' => 'error', 'message' => 'Token not found'];
+    
+        $payload = [
+            "jsonrpc" => "2.0",
+            "method"  => "pay.a2c",
+            "params"  => [$data], // array ichida bitta obyekt
+            "id"      => (string) Str::uuid(),
+        ];
+    
+        $response = Http::withToken($token)
+            ->withHeaders(['Content-Type' => 'application/json'])
+            ->post(self::baseUrl(), $payload);
+    
+        return $response->json();
+    }
+    
 }

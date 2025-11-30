@@ -31,11 +31,6 @@ class VehicleService
         return $this->vehicleRepository->create($data);
     }
 
-    // public function update(Request $update_request,$id)
-    // {
-    //     return $this->vehicleRepository->update($update_request,$id);
-    // }
-
     public function delete($id)
     {
         $this->vehicleRepository->delete($id);

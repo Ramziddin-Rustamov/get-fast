@@ -182,50 +182,72 @@
 
 
 
-    {{-- Vehicles --}}
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title">🚘 Moshinalar </h5>
-            @if($vehicles->count())
-                @foreach($vehicles as $vehicle)
-                    <div class="border rounded p-2 mb-2">
-                        <p><strong>Model:</strong> {{ $vehicle->model }}</p>
-                        <p><strong>Color:</strong> {{ $vehicle->color->title_uz }}  </p>
-                        <p><strong>Seats:</strong> {{ $vehicle->seats }}</p>
-                        <p><strong>Raqami:</strong> {{ $vehicle->car_number }}</p>
-
-                        <p><strong>License Plate:</strong> {{ $vehicle->tech_passport_number }}</p>
-                    </div>
-                @endforeach
-                  {{-- Pagination --}}
-            @if($vehicles->hasPages())
-            <div class="d-flex justify-content-center mt-3">
-                {{ $vehicles->links('pagination::bootstrap-5') }}
-            </div>
-            @endif
-            @else
-                <p class="text-muted">No vehicles assigned.</p>
-            @endif
-        </div>
-    </div>
 
     {{-- Trips --}}
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
             <h5 class="card-title">🗓 Trips ({{ $driver->driverTrips->count() }})</h5>
-            @if($driver->driverTrips->count())
-                @foreach($driver->driverTrips as $trip)
-                    <div class="border rounded p-3 mb-2">
-                        <div><strong>From:</strong> {{ $trip->startQuarter->name ?? 'N/A' }}, {{ $trip->startQuarter->district->name_uz ?? '' }}</div> =>
-                        <div><strong>To:</strong> {{ $trip->endQuarter->name ?? 'N/A' }}, {{ $trip->endQuarter->district->name ?? '' }}</div>
-                        <div><strong>Time:</strong> {{ \Carbon\Carbon::parse($trip->start_time)->format('d.m.Y H:i') }} - {{ \Carbon\Carbon::parse($trip->end_time)->format('d.m.Y H:i') }}</div>
-                        <div><strong>Price:</strong> {{ number_format($trip->price_per_seat, 0, '.', ' ') }} so'm</div>
-                        <div><strong>Seats:</strong> {{ $trip->available_seats }} / {{ $trip->total_seats }}</div>
-                        <div><strong>Status:</strong> 
+
+            @if ($driver->driverTrips->count())
+                @foreach ($driver->driverTrips as $trip)
+                    <div class="border rounded p-3 mb-3">
+
+                        {{-- Trip header clickable --}}
+                        <div 
+                            class="d-flex justify-content-between align-items-center" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#trip_{{ $trip->id }}" 
+                            style="cursor: pointer;"
+                        >
+                            <div>
+                                <div><strong>From:</strong> {{ $trip->startQuarter->name ?? 'N/A' }}, {{ $trip->startQuarter->district->name_uz ?? '' }}</div>
+                                <div><strong>To:</strong> {{ $trip->endQuarter->name ?? 'N/A' }}, {{ $trip->endQuarter->district->name ?? '' }}</div>
+                                <div><strong>Time:</strong> 
+                                    {{ \Carbon\Carbon::parse($trip->start_time)->format('d.m.Y H:i') }} - 
+                                    {{ \Carbon\Carbon::parse($trip->end_time)->format('d.m.Y H:i') }}
+                                </div>
+                                <div><strong>Price:</strong> {{ number_format($trip->price_per_seat, 0, '.', ' ') }} so'm</div>
+                                <div><strong>Seats:</strong> {{ $trip->available_seats }} / {{ $trip->total_seats }}</div>
+                            </div>
+
                             <span class="badge {{ $trip->status === 'cancelled' ? 'bg-danger' : 'bg-success' }}">
                                 {{ ucfirst($trip->status) }}
                             </span>
                         </div>
+
+                        {{-- BOOKING COLLAPSE --}}
+                        <div id="trip_{{ $trip->id }}" class="collapse mt-3">
+
+                            @if ($trip->bookings->count())
+                                <div class="p-3 bg-light rounded">
+
+                                    <h6 class="mb-2">📌 Bookings ({{ $trip->bookings->count() }})</h6>
+
+                                    @foreach ($trip->bookings as $booking)
+                                        <div class="border rounded p-2 mb-2 bg-white">
+                                            <div><strong>User:</strong> {{ $booking->user->first_name ?? 'N/A' }} {{ $booking->user->last_name ?? '' }}</div>
+                                            <div><strong>Phone:</strong> {{ $booking->user->phone ?? 'N/A' }}</div>
+                                            <div><strong>Seats:</strong> {{ $booking->seats }}</div>
+                                            <div><strong>Total Price:</strong> 
+                                                {{ number_format($booking->total_price, 0, '.', ' ') }} so'm
+                                            </div>
+                                            <div><strong>Status:</strong>
+                                                <span class="badge 
+                                                    {{ $booking->status == 'cancelled' ? 'bg-danger' : 'bg-primary' }}">
+                                                    {{ ucfirst($booking->status) }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    @endforeach
+
+                                </div>
+
+                            @else
+                                <p class="text-muted">No bookings for this trip.</p>
+                            @endif
+
+                        </div>
+
                     </div>
                 @endforeach
             @else
@@ -233,6 +255,9 @@
             @endif
         </div>
     </div>
+
+
+
 
    {{-- Driver Documents --}}
 <div class="card mb-4 shadow-sm">
@@ -279,58 +304,105 @@
         </div>
     </div>
 </div>
+
+
+  {{-- Vehicles --}}
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
-        <h5 class="card-title d-flex justify-content-between">
-            <span>🚘 Moshina Rasmlari</span>
+        <h5 class="card-title">🚘 Moshinalar</h5>
 
-            {{-- Hamma moshina rasmlarini o‘chirish --}}
-            <form action="{{ route('vehicle.images.deleteAll', $vehicle->id) }}" method="POST">
-                @csrf
-                @method('DELETE')
-                <button class="btn btn-danger btn-sm"
-                        onclick="return confirm('Hamma moshina rasmlari o‘chirilsinmi?')">
-                    Hamma Rasmlarni O‘chirish
-                </button>
-            </form>
-        </h5>
+        @if($vehicles->count())
+            @foreach($vehicles as $vehicle)
+                
+                <div class="border rounded p-3 mb-3">
 
-        <div class="row">
+                    {{-- VEHICLE HEADER (click to open images) --}}
+                    <div class="d-flex justify-content-between align-items-center"
+                         data-bs-toggle="collapse"
+                         data-bs-target="#vehicle_{{ $vehicle->id }}"
+                         style="cursor: pointer;">
+                        
+                        <div>
+                            <p class="mb-1"><strong>Model:</strong> {{ $vehicle->model }}</p>
+                            <p class="mb-1"><strong>Color:</strong> {{ $vehicle->color->title_uz }}</p>
+                            <p class="mb-1"><strong>Seats:</strong> {{ $vehicle->seats }}</p>
+                            <p class="mb-1"><strong>Raqami:</strong> {{ $vehicle->car_number }}</p>
+                            <p class="mb-1"><strong>License Plate:</strong> {{ $vehicle->tech_passport_number }}</p>
+                        </div>
 
-            @foreach($vehicleImages as $vimg)
-                <div class="col-md-3 mb-3">
-                    <div class="border rounded p-2 text-center shadow-sm">
-                        <p class="fw-bold text-capitalize mb-1">
-                            {{ str_replace('_', ' ', $vimg->type) }}
-                            @if($vimg->side)
-                                ({{ ucfirst($vimg->side) }})
-                            @endif
-                        </p>
+                        <span class="badge bg-primary">Rasmlarni Ko‘rish</span>
+                    </div>
 
-                        <img src="{{ asset('storage/' . $vimg->image_path) }}"
-                             class="img-fluid rounded shadow-sm vehicle-preview"
-                             style="cursor: zoom-in; max-height: 160px; object-fit: cover;"
-                             data-bs-toggle="modal"
-                             data-bs-target="#imageModal"
-                             data-img="{{ asset('storage/' . $vimg->image_path) }}">
+
+                    {{-- VEHICLE IMAGES COLLAPSE --}}
+                    <div id="vehicle_{{ $vehicle->id }}" class="collapse mt-3">
+
+                        @php
+                            $images = $vehicleImages->where('vehicle_id', $vehicle->id);
+                        @endphp
+
+                        @if ($images->count())
+
+                            {{-- Delete all images for this vehicle --}}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold">📸 Moshina Rasmlari</h6>
+
+                                <form action="{{ route('vehicle.images.deleteAll', $vehicle->id) }}" method="POST">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-danger btn-sm"
+                                            onclick="return confirm('Hamma moshina rasmlari o‘chirilsinmi?')">
+                                        O‘chirish
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div class="row">
+                                @foreach($images as $vimg)
+                                    <div class="col-md-3 mb-3">
+                                        <div class="border rounded p-2 text-center shadow-sm">
+
+                                            <p class="fw-bold mb-1">
+                                                {{ str_replace('_', ' ', $vimg->type) }}
+                                                @if($vimg->side)
+                                                    ({{ ucfirst($vimg->side) }})
+                                                @endif
+                                            </p>
+
+                                            <img src="{{ asset('storage/' . $vimg->image_path) }}"
+                                                 class="img-fluid rounded shadow-sm vehicle-preview"
+                                                 style="cursor: zoom-in; max-height: 160px; object-fit: cover;"
+                                                 data-bs-toggle="modal"
+                                                 data-bs-target="#imageModal"
+                                                 data-img="{{ asset('storage/' . $vimg->image_path) }}">
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                        @else
+                            <p class="text-muted">Rasmlar mavjud emas.</p>
+                        @endif
 
                     </div>
+
                 </div>
+
             @endforeach
 
-        </div>
+            {{-- Pagination --}}
+            @if($vehicles->hasPages())
+                <div class="d-flex justify-content-center mt-3">
+                    {{ $vehicles->links('pagination::bootstrap-5') }}
+                </div>
+            @endif
+
+        @else
+            <p class="text-muted">No vehicles assigned.</p>
+        @endif
     </div>
 </div>
 
-<div class="modal fade" id="imageModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content bg-dark">
-            <div class="modal-body p-0">
-                <img id="modalImage" src="" class="w-100 rounded">
-            </div>
-        </div>
-    </div>
-</div>
 
 
 

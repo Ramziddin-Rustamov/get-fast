@@ -123,21 +123,6 @@ Route::prefix('bank')->middleware('auth:api')->group(function () {
     Route::post('resend-sms', [\App\Http\Controllers\Api\V1\PaymentController::class, 'resendSms']);
     Route::post('get-payment-info', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentInfo']);
     Route::get('payment-history', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentHistory']);
+    Route::post('refund-to-my-card-from-balance', [\App\Http\Controllers\Api\V1\PaymentController::class, 'refund']);
 });
 
-// Hamkorbank payment entegratin here 
-// Route::prefix('payments')->group(function () {
-//     // Route::post('/token', [HamkorBankController::class, 'getToken']);
-//     // Route::post('/cards/list', [HamkorBankController::class, 'listCards']);
-//     // Route::post('/cards/add', [HamkorBankController::class, 'addCard']);
-//     // Route::post('/cards/verify', [HamkorBankController::class, 'verifyCard']);
-//     // Route::post('/cards/info', [HamkorBankController::class, 'cardInfo']);
-//     // Route::post('/cards/check-balance', [HamkorBankController::class, 'checkBalance']);
-
-//     Route::post('/create', [HamkorBankController::class, 'createPayment']);
-//     Route::post('/confirm', [HamkorBankController::class, 'confirmPayment']);
-//     Route::post('/cancel', [HamkorBankController::class, 'cancelPayment']);
-//     Route::post('/partial-refund', [HamkorBankController::class, 'partialRefund']);
-//     Route::post('/get', [HamkorBankController::class, 'getPayment']);
-//     Route::post('/get-by-external', [HamkorBankController::class, 'getPaymentByExternalId']);
-// });

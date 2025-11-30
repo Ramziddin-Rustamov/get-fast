@@ -39,10 +39,6 @@ class VehicleController extends Controller
         return $this->vehicleService->findById($id);
     }
 
-    // public function update(Request $request, $id)
-    // {
-    //     return $this->vehicleService->update($request, $id);
-    // }
 
     public function destroy($id)
     {

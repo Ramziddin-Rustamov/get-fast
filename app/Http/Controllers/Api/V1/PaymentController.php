@@ -14,7 +14,7 @@ use App\Services\V1\HamkorbankService;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-
+use Illuminate\Support\Facades\Http;
 class PaymentController extends Controller
 {
 
@@ -72,9 +72,9 @@ class PaymentController extends Controller
                     'ru' => "На балансе карты недостаточно средств",
                     'en' => "Insufficient funds on card balance"
                 ];
-                
+
                 $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
-                
+
                 return response()->json([
                     'success' => false,
                     'message' => $message
@@ -184,7 +184,7 @@ class PaymentController extends Controller
                         'ru' => 'Баланс пополнен вручную пользователем и подтвержден без SMS',
                         'en' => 'Balance filled manually by user and confirmed without SMS'
                     ];
-                    
+
                     $trx->reason = $reasons[auth()->user()->authLanguage->language ?? 'uz'];
                     $trx->reference_id = null;
                     $trx->save();
@@ -270,9 +270,9 @@ class PaymentController extends Controller
                     'ru' => 'Статус платежа уже изменён',
                     'en' => 'Payment status already changed',
                 ];
-                
+
                 $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
-                
+
                 return response()->json([
                     'status' => 'success',
                     'message' => $message,
@@ -331,9 +331,9 @@ class PaymentController extends Controller
                 'ru' => 'Баланс пополнен вручную пользователем и подтверждён через SMS',
                 'en' => 'Balance filled manually by user and confirmed by SMS'
             ];
-            
+
             $trx->reason = $reasons[auth()->user()->authLanguage->language ?? 'uz'];
-            
+
             $trx->reference_id = null;
             $trx->save();
 
@@ -349,16 +349,15 @@ class PaymentController extends Controller
                 'ru' => 'Платёж успешно подтверждён',
                 'en' => 'Payment confirmed successfully',
             ];
-            
+
             $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
-            
+
             return response()->json([
                 'status' => 'success',
                 'message' => $message,
                 'payment_status' => $stateText,
                 'card' => $result['result']['card']['number'],
             ]);
-            
         } catch (Exception $e) {
             DB::rollBack();
 
@@ -396,14 +395,13 @@ class PaymentController extends Controller
                 'ru' => 'SMS отправлено повторно',
                 'en' => 'SMS resent successfully',
             ];
-            
+
             $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
-            
+
             return response()->json([
                 'status' => 'success',
                 'message' => $message,
             ], 200);
-            
         } catch (Exception $e) {
             return response()->json([
                 'status'  => 'error',
@@ -472,15 +470,124 @@ class PaymentController extends Controller
                 'ru' => 'История платежей не найдена',
                 'en' => 'Payment history not found',
             ];
-            
+
             $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
-            
+
             return response()->json([
                 'status' => 'error',
                 'message' => $message,
             ], 404);
-            
         }
         return  PaymentHistoryRepository::collection($payment);
     }
+
+
+
+    public function refund(Request $request)
+    {
+        try {
+            $request->validate([
+                'card_id' => 'required|exists:cards,id',
+            ]);
+
+            $user = auth()->user();
+
+            // Foydalanuvchining kartasini olish
+            $card = Card::where('id', $request->card_id)
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (!$card) {
+                $messages = [
+                    'uz' => 'Foydalanuvchida karta mavjud emas!',
+                    'ru' => 'У пользователя нет карты!',
+                    'en' => 'User has no card!'
+                ];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$user->authLanguage->language ?? 'uz'],
+                ], 404);
+            }
+
+            // Test uchun 10 000 so'm → kopeykalarda
+            $amountInKopeyka = 10000 * 100;
+
+            // Card parametri: faqat number yoki id, ikkala birga bo'lmasligi kerak
+            $cardParam = [];
+            if (!empty($card->number)) {
+                $cardParam['number'] = $card->number;
+            } elseif (!empty($card->card_id)) {
+                $cardParam['id'] = $card->card_id;
+            } else {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Card number yoki ID mavjud emas!'
+                ], 400);
+            }
+
+            // JSON-RPC payload
+            $data = [
+                "ext_id" => (string) Str::uuid(),
+                "amount" => $amountInKopeyka,
+                "card"   => $cardParam
+            ];
+
+            // Hamkorbank API chaqirish
+            $token = HamkorbankService::getToken();
+            if (!$token) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Token olinmadi'
+                ], 500);
+            }
+
+            $payload = [
+                "jsonrpc" => "2.0",
+                "method"  => "pay.a2c",
+                "params"  => [$data], // array ichida bitta obyekt
+                "id"      => (string) Str::uuid(),
+            ];
+
+            $response = Http::withToken($token)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post(HamkorbankService::baseUrl(), $payload);
+
+            $result = $response->json();
+
+            // JSON-RPC xatolik
+            if (isset($result['error'])) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => $result['error']['message'] ?? 'Unknown error',
+                    'code'    => $result['error']['code'] ?? null
+                ], 400);
+            }
+
+            // Bank state: 5-success, 10/11-error
+            $state = $result['result']['state'] ?? null;
+
+            $messages = [
+                'uz' => $state == 5 ? 'Pul muvaffaqiyatli qaytarildi' : 'Pul qaytarilmadi',
+                'ru' => $state == 5 ? 'Средства успешно возвращены' : 'Возврат средств не выполнен',
+                'en' => $state == 5 ? 'Refund successful' : 'Refund failed',
+            ];
+
+            return response()->json([
+                'status'  => $state == 5 ? 'success' : 'error',
+                'message' => $messages[$user->authLanguage->language ?? 'uz'],
+                'data'    => $result
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => $e->getMessage() . ' ' . BankErrorService::getMessage($e->getCode()),
+                'code'    => $e->getCode(),
+            ], 500);
+        }
+    }
+
+
+
+    
 }

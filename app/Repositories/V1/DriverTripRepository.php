@@ -236,12 +236,47 @@ class DriverTripRepository
                 // (400000 + 16000 + 4000 )- 400000 = 0 
                 $amount = ($totalPrice - ($companyFee + $clientCompensation));
                 $driverGotBeforeCancel = $totalPrice - ($companyFee + $clientCompensation);
-
                 $reasonDriver = [
-                    'uz' => "Siz sayohatni bekor qildingiz. Bekor bo‘lmasdan oladigan summangiz: $driverGotBeforeCancel. 
-                     Umumiy tushum: $totalPrice so‘m edi. Hozir sayohatni sotib olgan mijozga $clientCompensation qo‘shimcha kompensatsiya sizdan  berildi.
-                      Xizmatni bekor qilganingiz uchun $companyFee so‘m ushlab qolindi. Sizga oldin olingan % lar qaytarildi - $overallCompensation, va  umumiy sizdan yechiladigan summa: $driverDeductionOnDocs.",
+                    'uz' => "
+                        Siz sayohatni bekor qildingiz. 
+                        Bekor qilinmasdan oldin olishingiz kerak bo‘lgan summa: $driverGotBeforeCancel so‘m.
+                
+                        Umumiy tushum: $totalPrice so‘m edi. 
+                        Sayohatni sotib olgan mijozga sizning hisobingizdan $clientCompensation so‘m kompensatsiya berildi.
+                
+                        Xizmatni bekor qilganingiz uchun kompaniya tomonidan $companyFee so‘m ushlab qolindi.
+                
+                        Avval to‘langan foizlar sizga qaytarildi: $overallCompensation so‘m.
+                        Yakunda sizdan ushlab qolinadigan umumiy summa: $driverDeductionOnDocs so‘m.
+                    ",
+                
+                    'ru' => "
+                        Вы отменили поездку.
+                        Сумма, которую вы должны были получить до отмены: $driverGotBeforeCancel сум.
+                
+                        Общий доход составлял: $totalPrice сум.
+                        Клиенту, купившему поездку, была предоставлена компенсация в размере $clientCompensation сум за ваш счёт.
+                
+                        За отмену услуги с вас удержано комиссией компании: $companyFee сум.
+                
+                        Ранее удержанные проценты были возвращены вам: $overallCompensation сум.
+                        Итоговая сумма удержаний с вас составляет: $driverDeductionOnDocs сум.
+                    ",
+                
+                    'en' => "
+                        You have cancelled the trip.
+                        The amount you were supposed to receive before cancellation: $driverGotBeforeCancel UZS.
+                
+                        The total revenue of the trip was: $totalPrice UZS.
+                        The customer who purchased the trip received a compensation of $clientCompensation UZS, taken from your balance.
+                
+                        A company fee of $companyFee UZS was deducted for cancelling the service.
+                
+                        Previously deducted percentages have been refunded to you: $overallCompensation UZS.
+                        The final amount deducted from you is: $driverDeductionOnDocs UZS.
+                    ",
                 ];
+                
 
 
                 BalanceTransaction::create([
@@ -253,7 +288,9 @@ class DriverTripRepository
                     'trip_id' => $trip->id,
                     'reference_id' => $booking->id,
                     'status' => 'success',
-                    'reason' => $reasonDriver['uz'],
+                    'reason' => $reasonDriver[$driver->authLanguage->language ?? 'uz'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
 
                 $driver->balance->update(['balance' => $driverAfter]);
@@ -263,8 +300,13 @@ class DriverTripRepository
                 $driverAfter = $driverBefore - $overallCompensation;
                 // (0 - 20000) = -20000
                 $resonCompensation = [
-                    'uz' => "Siz safarni bekor qilganingiz uchun $companyFee va $clientCompensation so‘m kompensatsiyasi sizni hisoingizdan  berildi.",
+                    'uz' => "Siz safarni bekor qilganingiz uchun $companyFee so‘m kompaniya to‘lovi va $clientCompensation so‘m mijoz kompensatsiyasi sizning hisobingizdan ushlab qolindi.",
+                    
+                    'ru' => "За отмену поездки с вашего счёта были удержаны $companyFee сум комиссии компании и $clientCompensation сум компенсации клиенту.",
+                    
+                    'en' => "For cancelling the trip, $companyFee UZS company fee and $clientCompensation UZS client compensation have been deducted from your account.",
                 ];
+                
                 BalanceTransaction::create([
                     'user_id' => $driver->id,
                     'type' => 'debit',
@@ -274,10 +316,16 @@ class DriverTripRepository
                     'trip_id' => $trip->id,
                     'reference_id' => $booking->id,
                     'status' => 'success',
-                    'reason' => $resonCompensation['uz'],
+                    'reason' => $resonCompensation[$driver->authLanguage->language ?? 'uz'],
+                    'created_at' => now()->addMinutes(1),
+                    'updated_at' => now()->addMinutes(1),
                 ]);
 
-                $driver->balance->update(['balance' => $driverAfter]);
+                $driver->balance->update([
+                    'balance' => $driverAfter,
+                    'updated_at' => now()->addMinutes(1),
+                    'created_at' => now()->addMinutes(1),
+                ]);
 
                 $companyBefore = $companyBalance->balance;
                 $companyAfter = $companyBefore - ($companyFee + $clientCompensation);
@@ -297,6 +345,8 @@ class DriverTripRepository
                     'type' => 'outgoing',
                     'status' => 'success',
                     'reason' => $companyReason['uz'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
 
                 $companyBalance->update(['balance' => $companyAfter]);
@@ -325,10 +375,14 @@ class DriverTripRepository
                     'trip_id' => $trip->id,
                     'reference_id' => $booking->id,
                     'status' => 'success',
-                    'reason' => $reasonClient[$trip->user->authLanguage->language ?? 'uz'],
+                    'reason' => $reasonClient[$trip->user->authLanguage->language ?? 'uz']
                 ]);
 
-                $client->balance->update(['balance' => $clientAfter]);
+                $client->balance->update([
+                    'balance' => $clientAfter,
+                    'updated_at' => now(),
+                    'created_at' => now()
+                ]);
 
 
                 // --- COMPANY BALANCE UPDATE ---
@@ -350,9 +404,15 @@ class DriverTripRepository
                     'type' => 'income',
                     'status' => 'success',
                     'reason' => $comReason['uz'],
+                    'created_at' => now()->addMinutes(1),
+                    'updated_at' => now()->addMinutes(1),
                 ]);
 
-                $companyBalance->update(['balance' => $companyAfter]);
+                $companyBalance->update([
+                    'balance' => $companyAfter,
+                    'updated_at' => now()->addMinutes(1),
+                    'created_at' => now()->addMinutes(1),
+                ]);
                 $booking->update(['status' => 'cancelled']);
             }
             DB::commit();
