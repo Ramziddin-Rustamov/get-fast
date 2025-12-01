@@ -15,7 +15,7 @@
             <div class="card shadow rounded-4">
                 <div class="card-body text-center">
                     <h6 class="text-secondary">Current Balance</h6>
-                    <h2 class="fw-bold text-success">{{ number_format($company->balance) }} UZS</h2>
+                    <h2 class="fw-bold text-success">{{ number_format($company->balance) ?? '0' }} UZS</h2>
                 </div>
             </div>
         </div>
@@ -24,7 +24,7 @@
             <div class="card shadow rounded-4">
                 <div class="card-body text-center">
                     <h6 class="text-secondary">Total Income</h6>
-                    <h2 class="fw-bold text-primary">{{ number_format($company->total_income) }} UZS</h2>
+                    <h2 class="fw-bold text-primary">{{ number_format($company->total_income) ?? '0' }} UZS</h2>
                 </div>
             </div>
         </div>
@@ -33,7 +33,7 @@
             <div class="card shadow rounded-4">
                 <div class="card-body text-center">
                     <h6 class="text-secondary">Today Income</h6>
-                    <h2 class="fw-bold text-warning">{{ number_format($todayIncome) }} UZS</h2>
+                    <h2 class="fw-bold text-warning">{{ number_format($todayIncome) ?? '0' }} UZS</h2>
                 </div>
             </div>
         </div>
