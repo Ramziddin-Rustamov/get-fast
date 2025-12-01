@@ -25,7 +25,7 @@ class WelcomeController extends Controller
         $stats = Cache::remember('company_dashboard_stats', 600, function () {
 
             return [
-                'company' => CompanyBalance::first(),
+                'company' => CompanyBalance::firstOrCreate(),
 
                 // Bookings count
                 'totalBookings' => Booking::count(),
