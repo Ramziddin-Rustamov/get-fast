@@ -114,6 +114,7 @@ Route::prefix('bank')->middleware('auth:api')->group(function () {
 
 
     Route::post('/card-list/{phoneNumber}', [CardController::class, 'cardList']);
+    Route::get('/my-registered-cards', [CardController::class, 'myCards']);
     Route::post('/add-card', [CardController::class, 'addCard']);
     Route::post('/verify-card', [CardController::class, 'verifyCard']);
     Route::post('/get-info-about-card', [CardController::class, 'getCardInfo']);

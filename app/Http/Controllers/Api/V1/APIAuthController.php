@@ -103,7 +103,7 @@ class APIAuthController extends Controller
     {
         try {
             DB::beginTransaction();
-            $language = auth()->user()->authLanguage->language ?? 'uz'; 
+            $language = auth()->user()->authLanguage->language ?? 'uz';
 
             $request->validate([
                 'phone' => 'required|exists:users,phone',
@@ -331,7 +331,7 @@ class APIAuthController extends Controller
     {
         try {
             DB::beginTransaction();
-            $language = auth()->user()->authLanguage->language ?? 'uz'; 
+            $language = auth()->user()->authLanguage->language ?? 'uz';
             $request->validate([
                 'phone' => 'required|string|exists:users,phone',
             ]);
@@ -437,7 +437,7 @@ class APIAuthController extends Controller
     public function logout()
     {
         Auth::logout();
-        $language = auth()->user()->authLanguage->language ?? 'uz'; 
+        $language = auth()->user()->authLanguage->language ?? 'uz';
 
 
         $messages = [
@@ -923,6 +923,4 @@ class APIAuthController extends Controller
             ], 500);
         }
     }
-
-
 }

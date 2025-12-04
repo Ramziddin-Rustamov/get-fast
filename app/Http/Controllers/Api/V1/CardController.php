@@ -200,4 +200,21 @@ class CardController extends Controller
             ], 500);
         }
     }
+
+
+    public function myCards()
+    {
+        $cards = Card::where('user_id', auth()->user()->id)->get();
+        if(!$cards){
+            return response()->json([
+                'status' => 'error',
+                'message' => 'there is no card for this user',
+            ], 404);
+        }
+        return response()->json([
+            'status' => 'success',
+            'message' => 'My cards retrieved successfully',
+            'cards' => $cards,
+        ]);
+    }
 }
