@@ -60,34 +60,6 @@ class VehicleRepository
                 $vehicle->seats = $data['seats'];
                 $vehicle->save();
 
-                // car_images
-                if ($request->hasFile('car_images')) {
-                    $paths = [];
-
-                    foreach ($request->file('car_images') as $image) {
-                        $path = $image->store('vehicles/cars/' . Auth::id(), 'public');
-                        $paths[] = $path;
-                    }
-
-                    $vehicleImage = new VehicleImages();
-                    $vehicleImage->vehicle_id = $vehicle->id;
-                    $vehicleImage->image_path = json_encode($paths);
-                    $vehicleImage->type = 'vehicle';
-                    $vehicleImage->save();
-                }
-
-                // tech_passport
-                if ($request->hasFile('tech_passport')) {
-                    $filename = time() . '.' . $request->file('tech_passport')->getClientOriginalExtension();
-                    $path = 'drivers/tech_passports/' . Auth::id();
-                    $path_for_tech_passport = $request->file('tech_passport')->storeAs($path, $filename, 'public');
-
-                    $vehicleImage = new VehicleImages();
-                    $vehicleImage->vehicle_id = $vehicle->id;
-                    $vehicleImage->image_path = $path_for_tech_passport;
-                    $vehicleImage->type = 'tech_passport';
-                    $vehicleImage->save();
-                }
 
                 return $vehicle;
             });

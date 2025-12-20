@@ -13,6 +13,7 @@ use App\Models\BalanceTransaction;
 use Illuminate\Support\Facades\Auth;
 use App\Models\V1\CompanyBalance;
 use App\Models\V1\CompanyBalanceTransaction;
+use Carbon\Carbon;
 
 class BookingRepository
 {
@@ -182,7 +183,7 @@ class BookingRepository
 
 
             $serviceFeePercent =  env('SERVICE_FEE_FOR_COMPLITING_ORDER'); // 5
-            if(!$serviceFeePercent){
+            if (!$serviceFeePercent) {
                 $serviceFeePercent = 5;
             }
             $serviceFee = $totalPrice * ($serviceFeePercent / 100); // 400000 * 5% = 200000
@@ -310,76 +311,76 @@ class BookingRepository
     }
 
 
-    public function updateBooking($id, array $data)
-    {
+    // public function updateBooking($id, array $data)
+    // {
 
 
-        try {
+    //     try {
 
-            $booking = Booking::where('user_id', auth()->user()->id)->find($id);
+    //         $booking = Booking::where('user_id', auth()->user()->id)->find($id);
 
-            if (is_null($booking)) {
-                return response()->json($this->errorResponse[auth()->user()->authLanguage->language ?? 'uz'], 404);
-            }
+    //         if (is_null($booking)) {
+    //             return response()->json($this->errorResponse[auth()->user()->authLanguage->language ?? 'uz'], 404);
+    //         }
 
-            DB::beginTransaction();
+    //         DB::beginTransaction();
 
-            $requestedSeats = isset($data['passengers']) ? count($data['passengers']) : $booking->seats_booked;
-            //                                         2                       1
-            if ($requestedSeats > $booking->seats_booked) {
-                $messages = [
-                    'uz' => 'Siz oldin band qilgan yo‘lovchilardan ko‘p yo‘lovchi qo‘sholmaysiz',
-                    'ru' => 'Вы не можете добавить больше пассажиров, чем уже забронировано',
-                    'en' => 'You cannot add more passengers than you have already booked',
-                ];
-                $language = auth()->user()->authLanguage->language ?? 'uz';
-                $message = $messages[$language];
+    //         $requestedSeats = isset($data['passengers']) ? count($data['passengers']) : $booking->seats_booked;
+    //         //                                         2                       1
+    //         if ($requestedSeats > $booking->seats_booked) {
+    //             $messages = [
+    //                 'uz' => 'Siz oldin band qilgan yo‘lovchilardan ko‘p yo‘lovchi qo‘sholmaysiz',
+    //                 'ru' => 'Вы не можете добавить больше пассажиров, чем уже забронировано',
+    //                 'en' => 'You cannot add more passengers than you have already booked',
+    //             ];
+    //             $language = auth()->user()->authLanguage->language ?? 'uz';
+    //             $message = $messages[$language];
 
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $message
-                ], 422);
-            }
+    //             return response()->json([
+    //                 'status' => 'error',
+    //                 'message' => $message
+    //             ], 422);
+    //         }
 
-            if ($requestedSeats == $booking->seats_booked) {
-                // user only want to update passengers
-                if (isset($data['passengers']) && is_array($data['passengers'])) {
-                    BookingPassengers::where('booking_id', $booking->id)->delete();
-                    foreach ($data['passengers'] as $passenger) {
-                        BookingPassengers::create([
-                            'booking_id' => $booking->id,
-                            'name' => $passenger['name'],
-                            'phone' => $passenger['phone'],
-                        ]);
-                    }
-                }
-            }
-
-
-            $booking->update([
-                'seats_booked' => $requestedSeats,
-                'total_price' => isset($data['passengers'])
-                    ? $booking->trip->price_per_seat * count($data['passengers'])
-                    : $booking->total_price,
-                'status' => $data['status'] ?? $booking->status,
-            ]);
+    //         if ($requestedSeats == $booking->seats_booked) {
+    //             // user only want to update passengers
+    //             if (isset($data['passengers']) && is_array($data['passengers'])) {
+    //                 BookingPassengers::where('booking_id', $booking->id)->delete();
+    //                 foreach ($data['passengers'] as $passenger) {
+    //                     BookingPassengers::create([
+    //                         'booking_id' => $booking->id,
+    //                         'name' => $passenger['name'],
+    //                         'phone' => $passenger['phone'],
+    //                     ]);
+    //                 }
+    //             }
+    //         }
 
 
+    //         $booking->update([
+    //             'seats_booked' => $requestedSeats,
+    //             'total_price' => isset($data['passengers'])
+    //                 ? $booking->trip->price_per_seat * count($data['passengers'])
+    //                 : $booking->total_price,
+    //             'status' => $data['status'] ?? $booking->status,
+    //         ]);
 
-            DB::commit();
 
-            // Yangilangan bookingni yangi ma'lumotlar bilan qaytaramiz
-            $booking->load('passengers'); // Yo‘lovchilarni yangilab olish
 
-            return response()->json(new BookingResource($booking));
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'status' => 'error',
-                'messsage' => 'Server error occurred'
-            ], 500);
-        }
-    }
+    //         DB::commit();
+
+    //         // Yangilangan bookingni yangi ma'lumotlar bilan qaytaramiz
+    //         $booking->load('passengers'); // Yo‘lovchilarni yangilab olish
+
+    //         return response()->json(new BookingResource($booking));
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'messsage' => 'Server error occurred'
+    //         ], 500);
+    //     }
+    // }
 
     public function cancelBooking($bookingId)
     {
@@ -393,6 +394,7 @@ class BookingRepository
 
             // Booking qidirish
             $booking = Booking::where('user_id', $user->id)->find($bookingId);
+
 
             if (!$booking) {
 
@@ -412,7 +414,7 @@ class BookingRepository
 
 
 
-            if (in_array($booking->status, ['cancelled', 'pending', 'completed'])) {
+            if (in_array($booking->status, ['cancelled', 'pending', 'completed']) || in_array($booking->trip->status, ['cancelled', 'pending', 'completed'])) {
 
                 $messages = [
                     'uz' => 'Bu bosqichda buyurtmani bekor qilib bo‘lmaydi. (cancelled, pending, completed)',
@@ -442,12 +444,17 @@ class BookingRepository
                 ]);
             }
 
-            // ❗ Booking cancel 2 soatdan oldin bo'lishi kerak
-            $tripStart = \Carbon\Carbon::parse($trip->start_time);
-            $now = \Carbon\Carbon::now();
 
-            if ($now->greaterThanOrEqualTo($tripStart->subHours(2))) {
+            $now = Carbon::now(); // Carbon obyekt
+            $startTime = Carbon::parse($trip->start_time); // Carbon obyekt
 
+            $startStr = $startTime->toDateTimeString();
+
+            $hoursDiff = $now->diffInHours($startStr, false);
+
+
+            // 2 soatdan kam qolgan bo'lsa bekor qilish mumkin emas
+            if ($hoursDiff < 2) {
                 $cancelTooLate = [
                     'uz' => 'Safar boshlanishiga 2 soatdan kam vaqt qolgani uchun bekor qilish mumkin emas.',
                     'en' => 'Cancellation is not allowed because less than 2 hours remain before the trip starts.',
@@ -459,6 +466,7 @@ class BookingRepository
                     'message' => $cancelTooLate[$authLan] ?? $cancelTooLate['uz'],
                 ], 422);
             }
+
 
             $total = (float) $booking->total_price;
 

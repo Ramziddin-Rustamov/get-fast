@@ -8,6 +8,7 @@ use App\Http\Resources\V1\PublicTripWithLessInfoResource;
 use App\Models\V1\Trip;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class PublicTripController extends Controller
 {
@@ -44,29 +45,68 @@ class PublicTripController extends Controller
     {
         $userLang = $this->getUserLang();
 
-        $from = $request->query('start_quarter_id');
-        $to = $request->query('end_quarter_id');
-        $departureDate = $request->query('departure_date');
-        $returnDate = $request->query('return_date');
-        $isRoundTrip = $request->query('is_round_trip');
+        $startRegion  = $request->query('start_region_id');
+        $endRegion    = $request->query('end_region_id');
+        $startDistrict = $request->query('start_district_id');
+        $endDistrict   = $request->query('end_district_id');
+        $startQuarter  = $request->query('start_quarter_id');
+        $endQuarter    = $request->query('end_quarter_id');
 
-        // Departure leg
-        $departureTrips = Trip::where('start_quarter_id', $from)
-            ->where('end_quarter_id', $to)
-            ->where('status', 'active')
-            ->where('start_time', '>=', Carbon::parse($departureDate))
-            ->where('available_seats', '>', 0)
-            ->get();
+        $departureDate = Carbon::createFromFormat(
+            'Y-m-d H:i:s',
+            $request->query('departure_date'),
+        );
 
+        // Natija:
+        $departureDate = $departureDate->format('Y-m-d H:i:s'); //2025-05-24 20:49:12 example
+
+
+        // --- 1-BOSQICH: quarter → quarter ---
+        $departureTrips = Trip::where('start_quarter_id', $startQuarter)
+            ->where('end_quarter_id', $endQuarter)
+            ->where('start_time', '>=', $departureDate)
+            ->whereIn('status', ['active', 'full'])
+            ->paginate(20);
+
+        // Agar topilgan bo‘lsa to‘g‘ridan to‘g‘ri qaytariladi
+        if ($departureTrips->isEmpty()) {
+
+            // --- 2-BOSQICH: district → quarter ---
+            $departureTrips = Trip::where('start_district_id', $startDistrict)
+                ->where('end_quarter_id', $endQuarter)
+                ->where('start_time', '>=', $departureDate)
+                ->whereIn('status', ['active', 'full'])
+                ->paginate(20);
+
+            // Agar district → quarter bo'yicha ham bo‘lmasa
+            if ($departureTrips->isEmpty()) {
+
+                // --- Region → quarter ---
+                $departureTrips = Trip::where('start_region_id', $startRegion)
+                    ->where('end_quarter_id', $endQuarter)
+                    ->where('start_time', '>=', $departureDate)
+                    ->whereIn('status', ['active', 'full'])
+                    ->paginate(20);
+            }
+
+            // --- 3-BOSQICH: district → district ---
+            if ($departureTrips->isEmpty()) {
+                $departureTrips = Trip::where('start_district_id', $startDistrict)
+                    ->where('end_district_id', $endDistrict)
+                    ->where('start_time', '>=', $departureDate)
+                    ->whereIn('status', ['active', 'full'])
+                    ->paginate(20);
+            }
+        }
+
+        // ROUND TRIP
         $returnTrips = collect();
-
-        if ($isRoundTrip && $returnDate) {
-            $returnTrips = Trip::where('start_quarter_id', $to)
-                ->where('end_quarter_id', $from)
-                ->where('status', 'active')
-                ->where('start_time', '>=', Carbon::parse($returnDate))
-                ->where('available_seats', '>', 0)
-                ->get();
+        if ($request->query('is_round_trip') && $request->query('return_date')) {
+            $returnTrips = Trip::where('start_quarter_id', $endQuarter)
+                ->where('end_quarter_id', $startQuarter)
+                ->where('start_time', '>=', Carbon::parse($request->query('return_date')))
+                ->whereIn('status', ['active', 'full'])
+                ->paginate(20);
         }
 
         $messages = [
@@ -85,10 +125,19 @@ class PublicTripController extends Controller
         ], 200);
     }
 
+
     public function getAllTripsForPublic()
     {
         $userLang = $this->getUserLang();
-        $trips = Trip::whereIn('status', ['active', 'full'])->paginate(20);
+
+        // Cache kaliti
+        $cacheKey = "public_trips_page_" . request()->query('page', 1);
+
+        // Cache 20 sekund
+        $trips = Cache::remember($cacheKey, 20, function () {
+            return Trip::whereIn('status', ['active', 'full'])
+                ->paginate(20);
+        });
 
         $messages = [
             'uz' => 'Safarlar muvaffaqiyatli olindi',
@@ -108,6 +157,7 @@ class PublicTripController extends Controller
             ]
         ], 200);
     }
+
 
     public function getTripByIdForPublic($id)
     {

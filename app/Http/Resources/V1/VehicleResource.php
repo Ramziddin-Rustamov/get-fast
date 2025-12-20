@@ -21,12 +21,23 @@ class VehicleResource extends JsonResource
             'car_number' => $this->car_number,
             'tech_passport_number' => $this->tech_passport_number,
             'seats' => $this->seats,
-            'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
-            'updated_at' => $this->updated_at ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s') : null,
-            'vehicle_images' => collect(json_decode($this->images[0]->image_path ?? '[]'))
-                ->map(fn($path) => asset('storage/' . $path))
-                ->toArray(),
-            'tech_passport_image' => $this->techPassport->image_path ? asset('storage/' . $this->techPassport->image_path) : null,
+            'created_at' => $this->created_at
+                ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s')
+                : null,
+
+            'updated_at' => $this->updated_at
+                ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s')
+                : null,
+
+            'vehicle_images' => $this->images->isNotEmpty()
+                ? $this->images->map(fn($image) => [
+                    'id'   => $image->id,
+                    'type' => $image->type,
+                    'side' => $image->side,
+                    'url'  => asset('storage/' . $image->image_path),
+                ])->toArray()
+                : null,
+
             'color' => [
                 'title_uz' => $this->color->title_uz,
                 'title_ru' => $this->color->title_ru,

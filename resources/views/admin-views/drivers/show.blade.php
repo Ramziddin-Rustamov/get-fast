@@ -189,7 +189,7 @@
             <h5 class="card-title">🗓 Trips ({{ $driver->driverTrips->count() }})</h5>
 
             @if ($driver->driverTrips->count())
-                @foreach ($driver->driverTrips as $trip)
+                @foreach ($driver->driverTrips->sortByDesc('created_at') as $trip)
                     <div class="border rounded p-3 mb-3">
 
                         {{-- Trip header clickable --}}
@@ -333,58 +333,54 @@
                         <span class="badge bg-primary">Rasmlarni Ko‘rish</span>
                     </div>
 
+                    @php
+                    $images = $vehicleImages->where('vehicle_id', $vehicle->id);
+                @endphp
 
-                    {{-- VEHICLE IMAGES COLLAPSE --}}
-                    <div id="vehicle_{{ $vehicle->id }}" class="collapse mt-3">
+                @if ($images->count())
 
-                        @php
-                            $images = $vehicleImages->where('vehicle_id', $vehicle->id);
-                        @endphp
+                    {{-- Delete all images for this vehicle --}}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold">📸 Moshina Rasmlari</h6>
 
-                        @if ($images->count())
-
-                            {{-- Delete all images for this vehicle --}}
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="fw-bold">📸 Moshina Rasmlari</h6>
-
-                                <form action="{{ route('vehicle.images.deleteAll', $vehicle->id) }}" method="POST">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-danger btn-sm"
-                                            onclick="return confirm('Hamma moshina rasmlari o‘chirilsinmi?')">
-                                        O‘chirish
-                                    </button>
-                                </form>
-                            </div>
-
-                            <div class="row">
-                                @foreach($images as $vimg)
-                                    <div class="col-md-3 mb-3">
-                                        <div class="border rounded p-2 text-center shadow-sm">
-
-                                            <p class="fw-bold mb-1">
-                                                {{ str_replace('_', ' ', $vimg->type) }}
-                                                @if($vimg->side)
-                                                    ({{ ucfirst($vimg->side) }})
-                                                @endif
-                                            </p>
-
-                                            <img src="{{ asset('storage/' . $vimg->image_path) }}"
-                                                 class="img-fluid rounded shadow-sm vehicle-preview"
-                                                 style="cursor: zoom-in; max-height: 160px; object-fit: cover;"
-                                                 data-bs-toggle="modal"
-                                                 data-bs-target="#imageModal"
-                                                 data-img="{{ asset('storage/' . $vimg->image_path) }}">
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-
-                        @else
-                            <p class="text-muted">Rasmlar mavjud emas.</p>
-                        @endif
-
+                        <form action="{{ route('vehicle.images.deleteAll', $vehicle->id) }}" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Hamma moshina rasmlari o‘chirilsinmi?')">
+                                O‘chirish
+                            </button>
+                        </form>
                     </div>
+
+                    <div class="row">
+                        @foreach($images as $vimg)
+                            <div class="col-md-3 mb-3">
+                                <div class="border rounded p-2 text-center shadow-sm">
+
+                                    <p class="fw-bold mb-1">
+                                        {{ str_replace('_', ' ', $vimg->type) }}
+                                        @if($vimg->side)
+                                            ({{ ucfirst($vimg->side) }})
+                                        @endif
+                                    </p>
+
+                                    <img src="{{ asset('storage/' . $vimg->image_path) }}"
+                                         class="img-fluid rounded shadow-sm vehicle-preview"
+                                         style="cursor: zoom-in; max-height: 160px; object-fit: cover;"
+                                         data-bs-toggle="modal"
+                                         data-bs-target="#imageModal"
+                                         data-img="{{ asset('storage/' . $vimg->image_path) }}">
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                @else
+                    <p class="text-muted">Rasmlar mavjud emas.</p>
+                @endif
+
+
 
                 </div>
 

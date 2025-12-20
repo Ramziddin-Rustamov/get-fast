@@ -24,16 +24,13 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
-            'phone' => fake()->unique()->phoneNumber(), 
-            'password' => static::$password ??= Hash::make('password'), // Parolni yashirish
-            'region' => fake()->city(), // Foydalanuvchi uchun region generatsiyasi
-            'district' => fake()->city(), // Optional: tuman
-            'village' => fake()->city(), // Optional: qishloq
-            'home' => fake()->address(), // Optional: uy manzili
-            'role' => fake()->randomElement(['client', 'driver', 'admin']), // Random role
-            'remember_token' => Str::random(10),
+            'first_name' => $this->faker->firstName,
+            'last_name' => $this->faker->lastName,
+            'father_name' => $this->faker->name,
+            'phone' => $this->faker->unique()->numerify('99890######'),
+            'email' => $this->faker->unique()->safeEmail,
+            'password' => Hash::make('password123'),
+            'is_verified' => false,
         ];
     }
-
 }

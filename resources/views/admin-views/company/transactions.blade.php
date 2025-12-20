@@ -19,8 +19,8 @@
                         <th>Amount</th>
                         <th>Balance Before</th>
                         <th>Balance After</th>
-                        <th>Trip ID</th>
-                        <th>Booking ID</th>
+                        <th>Trip </th>
+                        <th>Booking Client</th>
                         <th>Type</th>
                         <th>Reason</th>
                         <th>Date</th>
@@ -33,8 +33,8 @@
                             <td class="fw-bold text-primary">{{ number_format($t->amount) }} UZS</td>
                             <td>{{ number_format($t->balance_before) }}</td>
                             <td>{{ number_format($t->balance_after) }}</td>
-                            <td>{{ $t->trip_id }}</td>
-                            <td>{{ $t->booking_id }}</td>
+                            <td>{{ $t->trip->startQuarter->name ?? 'N/A' }} → {{ $t->trip->endQuarter->name ?? 'N/A' }}</td>
+                            <td>{{ $t->booking->user->first_name ?? '' }} {{ $t->booking->user->last_name ?? '' }}</td>
                             <td>
                                 <span class="badge 
                                     @if($t->type=='income') bg-success 

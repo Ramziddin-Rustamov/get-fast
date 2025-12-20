@@ -8,6 +8,8 @@ use App\Http\Resources\PaymentHistoryRepository;
 use App\Models\BalanceTransaction;
 use App\Models\UserBalance;
 use App\Models\V1\Card;
+use App\Models\V1\CompanyBalance;
+use App\Models\V1\CompanyBalanceTransaction;
 use App\Models\V1\Payment;
 use App\Services\V1\BankErrorService;
 use App\Services\V1\HamkorbankService;
@@ -15,6 +17,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
+
 class PaymentController extends Controller
 {
 
@@ -486,13 +489,52 @@ class PaymentController extends Controller
     public function refund(Request $request)
     {
         try {
+
+            DB::beginTransaction();
             $request->validate([
                 'card_id' => 'required|exists:cards,id',
+                'amount' => 'required|integer',
             ]);
+            $userLanguage = auth()->user()->authLanguage->language ?? 'uz';
+
+            if ($request->amount <= 0) {
+                $messages = [
+                    'uz' => 'Miqdor 0 dan katta bo\'lishi kerak',
+                    'ru' => 'Сумма должна быть больше 0',
+                    'en' => 'Amount must be greater than 0',
+                ];
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$userLanguage],
+                ]);
+            }
+
+            if ($request->amount > 200000) {
+                $messages = [
+                    'uz' => 'Miqdor 200000 dan kam bo\'lishi kerak',
+                    'ru' => 'Сумма должна быть меньше 200000',
+                    'en' => 'Amount must be less than 200000',
+                ];
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$userLanguage],
+                ]);
+            }
+
+            if ($request->amount < 1000) {
+                $messages = [
+                    'uz' => 'Miqdor 1000 dan katta bo\'lishi kerak',
+                    'ru' => 'Сумма должна быть больше 1000',
+                    'en' => 'Amount must be greater than 1000',
+                ];
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$userLanguage],
+                ]);
+            }
 
             $user = auth()->user();
 
-            // Foydalanuvchining kartasini olish
             $card = Card::where('id', $request->card_id)
                 ->where('user_id', $user->id)
                 ->first();
@@ -506,46 +548,63 @@ class PaymentController extends Controller
 
                 return response()->json([
                     'status' => 'error',
-                    'message' => $messages[$user->authLanguage->language ?? 'uz'],
+                    'message' => $messages[$userLanguage ?? 'uz'],
                 ], 404);
             }
 
-            // Test uchun 10 000 so'm → kopeykalarda
-            $amountInKopeyka = 10000 * 100;
+            $amountInKopeyka = $request->amount * 100; // Test summasi
 
-            // Card parametri: faqat number yoki id, ikkala birga bo'lmasligi kerak
+            // Card parametri
             $cardParam = [];
             if (!empty($card->number)) {
                 $cardParam['number'] = $card->number;
             } elseif (!empty($card->card_id)) {
                 $cardParam['id'] = $card->card_id;
             } else {
+                $messages = [
+                    'uz' => 'Card raqami yoki ID mavjud emas!',
+                    'ru' => 'Номер карты или ID отсутствует!',
+                    'en' => 'Card number or ID is missing!',
+                ];
+
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Card number yoki ID mavjud emas!'
+                    'status'  => 'error',
+                    'message' => $messages[$userLanguage],
                 ], 400);
             }
 
-            // JSON-RPC payload
-            $data = [
-                "ext_id" => (string) Str::uuid(),
-                "amount" => $amountInKopeyka,
-                "card"   => $cardParam
+            // Payer_data majburiy, hatto test summasi uchun ham
+            $payerData = [
+                "surname"     => $user->last_name ?? 'Test',
+                "first_name"  => $user->first_name ?? 'Test',
+                "middle_name" => $user->father_name ?? 'Test',
             ];
 
-            // Hamkorbank API chaqirish
+            $data = [
+                "ext_id"     => (string) Str::uuid(),
+                "amount"     => $amountInKopeyka,
+                "card"       => $cardParam,
+                "payer_data" => $payerData,
+            ];
+
             $token = HamkorbankService::getToken();
             if (!$token) {
+                $messages = [
+                    'uz' => 'Token olinmadi',
+                    'ru' => 'Токен не получен',
+                    'en' => 'Token not found',
+                ];
+
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Token olinmadi'
+                    'status'  => 'error',
+                    'message' => $messages[$userLanguage],
                 ], 500);
             }
 
             $payload = [
                 "jsonrpc" => "2.0",
                 "method"  => "pay.a2c",
-                "params"  => [$data], // array ichida bitta obyekt
+                "params"  => [$data],
                 "id"      => (string) Str::uuid(),
             ];
 
@@ -555,7 +614,6 @@ class PaymentController extends Controller
 
             $result = $response->json();
 
-            // JSON-RPC xatolik
             if (isset($result['error'])) {
                 return response()->json([
                     'status'  => 'error',
@@ -564,21 +622,79 @@ class PaymentController extends Controller
                 ], 400);
             }
 
-            // Bank state: 5-success, 10/11-error
             $state = $result['result']['state'] ?? null;
 
-            $messages = [
-                'uz' => $state == 5 ? 'Pul muvaffaqiyatli qaytarildi' : 'Pul qaytarilmadi',
-                'ru' => $state == 5 ? 'Средства успешно возвращены' : 'Возврат средств не выполнен',
-                'en' => $state == 5 ? 'Refund successful' : 'Refund failed',
+            if ($state != 5) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Pul qaytarishda xatolik yuz berdi',
+                    'code'    => $result['error']['code'] ?? null
+                ], 400);
+            }
+
+            $formattedAmount = number_format($amountInKopeyka / 100, 0, '.', ''); // 10000 ko‘pdan 100 ga bo‘linadi
+
+            $refundMessage = [
+                'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm",
+                'ru' => "Средства успешно возвращены. Карта: {$card->number}, сумма: {$formattedAmount} сум",
+                'en' => "Refund successful. Card: {$card->number}, amount: {$formattedAmount} UZS",
             ];
 
+
+            $userBalanceBefore = $user->balance->balance;
+            $user->balance->update([
+                'balance' => $user->balance->balance - ($amountInKopeyka / 100),
+            ]);
+
+            // DB-ga yozish uchun misol
+            BalanceTransaction::create([
+                'user_id'    => $user->id,
+                'type'    => 'debit',
+                'amount'     => $amountInKopeyka / 100, // summani so‘mga o‘tkazish
+                'balance_before' => $userBalanceBefore,
+                'balance_after'  => $userBalanceBefore - $amountInKopeyka / 100,
+                'status'     => 'success',
+                'reason' => $refundMessage[$userLanguage ?? 'uz'],
+            ]);
+            $compBalance = CompanyBalance::firstOrCreate();
+            $compBalanceBefore = $compBalance->balance;
+            $compBalance->update([
+                'balance' => $compBalance->balance - $amountInKopeyka / 100,
+            ]);
+
+            $refundReasonForCompany = [
+                'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm" . $user->first_name . "va" . "telefon raqami" . " " . $user->phone,
+                'ru' => "Средства успешно возвращены. Карта: {$card->number}, сумма: {$formattedAmount} сум" . $user->first_name . "va" . "telefon raqami" . " " . $user->phone,
+                'en' => "Refund successful. Card: {$card->number}, amount: {$formattedAmount} UZS" . $user->first_name . "va" . "telefon raqami" . " " . $user->phone,
+            ];
+
+            $companyBalanceTraction = CompanyBalanceTransaction::create([
+                'company_balance_id' => $compBalance->id,
+                'amount' => $amountInKopeyka / 100,
+                'balance_before' => $compBalanceBefore,
+                'balance_after' => $compBalanceBefore - $amountInKopeyka / 100,
+                'trip_id' => null,
+                'booking_id' => null,
+                'type' => 'outgoing',
+                'reason' => $refundReasonForCompany['uz'],
+                'currency' => 'UZS',
+            ]);
+
+            $messages = [
+                'uz' => 'Pul muvaffaqiyatli qaytarildi',
+                'ru' => 'Средства успешно возвращены',
+                'en' => 'Refund successful',
+            ];
+
+            DB::commit();
+
             return response()->json([
-                'status'  => $state == 5 ? 'success' : 'error',
-                'message' => $messages[$user->authLanguage->language ?? 'uz'],
+                'status'  => 'success',
+                'message' => $messages[$userLanguage ?? 'uz'],
                 'data'    => $result
             ]);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'status'  => 'error',
                 'message' => $e->getMessage() . ' ' . BankErrorService::getMessage($e->getCode()),
@@ -586,8 +702,4 @@ class PaymentController extends Controller
             ], 500);
         }
     }
-
-
-
-    
 }

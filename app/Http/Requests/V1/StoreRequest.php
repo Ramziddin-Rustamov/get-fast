@@ -27,9 +27,6 @@ class StoreRequest extends FormRequest
             'car_color_id' => 'required|exists:colors,id',
             'tech_passport_number' => 'required|string|unique:vehicles,tech_passport_number',
             'seats' => 'required|integer|min:1|max:8',
-            'car_images' => 'required|array|min:1',
-            'car_images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:44024',
-            'tech_passport' => 'required|image|mimes:jpeg,png,jpg,gif|max:2448',
         ];
     }
 }

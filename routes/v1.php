@@ -91,6 +91,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/resend-code', [APIAuthController::class, 'resendCode']);
     // Login va logout
     Route::post('/login', [APIAuthController::class, 'login']);
+    Route::post('/send-sms-as-test', [APIAuthController::class, 'sendSmsAsTest']);
     // Parolni unutgan holatda
     Route::post('/send-reset-code', [APIAuthController::class, 'sendResetCode']);
     Route::post('/reset-password', [APIAuthController::class, 'resetPassword']);
@@ -105,14 +106,11 @@ Route::prefix('auth')->middleware('auth:api')->group(function () {
     Route::post('/update-profile', [APIAuthController::class, 'updateProfile']);
     Route::get('/me', [APIAuthController::class, 'me']);
     Route::post('/update-user-language', [APIAuthController::class, 'updateUserLanguage']);
-    
 });
 
 
 // Route::post('/card-list/{phoneNumber}', [CardController::class, 'cardList']);
 Route::prefix('bank')->middleware('auth:api')->group(function () {
-
-
     Route::post('/card-list/{phoneNumber}', [CardController::class, 'cardList']);
     Route::get('/my-registered-cards', [CardController::class, 'myCards']);
     Route::post('/add-card', [CardController::class, 'addCard']);
@@ -126,4 +124,3 @@ Route::prefix('bank')->middleware('auth:api')->group(function () {
     Route::get('payment-history', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentHistory']);
     Route::post('refund-to-my-card-from-balance', [\App\Http\Controllers\Api\V1\PaymentController::class, 'refund']);
 });
-

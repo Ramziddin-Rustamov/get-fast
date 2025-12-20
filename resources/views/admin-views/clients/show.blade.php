@@ -89,7 +89,7 @@
             </h4>
     
             @if($client->bookings->count())
-                @foreach($client->bookings as $booking)
+                @foreach($client->bookings->sortByDesc('created_at') as $booking)
                     <div class="border rounded p-3 mb-3 bg-white shadow-sm">
     
                         {{-- HEADER --}}

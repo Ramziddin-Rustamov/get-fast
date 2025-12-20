@@ -32,7 +32,7 @@ class APIAuthController extends Controller
     {
 
         try {
-            $language = auth()->user()->authLanguage->language ?? 'uz';
+            $language = 'uz';
 
             DB::beginTransaction();
             // Step 1: Validatsiya
@@ -52,7 +52,8 @@ class APIAuthController extends Controller
             // Step 2: Tasdiqlash kodi generatsiya qilish
             $code = rand(100000, 999999); // 6 xonali kod
             // SMS uchun xabar
-            $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+            $text = "Qadam ilovasida ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+
 
             // Step 3: Foydalanuvchini vaqtincha yaratish (is_verified = false)
             $user = \App\Models\User::create([
@@ -73,6 +74,8 @@ class APIAuthController extends Controller
             DB::commit();
 
             // smsni navbatga yuborish
+
+            // SMS uchun xabar
             // $this->smsService->sendQueued($user->phone, $text, 'register');
 
             $messages = [
@@ -210,13 +213,12 @@ class APIAuthController extends Controller
             // Yangi tasdiqlash kodi generatsiyasi
             $code = rand(100000, 999999);
             // SMS uchun xabar
-            $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
 
             $user->verification_code = $code;
             $user->save();
 
             DB::commit();
-
+            $text = "Qadam ilovasida ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
             // smsni navbatga yuborish
             // $this->smsService->sendQueued($user->phone, $text, 'register');
             $messages = [
@@ -343,10 +345,11 @@ class APIAuthController extends Controller
             $user->verification_code = $code;
             $user->save();
             $messages = [
-                'uz' => "Parolni tiklash uchun tasdiqlash kodi: $code",
-                'ru' => "Код подтверждения для сброса пароля: $code",
-                'en' => "Your password reset code is: $code",
+                'uz' => "Qadam ilovasida parolni tiklash uchun tasdiqlash kodingiz: {$code}",
+                'ru' => "Код подтверждения для восстановления пароля в приложении Qadam: {$code}",
+                'en' => "Your password reset code for the Qadam app is: {$code}",
             ];
+
 
             $text = $messages[$language];
 
@@ -486,15 +489,6 @@ class APIAuthController extends Controller
                 'driving_license_number' => 'required|string',
                 'driving_license_expiration_date' => 'required|string',
                 'birthday' => 'required|string',
-                'region_id' => 'required|exists:regions,id',
-                'district_id' => 'required|exists:districts,id',
-                'quarter_id' => 'required|exists:quarters,id',
-                'home_address' => 'required|string',
-                'vehicle_number' => 'required|string|unique:vehicles,car_number',
-                'car_model' => 'required|string',
-                'car_color_id' => 'required|exists:colors,id',
-                'seats' => 'required|integer|min:1|max:8',
-                'tech_passport_number' => 'required|string|unique:vehicles,tech_passport_number',
             ]);
             DB::beginTransaction();
 
@@ -504,26 +498,14 @@ class APIAuthController extends Controller
             $user->birth_date = $request->birthday;
             $user->role = 'driver';
             $user->driving_verification_status = 'pending';
-            $user->region_id = $request->region_id;
-            $user->district_id = $request->district_id;
-            $user->quarter_id = $request->quarter_id;
-            $user->home = $request->home_address;
             $user->save();
 
-            $vehicle = Vehicle::create([
-                'user_id' => $user->id,
-                'color_id' => $request->car_color_id,
-                'model' => $request->car_model,
-                'car_number' => $request->vehicle_number,
-                'tech_passport_number' => $request->tech_passport_number,
-                'seats' => $request->seats,
-            ]);
 
             DB::commit();
             $messages = [
-                'uz' => "Mashina muvaffaqiyatli yaratildi, keyingi bosqichga o‘ting.",
-                'ru' => "Автомобиль успешно создан, переходите к следующему шагу.",
-                'en' => "Vehicle created successfully, jump to the next step.",
+                'uz' => "Malumotlar muvaffaqiyatli saqlandi, keyingi qadamga o'ting.",
+                'ru' => "Данные успешно сохранены, переходите к следующему шагу.",
+                'en' => "Data saved successfully, proceed to the next step.",
             ];
 
             $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
@@ -531,7 +513,6 @@ class APIAuthController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => $message,
-                'vehicle_id' => $vehicle->id,
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -738,11 +719,10 @@ class APIAuthController extends Controller
                 'en' => "Driver documents uploaded. Please wait for admin approval.",
             ];
 
-            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
             return response()->json([
                 'status' => 'success',
-                'message' => $message,
+                'message' => $messages[auth()->user()->authLanguage->language ?? 'uz'],
             ]);
         } catch (\Exception $e) {
 
@@ -917,6 +897,43 @@ class APIAuthController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function sendSmsAsTest(Request $request)
+    {
+
+        try {
+
+            // return  config('services.sms.url', env('SMS_API_URL'));
+            // return config('services.sms.face_name', env('SMS_API_FACE_NAME'));
+            //  return config('services.sms.username', env('SMS_API_USERNAME'));
+            // return config('services.sms.password', env('SMS_API_PASSWORD'));
+
+
+            $messages = [
+                'uz' => "SMS muvaffaqiyatli yuborildi.",
+                'ru' => "SMS успешно отправлены.",
+                'en' => "SMS sent successfully.",
+            ];
+
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
+            $code = rand(100000, 999999);
+
+            $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+            $this->smsService->sendQueued($request->phone, $text, 'register');
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage()
