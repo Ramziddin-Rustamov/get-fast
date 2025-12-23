@@ -220,7 +220,7 @@ class APIAuthController extends Controller
             DB::commit();
             $text = "Qadam ilovasida ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
             // smsni navbatga yuborish
-            // $this->smsService->sendQueued($user->phone, $text, 'register');
+            $this->smsService->sendQueued($user->phone, $text, 'register');
             $messages = [
                 'uz' => "Telefoningizga yangi tasdiqlash kodi yuborildi.",
                 'ru' => "Новый код подтверждения отправлен на ваш телефон.",

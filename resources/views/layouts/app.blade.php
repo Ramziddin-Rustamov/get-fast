@@ -25,11 +25,11 @@
 </head>
 <body style="background-color: rgb(220, 213, 213)">
     <div id="app">
-        <header id="header" class="fixed-top  pb-2" style="background-color: rgba(255, 244, 239, 0.8); box-shadow: 11px 11px 35px -10px rgba(66, 68, 90, 1);">
+        <header id="header" class="fixed-top  pb-2" style="background-color: rgba(255, 244, 239); box-shadow: 11px 11px 35px -10px rgba(66, 68, 90, 1);">
             <div class="container d-flex align-items-center">
         
-                <h4 class="logo me-auto">
-                    <a href="/" class="text-decoration-none"> {{ config('app.name', 'Qadam') }}</a>
+                <h4 class="logo me-auto  py-3">
+                    <a href="/" class="text-decoration-none text-dark fw-bold"> {{ config('app.name', 'Qadam') }}</a>
                 </h4>
         
         
@@ -41,7 +41,7 @@
                     @guest
                         @if (Route::has('login'))
                             <li class="nav-item ">
-                                <a style="{{ (Request::is('login') ? 'color: green; text-decoration: none;' : '') }}" class="nav-link " href="{{ route('login') }}"><span>{{ __('Kirish') }}</span></a>
+                                <a style="{{ (Request::is('login') ? 'color: green; text-decoration: none;' : '') }}" class="nav-link " href="{{ route('login') }}"><span>{{ __('') }}</span></a>
                             </li>
                         @endif
         
@@ -156,7 +156,7 @@
         </header>
         
  
-        <main class="py-4 mt-5 container">
+        <main class="py-4">
             @yield('content')
         </main>
     </div>

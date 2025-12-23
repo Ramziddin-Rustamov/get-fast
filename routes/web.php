@@ -31,7 +31,7 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
     Route::delete('drivers/{driver}', [DriverController::class, 'destroy'])->name('drivers.destroy'); // Delete driver
     Route::post('drivers/{driver}/send-sms', [DriverController::class, 'sendSms'])
         ->name('drivers.sendSms');
-    Route::post('drivers/{driver}/transfer', [DriverController::class, 'transferBalance'])
+    Route::post('drivers/{driver}/transfer', [DriverController::class, 'refund'])
         ->name('drivers.transfer');
     Route::post('drivers/{driver}/update-status', [DriverController::class, 'updateStatus'])
         ->name('drivers.updateStatus');

@@ -15,8 +15,15 @@ use App\Http\Controllers\Controller;
 use App\Models\BalanceTransaction;
 use App\Models\UserBalance;
 use App\Models\V1\Card;
+use App\Models\V1\CompanyBalance;
+use App\Models\V1\CompanyBalanceTransaction;
 use App\Models\V1\VehicleImages;
+use App\Services\V1\BankErrorService;
+use App\Services\V1\HamkorbankService;
 use App\Services\V1\SmsService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class DriverController extends Controller
 {
@@ -123,44 +130,6 @@ class DriverController extends Controller
         return redirect()->back()->with('success', 'Xabar muvaffaqiyatli yuborildi ' . $phone . ': ' . $message);
     }
 
-    public function transferBalance(Request $request, $driverId)
-    {
-
-
-        try {
-
-            $driver = User::where('role', 'driver')->find($driverId);
-            $driverBalance = UserBalance::where('user_id', $driverId)->first();
-
-            $balanceTransaction = BalanceTransaction::create([
-                'user_id' => $driverId,
-                'type' => 'debit',
-                'amount' => $request->amount,
-                'balance_before' => $driverBalance->balance,
-                'balance_after' => $driverBalance->balance - $request->amount,
-                'trip_id' => null,
-                'status' => 'success',
-                'reason' => ' Haydavchining ishlagan ' . $request->amount . ' so‘m puli muvaffaqiyatli transfer qilindi.' . $request->card_number . ' raqamiga',
-                'reference_id' => null,
-            ]);
-
-            $driverBalance->balance = $driverBalance->balance - $request->amount;
-            $driverBalance->save();
-            // $message = ' Haydavchining ishlagan ' . $request->amount . ' so‘m puli muvaffaqiyatli transfer qilindi.' . $request->card_number . ' raqamiga';
-            // $this->smsService->sendQueued($driver->phone, $message, 'message-to-driver');
-
-
-            return back()->with('success', 'Haydavchining ishlagan ' . $request->amount . ' so‘m puli muvaffaqiyatli transfer qilindi.' . $request->card_number . ' raqamiga');
-        } catch (\Exception $e) {
-            return back()->with(
-                [
-                    'status' => 'error',
-                    'message' => 'Xatolik yuz berdi: ' . $e->getMessage()
-                ]
-            );
-        }
-    }
-
 
     public function updateStatus(Request $request, $id)
     {
@@ -172,21 +141,49 @@ class DriverController extends Controller
         $driver->driving_verification_status = $request->status;
         $driver->save();
 
-
-        $message = [
-            'uz' => 'Sizning haydovchi statusingiz muvaffaqiyatli yangilandi!' . $request->status,
-            'ru' => 'Ваш статус водителя успешно обновлен! ' . $request->status,
-            'en' => 'Your driver status has been successfully updated!' . $request->status,
+        $statusTranslations = [
+            'none' => [
+                'uz' => 'yo‘q',
+                'ru' => 'нет',
+                'en' => 'none',
+            ],
+            'pending' => [
+                'uz' => 'kutilmoqda',
+                'ru' => 'в ожидании',
+                'en' => 'pending',
+            ],
+            'approved' => [
+                'uz' => 'tasdiqlandi',
+                'ru' => 'одобрено',
+                'en' => 'approved',
+            ],
+            'rejected' => [
+                'uz' => 'rad etildi',
+                'ru' => 'отклонено',
+                'en' => 'rejected',
+            ],
+            'blocked' => [
+                'uz' => 'bloklandi',
+                'ru' => 'заблокировано',
+                'en' => 'blocked',
+            ],
         ];
 
+        $status = $request->status;
+
+        $message = [
+            'uz' => 'Sizning haydovchi statusingiz muvaffaqiyatli yangilandi: ' . $statusTranslations[$status]['uz'],
+            'ru' => 'Ваш статус водителя успешно обновлён: ' . $statusTranslations[$status]['ru'],
+            'en' => 'Your driver status has been successfully updated: ' . $statusTranslations[$status]['en'],
+        ];
+
+
         // sms logic here
-        // $this->smsService->sendQueued($driver->phone, $message[$driver->authLanguage->language], 'message-to-driver-about-driver-status');
+        $this->smsService->sendQueued($driver->phone, $message[$driver->authLanguage->language] ?? $message['uz'], 'message-to-driver-about-driver-status' . $statusTranslations[$status]['uz']);
 
 
-        return redirect()->back()->with('success', 'Driver status muvaffaqiyatli yangilandi!, va bu haqida foydalanuvchiga xabar yuborildi.');
+        return redirect()->back()->with('success', 'Driver status muvaffaqiyatli yangilandi! ' . $statusTranslations[$status]['uz'] . ', va bu haqida foydalanuvchiga xabar yuborildi.');
     }
-
-
 
 
     public function deleteAllDriverImages($driverId)
@@ -226,4 +223,210 @@ class DriverController extends Controller
 
         return back()->with('success', 'Barcha moshina rasmlari o‘chirildi');
     }
+
+
+
+
+    public function refund(Request $request, $driverId)
+    {
+        try {
+
+            DB::beginTransaction();
+
+            $request->validate([
+                'card_id' => 'required|exists:cards,id',
+                'amount' => 'required|integer',
+            ]);
+
+            $driver = User::where('role', 'driver')->find($driverId);
+            $driverLanguage = $driver->authLanguage->language ?? 'uz';
+
+            if ($request->amount <= 0) {
+                $messages = [
+                    'uz' => 'Miqdor 0 dan katta bo\'lishi kerak',
+                    'ru' => 'Сумма должна быть больше 0',
+                    'en' => 'Amount must be greater than 0',
+                ];
+                return redirect()->back()->with('error', $messages[$driverLanguage]);
+            }
+
+            if ($request->amount > 200000) {
+                $messages = [
+                    'uz' => 'Miqdor 200000 dan kam bo\'lishi kerak',
+                    'ru' => 'Сумма должна быть меньше 200000',
+                    'en' => 'Amount must be less than 200000',
+                ];
+                return redirect()->back()->with('error', $messages[$driverLanguage]);
+            }
+
+            if ($request->amount < 1000) {
+                $messages = [
+                    'uz' => 'Miqdor 1000 dan katta bo\'lishi kerak',
+                    'ru' => 'Сумма должна быть больше 1000',
+                    'en' => 'Amount must be greater than 1000',
+                ];
+                return redirect()->back()->with('error', $messages[$driverLanguage]);
+            }
+
+
+            $card = Card::where('id', $request->card_id)
+                ->where('user_id', $driver->id)
+                ->first();
+
+            if (!$card) {
+                $messages = [
+                    'uz' => 'Foydalanuvchida karta mavjud emas!',
+                    'ru' => 'У пользователя нет карты!',
+                    'en' => 'User has no card!'
+                ];
+
+                return redirect()->back()->with('error', $messages[$driverLanguage]);
+            }
+
+            $amountInKopeyka = $request->amount * 100; // Test summasi
+
+            // Card parametri
+            $cardParam = [];
+            if (!empty($card->number)) {
+                $cardParam['number'] = $card->number;
+            } elseif (!empty($card->card_id)) {
+                $cardParam['id'] = $card->card_id;
+            } else {
+                $messages = [
+                    'uz' => 'Card raqami yoki ID mavjud emas!',
+                    'ru' => 'Номер карты или ID отсутствует!',
+                    'en' => 'Card number or ID is missing!',
+                ];
+
+                return redirect()->back()->with('error', $messages[$driverLanguage]);
+            }
+
+            // Payer_data majburiy, hatto test summasi uchun ham
+            $payerData = [
+                "surname"     => $driver->last_name ?? 'Test',
+                "first_name"  => $driver->first_name ?? 'Test',
+                "middle_name" => $driver->father_name ?? 'Test',
+            ];
+
+            $data = [
+                "ext_id"     => (string) Str::uuid(),
+                "amount"     => $amountInKopeyka,
+                "card"       => $cardParam,
+                "payer_data" => $payerData,
+            ];
+
+
+
+            $formattedAmount = number_format($amountInKopeyka / 100, 0, '.', ''); // 10000 ko‘pdan 100 ga bo‘linadi
+
+            $refundMessage = [
+                'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm",
+                'ru' => "Средства успешно возвращены. Карта: {$card->number}, сумма: {$formattedAmount} сум",
+                'en' => "Refund successful. Card: {$card->number}, amount: {$formattedAmount} UZS",
+            ];
+
+
+            $userBalanceBefore = $driver->balance->balance;
+            $driver->balance->update([
+                'balance' => $driver->balance->balance - ($amountInKopeyka / 100),
+            ]);
+
+            // DB-ga yozish uchun misol
+            BalanceTransaction::create([
+                'user_id'    => $driver->id,
+                'type'    => 'debit',
+                'amount'     => $amountInKopeyka / 100, // summani so‘mga o‘tkazish
+                'balance_before' => $userBalanceBefore,
+                'balance_after'  => $userBalanceBefore - $amountInKopeyka / 100,
+                'status'     => 'success',
+                'reason' => $refundMessage[$driverLanguage ?? 'uz'],
+            ]);
+            $compBalance = CompanyBalance::firstOrCreate();
+            $compBalanceBefore = $compBalance->balance;
+            $compBalance->update([
+                'balance' => $compBalance->balance - $amountInKopeyka / 100,
+            ]);
+
+            $refundReasonForCompany = [
+                'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm" . $driver->first_name . "va" . "telefon raqami" . " " . $driver->phone,
+                'ru' => "Средства успешно возвращены. Карта: {$card->number}, сумма: {$formattedAmount} сум" . $driver->first_name . "va" . "telefon raqami" . " " . $driver->phone,
+                'en' => "Refund successful. Card: {$card->number}, amount: {$formattedAmount} UZS" . $driver->first_name . "va" . "telefon raqami" . " " . $driver->phone,
+            ];
+
+            $companyBalanceTraction = CompanyBalanceTransaction::create([
+                'company_balance_id' => $compBalance->id,
+                'amount' => $amountInKopeyka / 100,
+                'balance_before' => $compBalanceBefore ?? 0,
+                'balance_after' => $compBalanceBefore - $amountInKopeyka / 100,
+                'trip_id' => null,
+                'booking_id' => null,
+                'type' => 'outgoing',
+                'reason' => $refundReasonForCompany['uz'],
+                'currency' => 'UZS',
+            ]);
+
+
+            // smsni navbatga yuborish
+            $this->smsService->sendQueued($driver->phone, $refundMessage[$driverLanguage ?? 'uz'], 'refund-driver-by-admins');
+
+            $messages = [
+                'uz' => 'Pul muvaffaqiyatli qaytarildi',
+                'ru' => 'Средства успешно возвращены',
+                'en' => 'Refund successful',
+            ];
+
+
+            $token = HamkorbankService::getToken();
+            if (!$token) {
+                $messages = [
+                    'uz' => 'Token olinmadi',
+                    'ru' => 'Токен не получен',
+                    'en' => 'Token not found',
+                ];
+
+                return redirect()->back()->with('error', $messages[$driverLanguage ?? 'uz']);
+            }
+
+            $payload = [
+                "jsonrpc" => "2.0",
+                "method"  => "pay.a2c",
+                "params"  => [$data],
+                "id"      => (string) Str::uuid(),
+            ];
+
+            $response = Http::withToken($token)
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post(HamkorbankService::baseUrl(), $payload);
+
+            $result = $response->json();
+
+            if (isset($result['error'])) {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => $result['error']['message'] ?? 'Unknown error',
+                    'code'    => $result['error']['code'] ?? null
+                ], 400);
+            }
+
+            $state = $result['result']['state'] ?? null;
+
+            if ($state != 5) {
+                return redirect()->back()->with('error', 'pulni qaytarishda Hmakor bank bilan xatolik yuz berdi');
+            }
+
+            DB::commit();
+
+            return redirect()->back()->with('success', $messages[$driverLanguage]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    // public function fillDriverBalance($driverId, $amount)
+    // {
+    //     $driver = User::where('role', 'driver')->find($driverId);
+    //     $driver->balance = $driver->balance + $amount;
+    //     $driver->save();
+    // }
 }

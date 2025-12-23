@@ -59,20 +59,7 @@
 </div>
 
 
-   {{-- Balance --}}
-<div class="card mb-4 shadow-sm">
-    <div class="card-body d-flex justify-content-between align-items-center">
-        <div>
-            <h5 class="card-title">💰 Balance</h5>
-            <p class="fs-4">So'm {{ number_format($driver->balance->balance, 2, '.', ' ') ?? '0' }}</p>
-        </div>
 
-        {{-- Transfer / Pay button --}}
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#transferModal">
-            <i class="fas fa-money-bill-wave"></i> Transfer
-        </button>
-    </div>
-</div>
 
 
 {{-- Transfer Modal --}}
@@ -94,9 +81,9 @@
 
                     <div class="mb-3">
                         <label for="card_number" class="form-label">Kartasi</label>
-                        <select name="card_number" id="card_id" class="form-control">
-                            @foreach ($driver->cards as $card)
-                                <option value="{{ $card->number }}">{{ $card->number }}</option>
+                        <select name="card_id" id="card_id" class="form-control">
+                            @foreach ($driver->cards->where('status', 'verified') as $card)
+                                <option value="{{ $card->id }}">{{ $card->number }} - {{ $card->expiry_month }}/{{ $card->expiry }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -114,6 +101,62 @@
         </div>
     </div>
 </div>
+
+
+
+
+
+{{-- driver active card  --}}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">💳 Active Card</h5>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>#</th>
+                        <th>Kartasi</th>
+                        <th>Expire</th>
+                        <th>status</th>
+                        <th>Ulangan nomer</th>
+
+                        <th>Yaratilgan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($driver->cards->where('status', 'verified') as $card)
+                    <tr class="text-center">
+                        <td>{{ $card->id }}</td>
+                        <td>{{ $card->number }}</td>
+                        <td>{{ $card->expiry }}</td>
+                        <td>{{ $card->status }}</td>
+                        <td>{{ $card->phone }}</td>
+                        <td>{{ $card->created_at->format('Y-m-d') }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>  
+
+   {{-- Balance --}}
+   <div class="card mb-4 shadow-sm">
+    <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="card-title">💰 Balance</h5>
+            <p class="fs-4">So'm {{ number_format($driver->balance->balance, 2, '.', ' ') ?? '0' }}</p>
+        </div>
+
+        {{-- Transfer / Pay button --}}
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#transferModal">
+            <i class="fas fa-money-bill-wave"></i> Transfer
+        </button>
+    </div>
+</div>
+
 
 {{-- Balance Transactions --}}
 <div class="card mb-4 shadow-sm">

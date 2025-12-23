@@ -13,13 +13,20 @@ use App\Models\V1\CompanyBalanceTransaction;
 use App\Models\V1\Payment;
 use App\Services\V1\BankErrorService;
 use App\Services\V1\HamkorbankService;
+use App\Services\V1\SmsService;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
-
 class PaymentController extends Controller
 {
+
+    protected SmsService $smsService;
+
+    public function __construct(SmsService $smsService)
+    {
+        $this->smsService = $smsService;
+    }
 
 
 
@@ -573,6 +580,62 @@ class PaymentController extends Controller
                 ], 400);
             }
 
+
+            $formattedAmount = number_format($amountInKopeyka / 100, 0, '.', ''); // 10000 ko‘pdan 100 ga bo‘linadi
+
+            $refundMessage = [
+                'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm",
+                'ru' => "Средства успешно возвращены. Карта: {$card->number}, сумма: {$formattedAmount} сум",
+                'en' => "Refund successful. Card: {$card->number}, amount: {$formattedAmount} UZS",
+            ];
+
+
+            $userBalanceBefore = $user->balance->balance;
+            $user->balance->update([
+                'balance' => $user->balance->balance - ($amountInKopeyka / 100),
+            ]);
+
+            // DB-ga yozish uchun misol
+            BalanceTransaction::create([
+                'user_id'    => $user->id,
+                'type'    => 'debit',
+                'amount'     => $amountInKopeyka / 100, // summani so‘mga o‘tkazish
+                'balance_before' => $userBalanceBefore,
+                'balance_after'  => $userBalanceBefore - $amountInKopeyka / 100,
+                'status'     => 'success',
+                'reason' => $refundMessage[$userLanguage ?? 'uz'],
+            ]);
+            $compBalance = CompanyBalance::firstOrCreate();
+            $compBalanceBefore = $compBalance->balance;
+            $compBalance->update([
+                'balance' => $compBalance->balance - $amountInKopeyka / 100,
+            ]);
+
+            $refundReasonForCompany = [
+                'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm" . $user->first_name . "va" . "telefon raqami" . " " . $user->phone,
+                'ru' => "Средства успешно возвращены. Карта: {$card->number}, сумма: {$formattedAmount} сум" . $user->first_name . "va" . "telefon raqami" . " " . $user->phone,
+                'en' => "Refund successful. Card: {$card->number}, amount: {$formattedAmount} UZS" . $user->first_name . "va" . "telefon raqami" . " " . $user->phone,
+            ];
+
+            $companyBalanceTraction = CompanyBalanceTransaction::create([
+                'company_balance_id' => $compBalance->id,
+                'amount' => $amountInKopeyka / 100,
+                'balance_before' => $compBalanceBefore,
+                'balance_after' => $compBalanceBefore - $amountInKopeyka / 100,
+                'trip_id' => null,
+                'booking_id' => null,
+                'type' => 'outgoing',
+                'reason' => $refundReasonForCompany['uz'],
+                'currency' => 'UZS',
+            ]);
+
+            $messages = [
+                'uz' => 'Pul muvaffaqiyatli qaytarildi',
+                'ru' => 'Средства успешно возвращены',
+                'en' => 'Refund successful',
+            ];
+
+
             // Payer_data majburiy, hatto test summasi uchun ham
             $payerData = [
                 "surname"     => $user->last_name ?? 'Test',
@@ -632,59 +695,8 @@ class PaymentController extends Controller
                 ], 400);
             }
 
-            $formattedAmount = number_format($amountInKopeyka / 100, 0, '.', ''); // 10000 ko‘pdan 100 ga bo‘linadi
+            $this->smsService->sendQueued($user->phone, $refundMessage[$userLanguage ?? 'uz'], 'refund-message-to-user');
 
-            $refundMessage = [
-                'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm",
-                'ru' => "Средства успешно возвращены. Карта: {$card->number}, сумма: {$formattedAmount} сум",
-                'en' => "Refund successful. Card: {$card->number}, amount: {$formattedAmount} UZS",
-            ];
-
-
-            $userBalanceBefore = $user->balance->balance;
-            $user->balance->update([
-                'balance' => $user->balance->balance - ($amountInKopeyka / 100),
-            ]);
-
-            // DB-ga yozish uchun misol
-            BalanceTransaction::create([
-                'user_id'    => $user->id,
-                'type'    => 'debit',
-                'amount'     => $amountInKopeyka / 100, // summani so‘mga o‘tkazish
-                'balance_before' => $userBalanceBefore,
-                'balance_after'  => $userBalanceBefore - $amountInKopeyka / 100,
-                'status'     => 'success',
-                'reason' => $refundMessage[$userLanguage ?? 'uz'],
-            ]);
-            $compBalance = CompanyBalance::firstOrCreate();
-            $compBalanceBefore = $compBalance->balance;
-            $compBalance->update([
-                'balance' => $compBalance->balance - $amountInKopeyka / 100,
-            ]);
-
-            $refundReasonForCompany = [
-                'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm" . $user->first_name . "va" . "telefon raqami" . " " . $user->phone,
-                'ru' => "Средства успешно возвращены. Карта: {$card->number}, сумма: {$formattedAmount} сум" . $user->first_name . "va" . "telefon raqami" . " " . $user->phone,
-                'en' => "Refund successful. Card: {$card->number}, amount: {$formattedAmount} UZS" . $user->first_name . "va" . "telefon raqami" . " " . $user->phone,
-            ];
-
-            $companyBalanceTraction = CompanyBalanceTransaction::create([
-                'company_balance_id' => $compBalance->id,
-                'amount' => $amountInKopeyka / 100,
-                'balance_before' => $compBalanceBefore,
-                'balance_after' => $compBalanceBefore - $amountInKopeyka / 100,
-                'trip_id' => null,
-                'booking_id' => null,
-                'type' => 'outgoing',
-                'reason' => $refundReasonForCompany['uz'],
-                'currency' => 'UZS',
-            ]);
-
-            $messages = [
-                'uz' => 'Pul muvaffaqiyatli qaytarildi',
-                'ru' => 'Средства успешно возвращены',
-                'en' => 'Refund successful',
-            ];
 
             DB::commit();
 
