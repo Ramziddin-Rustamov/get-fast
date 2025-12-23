@@ -224,8 +224,11 @@
     <div class="card-body d-flex justify-content-between align-items-center">
         <div>
             <h5 class="card-title">💰 Balance</h5>
-            <p class="fs-4">So'm {{ number_format($client->balance->balance, 2, '.', ' ') ?? '0' }}</p>
+            <p class="fs-4">
+                So'm {{ number_format(optional($client->balance)->balance ?? 0, 2, '.', ' ') }}
+            </p>
         </div>
+        
 
         {{-- Transfer / Pay button --}}
         {{-- <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#transferModal">
