@@ -50,6 +50,7 @@ class BookingResource extends JsonResource
                         'id' => $passenger->id,
                         'name' => $passenger->name,
                         'phone' => $passenger->phone,
+                        'booking_status' => $this->status
                     ];
                 })
                 : null,

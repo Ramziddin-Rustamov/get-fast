@@ -23,6 +23,7 @@ class ClientTripRepository
         }
     }
 
+    // tested
     public function getTripById($id)
     {
         try {
@@ -33,66 +34,86 @@ class ClientTripRepository
                 ->first();
 
             if (is_null($booking)) {
-                return response()->json($this->errorResponse[$this->language], 404);
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Trip not found',
+                ], 404);
             }
 
-            return new ClientTripWithMoreInfoResource($booking);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Trip fetched successfully',
+                'data' => new ClientTripWithMoreInfoResource($booking),
+            ]);
         } catch (\Exception $e) {
-            return response()->json($this->errorResponse[$this->language], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'data' => null
+            ], 404);
         }
     }
-
+    // tested
     public function canceledTripsForClient()
     {
         try {
-            // ✅ Cancelled
+
+            $language = auth()->user()->authLanguage->language ?? 'uz';
+
             $cancelledTrips = Trip::whereHas('bookings', function ($q) {
                 $q->where('user_id', auth()->id())
                     ->where('status', 'cancelled');
             })
-                // ->orWhere(function ($q) {
-                //     $q->whereIn('status', ['cancelled'])
-                //         ->whereHas('bookings', function ($q2) {
-                //             $q2->where('user_id', auth()->id());
-                //         });
-                // })
-                ->orderBy('id', 'asc')
+                ->orderBy('id', 'desc')
                 ->paginate(10);
 
-            if (count($cancelledTrips) == 0) {
+            if ($cancelledTrips->isEmpty()) {
+
                 $messages = [
                     'uz' => 'Sizda bekor qilingan sayohatlar yo‘q',
                     'ru' => 'У вас нет отменённых поездок',
                     'en' => 'You have no cancelled trips',
                 ];
 
-                $message = $messages[$this->language];
-
                 return response()->json([
                     'status' => 'error',
-                    'message' => $message,
+                    'message' => $messages[$language] ?? $messages['uz'],
+                    'data' => null
                 ], 404);
             }
-            return CompetedInProgressCanceledTripsForClientsResources::collection($cancelledTrips);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => [
+                    'uz' => 'Bekor qilingan sayohatlar',
+                    'ru' => 'Отменённые поездки',
+                    'en' => 'Cancelled trips',
+                ][$language] ?? 'Cancelled trips',
+                'data' => CompetedInProgressCanceledTripsForClientsResources::collection($cancelledTrips),
+            ]);
         } catch (\Exception $e) {
-            return response()->json($this->errorResponse[$this->language], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
+    // tested 
     public function getInprogressTripsForClient()
     {
         try {
-            
-            $now = Carbon::now();
-            return $now;
+
+            $now = now(); // Carbon object
+
             $inProgressTrips = Trip::whereHas('bookings', function ($q) {
                 $q->where('user_id', auth()->id())
                     ->where('status', 'confirmed');
             })
                 ->where('start_time', '<=', $now)
                 ->where('end_time', '>=', $now)
-                ->where('status', '!=', 'cancelled')
-                ->orderBy('id', 'asc')
+                ->orderBy('start_time', 'asc')
                 ->paginate(10);
 
             $messagesNot = [
@@ -101,14 +122,11 @@ class ClientTripRepository
                 'en' => 'You have no in progress trips',
             ];
 
-            $message = $messagesNot[auth()->user()->authLanguage->language] ?? $messagesNot['uz'];
-
-            if (count($inProgressTrips) == 0) {
+            if ($inProgressTrips->isEmpty()) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => $message,
+                    'message' => $messagesNot[auth()->user()->authLanguage->language] ?? $messagesNot['uz'],
                     'data' => null
-
                 ], 404);
             }
 
@@ -118,20 +136,21 @@ class ClientTripRepository
                 'en' => 'You have in progress trips',
             ];
 
-            return [
+            return response()->json([
                 'status' => 'success',
                 'message' => $messageSuccess[auth()->user()->authLanguage->language] ?? $messageSuccess['uz'],
                 'data' => CompetedInProgressCanceledTripsForClientsResources::collection($inProgressTrips),
-            ];
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
-                'message' => "Something went wrong " . $e
-            ], 404);
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
-
+    // tested
     public function getCompletedTripsForClient()
     {
         try {
@@ -140,12 +159,6 @@ class ClientTripRepository
                 $q->where('user_id', auth()->id())
                     ->where('status', 'completed');
             })
-                // ->orWhere(function ($q) {
-                //     $q->where('status', 'completed')
-                //         ->whereHas('bookings', function ($q2) {
-                //             $q2->where('user_id', auth()->id());
-                //         });
-                // })
                 ->orderBy('id', 'asc')
                 ->paginate(10);
 
@@ -157,16 +170,24 @@ class ClientTripRepository
                     'en' => 'You have no completed trips',
                 ];
 
-                $message = $messages[$this->language];
+                $message = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
 
                 return response()->json([
                     'status' => 'error',
-                    'message' => $message
+                    'message' => $message,
+                    'data' => null
                 ], 404);
             }
-            return CompetedInProgressCanceledTripsForClientsResources::collection($completedTrips);
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Sizda yakunlangan sayohatlar mavjud',
+                'data' => CompetedInProgressCanceledTripsForClientsResources::collection($completedTrips)
+            ]);
         } catch (\Exception $e) {
-            return response()->json($this->errorResponse[$this->language], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => "Something went wrong " . $e
+            ], 404);
         }
     }
 }

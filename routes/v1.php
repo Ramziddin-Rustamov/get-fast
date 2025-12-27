@@ -41,11 +41,11 @@ Route::middleware('auth:api')->group(function () {
     });
 
     Route::prefix('client/trips')->group(function () {
-        Route::get('/', [App\Http\Controllers\Api\V1\ClientTripController::class, 'index']);
+        // Route::get('/', [App\Http\Controllers\Api\V1\ClientTripController::class, 'index']);
         Route::get('/get-canceled-trips', [App\Http\Controllers\Api\V1\ClientTripController::class, 'canceledTrips']);
         Route::get('/get-inprogress-trips', [App\Http\Controllers\Api\V1\ClientTripController::class, 'inprogressTrips']);
         Route::get('/get-completed-trips', [App\Http\Controllers\Api\V1\ClientTripController::class, 'completedTrips']);
-        Route::get('/find-trip/{id}', [App\Http\Controllers\Api\V1\ClientTripController::class, 'show']);
+        Route::get('/booking/{id}', [App\Http\Controllers\Api\V1\ClientTripController::class, 'show']);
     });
 
     Route::middleware('auth:api')->prefix('public/trips')->group(function () {
