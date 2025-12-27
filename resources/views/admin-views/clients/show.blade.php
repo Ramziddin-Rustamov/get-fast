@@ -131,12 +131,12 @@
                     <div class="mb-3">
                         <label for="amount" class="form-label">Amount</label>
                         <input type="number"
-       name="amount"
-       id="amount"
-       class="form-control"
-       min="1000"
-      max="{{ $client->balance?->balance ?? 0 }}"
-       placeholder="Enter amount">
+                        name="amount"
+                        id="amount"
+                        class="form-control"
+                        min="1000"
+                        max="{{ $client->balance?->balance}}"
+                        placeholder="Enter amount">
                     </div>
 
                     <div class="mb-3">
