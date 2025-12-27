@@ -96,16 +96,23 @@ class BookingRepository
 
 
 
-            $userBalance = UserBalance::where('user_id', auth()->user()->id)->first();
-            $driverBalance = UserBalance::where('user_id', $trip->driver_id)->first();
-            $companyBalance = CompanyBalance::first();
+            // User balance
+            $userBalance = UserBalance::where('user_id', auth()->id())
+                ->lockForUpdate()
+                ->firstOrCreate(['user_id' => auth()->id()], ['balance' => 0]);
 
+            // Driver balance
+            $driverBalance = UserBalance::where('user_id', $trip->driver_id)
+                ->lockForUpdate()
+                ->firstOrCreate(['user_id' => $trip->driver_id], ['balance' => 0]);
+
+            // Company balance
+            $companyBalance = CompanyBalance::lockForUpdate()->first();
             if (!$companyBalance) {
-                $companyBalance = CompanyBalance::create([
-                    'balance' => 0,
-                    'total_income' => 0,
-                ]);
+                $companyBalance = CompanyBalance::create(['balance' => 0]);
             }
+
+
 
             // Trip available seats update
             $trip->available_seats -= $requestedSeats;
@@ -113,22 +120,6 @@ class BookingRepository
                 $trip->status = 'full';
             }
             $trip->save();
-
-            if (!$userBalance) {
-                $userBalance = UserBalance::create([
-                    'user_id' => auth()->user()->id,
-                    'balance' => '00.00',
-                ]);
-            }
-
-            if (!$driverBalance) {
-                $driverBalance = UserBalance::create([
-                    'user_id' => $trip->driver_id,
-                    'balance' => '00.00',
-                ]);
-            }
-
-
 
             $totalPrice = $trip->price_per_seat * $requestedSeats;
             $totalPrice = number_format((float)$totalPrice, 2, '.', '');
@@ -368,12 +359,14 @@ class BookingRepository
 
 
             // === USER BALANCE UPDATE ===
-            $userBalance = UserBalance::firstOrCreate(
-                ['user_id' => $user->id],
-                ['balance' => 0.00, 'currency' => 'UZS']
-            );
-            $userBalance->balance = $userBalance->balance + $refundForClient;
-            $userBalance->save();
+            $userBalance = UserBalance::where('user_id', $user->id)
+                ->lockForUpdate()
+                ->firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['balance' => 0.00, 'currency' => 'UZS']
+                );
+
+            $userBalance->increment('balance', $refundForClient);
 
 
             $start = $trip->startQuarter->name ?? 'Nomaʼlum';
@@ -400,10 +393,13 @@ class BookingRepository
 
             // === DRIVER BALANCE UPDATE (SERVICE_FEE_FOR_DRIVERS 5%) ===
             $driver = $trip->driver;
-            $driverBalance = UserBalance::firstOrCreate(
-                ['user_id' => $driver->id],
-                ['balance' => 0.00, 'currency' => 'UZS']
-            );
+
+            $driverBalance = UserBalance::where('user_id', $driver->id)
+                ->lockForUpdate()
+                ->firstOrCreate(
+                    ['user_id' => $driver->id],
+                    ['balance' => 0.00, 'currency' => 'UZS']
+                );
 
 
             $driverCommission = round($total * config('services.fees.service_fee_for_drivers_for_client_cancel_the_booking') / 100, 2); // 1 %  100000 * 0.01 = 1000
@@ -444,8 +440,7 @@ class BookingRepository
             $booking->status = 'cancelled';
             $booking->save();
 
-            $companyBalance = CompanyBalance::first();
-
+            $companyBalance = CompanyBalance::lockForUpdate()->firstOrFail();
 
             // Company got amount
             $cgot = $cancelationFee - $driverCommission;

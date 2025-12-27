@@ -120,10 +120,12 @@ class APIAuthController extends Controller
                 $user->verification_code = null;
                 $user->save();
 
-                $userbalalce = UserBalance::create([
-                    'user_id' => $user->id,
-                    'balance' => 0.00,
-                ]);
+                $userBalance = UserBalance::lockForUpdate()
+                ->firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['balance' => 0.00]
+                );
+            
 
                 UserLanguage::updateOrCreate([
                     'user_id' => $user->id,

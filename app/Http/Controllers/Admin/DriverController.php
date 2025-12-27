@@ -120,11 +120,11 @@ class DriverController extends Controller
             'ru' => 'Сообщение от администраторов приложения Qadam: ' . $request->message,
             'en' => 'Message from Qadam app administrators: ' . $request->message,
         ];
-        
+
 
         $driver = User::where('role', 'driver')->find($driverId);
         $phone = $driver->phone;
-       
+
         $this->smsService->sendQueued($phone, $message[auth()->user()->authLanguage->language] ?? $message['uz'], 'message-to-driver');
 
 
@@ -339,11 +339,9 @@ class DriverController extends Controller
                 'status'     => 'success',
                 'reason' => $refundMessage[$driverLanguage ?? 'uz'],
             ]);
-            $compBalance = CompanyBalance::firstOrCreate();
+            $compBalance = CompanyBalance::lockForUpdate()->firstOrCreate();
             $compBalanceBefore = $compBalance->balance;
-            $compBalance->update([
-                'balance' => $compBalance->balance - $amountInKopeyka / 100,
-            ]);
+            $compBalance->decrement('balance', $amountInKopeyka / 100);
 
             $refundReasonForCompany = [
                 'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm" . $driver->first_name . "va" . "telefon raqami" . " " . $driver->phone,
@@ -424,14 +422,16 @@ class DriverController extends Controller
 
     public function withdrawFromUser(Request $request, $userID)
     {
-        $request->validate([
-            'amount' => 'required|numeric|min:1',
-            'note'   => 'nullable|string|max:255',
-        ]);
 
-        DB::beginTransaction();
 
         try {
+
+            $request->validate([
+                'amount' => 'required|numeric|min:1',
+                'note'   => 'nullable|string|max:255',
+            ]);
+
+            DB::beginTransaction();
             $user = User::findOrFail($userID);
 
             $userBalance = UserBalance::where('user_id', $user->id)
@@ -471,19 +471,18 @@ class DriverController extends Controller
                 'reason'         => $message[$lang],
             ]);
 
-            $companyBalance = CompanyBalance::lockForUpdate()->first();
-
-            if (!$companyBalance) {
-                $companyBalance = CompanyBalance::create(['balance' => 0]);
-            }
-
+            $companyBalance = CompanyBalance::lockForUpdate()
+                ->firstOrCreate(
+                    [], // search criteria, agar faqat bitta row bo‘lsa bo‘sh array yetarli
+                    ['balance' => 0, 'total_income' => 0]
+                );
             $beforeCompanyBalance = $companyBalance->balance;
             $afterCompanyBalance  = $beforeCompanyBalance + $request->amount;
 
-            $companyBalance->update([
-                'balance' => $afterCompanyBalance,
-                'total_income' => $companyBalance->total_income + $request->amount
-            ]);
+
+            $companyBalance->increment('balance', $request->amount);
+            $companyBalance->increment('total_income', $request->amount);
+
 
             CompanyBalanceTransaction::create([
                 'company_balance_id' => $companyBalance->id,
@@ -518,17 +517,12 @@ class DriverController extends Controller
         try {
             $user = User::findOrFail($userID);
 
-            // 🔒 Lock user balance
-            $userBalance = UserBalance::where('user_id', $user->id)
-                ->lockForUpdate()
-                ->first();
+            $userBalance = UserBalance::lockForUpdate()
+                ->firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['balance' => 0]
+                );
 
-            if (!$userBalance) {
-                $userBalance = UserBalance::create([
-                    'user_id' => $user->id,
-                    'balance' => 0
-                ]);
-            }
 
             // 🔒 Lock company balance
             $companyBalance = CompanyBalance::lockForUpdate()->first();

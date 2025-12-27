@@ -344,12 +344,11 @@ class ClientController extends Controller
                 'balance_after'  => $userBalanceBefore - $amountInKopeyka / 100,
                 'status'     => 'success',
                 'reason' => $refundMessage[$driverLanguage ?? 'uz'],
-            ]);
-            $compBalance = CompanyBalance::firstOrCreate();
-            $compBalanceBefore = $compBalance->balance;
-            $compBalance->update([
-                'balance' => $compBalance->balance - $amountInKopeyka / 100,
-            ]);
+            ]);   
+             $compBalance = CompanyBalance::lockForUpdate()->firstOrCreate();
+             $compBalanceBefore = $compBalance->balance;
+            $compBalance->decrement('balance', $amountInKopeyka / 100);
+      
 
             $refundReasonForCompany = [
                 'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm" . $client->first_name . "va" . "telefon raqami" . " " . $client->phone,

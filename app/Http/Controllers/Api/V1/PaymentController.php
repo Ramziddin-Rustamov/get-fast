@@ -199,7 +199,15 @@ class PaymentController extends Controller
                     $trx->reason = $reasons[auth()->user()->authLanguage->language ?? 'uz'];
                     $trx->reference_id = null;
                     $trx->save();
-                    $userBalance = UserBalance::firstOrCreate(['user_id' => $user->id]);
+
+
+                    $userBalance = UserBalance::where('user_id', $user->id)
+                        ->lockForUpdate()
+                        ->firstOrCreate(
+                            ['user_id' => $user->id],
+                            ['balance' => 0] // default
+                        );
+
                     $userBalance->user_id = $user->id;
                     $userBalance->balance = $user->balance->balance + $payment->amount;
                     $userBalance->save();
@@ -348,7 +356,15 @@ class PaymentController extends Controller
             $trx->reference_id = null;
             $trx->save();
 
-            $userBalance = UserBalance::firstOrCreate(['user_id' => $user->id]);
+
+            $userBalance = UserBalance::where('user_id', $user->id)
+                ->lockForUpdate()
+                ->firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['balance' => 0] // default
+                );
+
+
             $userBalance->user_id = $user->id;
             $userBalance->balance = $user->balance->balance + $payment->amount;
             $userBalance->save();
@@ -606,11 +622,11 @@ class PaymentController extends Controller
                 'status'     => 'success',
                 'reason' => $refundMessage[$userLanguage ?? 'uz'],
             ]);
-            $compBalance = CompanyBalance::firstOrCreate();
+
+            $compBalance = CompanyBalance::lockForUpdate()->firstOrCreate([], ['balance' => 0, 'total_income' => 0]);
+
             $compBalanceBefore = $compBalance->balance;
-            $compBalance->update([
-                'balance' => $compBalance->balance - $amountInKopeyka / 100,
-            ]);
+            $compBalance->decrement('balance', $amountInKopeyka / 100);
 
             $refundReasonForCompany = [
                 'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm" . $user->first_name . "va" . "telefon raqami" . " " . $user->phone,

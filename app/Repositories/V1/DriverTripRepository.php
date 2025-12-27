@@ -214,7 +214,7 @@ class DriverTripRepository
             $clientCompensationPercent = env('REFOUND_COMPENSATION_FOR_CLIENTS', 1); // 1 %
 
             $driver = $trip->driver;
-            $companyBalance = CompanyBalance::first();
+            $companyBalance = CompanyBalance::lockForUpdate()->firstOrFail();
 
 
             foreach ($trip->bookings as $booking) {

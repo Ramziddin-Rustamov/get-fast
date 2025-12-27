@@ -8,6 +8,8 @@ use App\Http\Resources\V1\CompetedInProgressCanceledTripsForClientsResources;
 use App\Models\V1\Trip;
 use Illuminate\Support\Carbon;
 
+use function Symfony\Component\Clock\now;
+
 class ClientTripRepository
 {
 
@@ -80,33 +82,52 @@ class ClientTripRepository
     public function getInprogressTripsForClient()
     {
         try {
+            
             $now = Carbon::now();
-            // ✅ In Progress
+            return $now;
             $inProgressTrips = Trip::whereHas('bookings', function ($q) {
                 $q->where('user_id', auth()->id())
                     ->where('status', 'confirmed');
             })
+                ->where('start_time', '<=', $now)
+                ->where('end_time', '>=', $now)
+                ->where('status', '!=', 'cancelled')
                 ->orderBy('id', 'asc')
                 ->paginate(10);
 
-            $messages = [
+            $messagesNot = [
                 'uz' => 'Sizda davom etayotgan sayohatlar yo‘q',
                 'ru' => 'У вас нет поездок в процессе',
                 'en' => 'You have no in progress trips',
             ];
 
-            $message = $messages[$this->language];
+            $message = $messagesNot[auth()->user()->authLanguage->language] ?? $messagesNot['uz'];
 
             if (count($inProgressTrips) == 0) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => $message
+                    'message' => $message,
+                    'data' => null
+
                 ], 404);
             }
 
-            return CompetedInProgressCanceledTripsForClientsResources::collection($inProgressTrips);
+            $messageSuccess = [
+                'uz' => 'Sizda davom etayotgan sayohatlar mavjud',
+                'ru' => 'У вас есть поездки в процессе',
+                'en' => 'You have in progress trips',
+            ];
+
+            return [
+                'status' => 'success',
+                'message' => $messageSuccess[auth()->user()->authLanguage->language] ?? $messageSuccess['uz'],
+                'data' => CompetedInProgressCanceledTripsForClientsResources::collection($inProgressTrips),
+            ];
         } catch (\Exception $e) {
-            return response()->json($this->errorResponse[$this->language], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => "Something went wrong " . $e
+            ], 404);
         }
     }
 

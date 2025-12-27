@@ -168,7 +168,14 @@ class BookingController extends Controller
             $price = $trip->price_per_seat;
 
 
-            $userBalance = UserBalance::firstOrCreate(['user_id' => auth()->id()], ['balance' => 0]);
+            $userBalance = UserBalance::lockForUpdate()
+                ->firstOrCreate(
+                    ['user_id' => auth()->id()],
+                    ['balance' => 0]
+                );
+
+
+
             if ($userBalance->balance < $price) {
                 return response()->json([
                     'status' => 'error',
@@ -220,8 +227,13 @@ class BookingController extends Controller
             $serviceFee = ($price * (config('services.fees.service_fee_for_compliting_order') / 100));  //  5%
             $driverIncome = $price - $serviceFee;
 
+            $driverBalance = UserBalance::where('user_id', $trip->driver_id)
+                ->lockForUpdate()
+                ->firstOrCreate(
+                    ['user_id' => $trip->driver_id],
+                    ['balance' => 0]
+                );
 
-            $driverBalance = UserBalance::firstOrCreate(['user_id' => $trip->driver_id], ['balance' => 0]);
             $reasonForDriver = [
                 'uz' => "Sizning mavjud buyurtmangiz uchun yangi yo‘lovchi qo‘shildi va to‘lov amalga oshirildi. Yo‘nalish: {$startQuarterName} dan {$endQuarterName} ga. Sizning balansingizga {$price} so‘m tushdi, {$serviceFee} so‘m xizmat haqi ushlab qolindi.",
                 'en' => "A new passenger was added to your existing booking and payment was successfully processed. Route: from {$startQuarterName} to {$endQuarterName}. {$price} UZS was credited to your balance, and a service fee of {$serviceFee} UZS was deducted.",
@@ -262,9 +274,9 @@ class BookingController extends Controller
                 'currency'           => 'UZS',
             ]);
 
-            $company->balance = $company->balance + $serviceFee;
-            $company->total_income = $company->total_income + $serviceFee;
-            $company->save();
+            $company->increment('balance', $serviceFee);
+            $company->increment('total_income', $serviceFee);
+
 
             if ($trip->available_seats  == 0) {
                 $trip->status = 'full';
@@ -361,7 +373,12 @@ class BookingController extends Controller
             $endQuarterName   = $trip->endQuarter?->name ?? '';
 
             // 💰 Client refund
-            $userBalance = UserBalance::firstOrCreate(['user_id' => auth()->id()], ['balance' => 0]);
+            $userBalance = UserBalance::where('user_id', auth()->id())
+                ->lockForUpdate()
+                ->firstOrCreate(
+                    ['user_id' => auth()->id()],
+                    ['balance' => 0]
+                );
 
             $serviceFee = ($price * (config('services.fees.service_fee_for_compliting_order') / 100));
             $return = ($price - $serviceFee);
@@ -397,7 +414,12 @@ class BookingController extends Controller
             $driverCommission = round($price * config('services.fees.service_fee_for_drivers_for_client_cancel_the_booking') / 100, 2); // 1 %  100000 * 0.01 = 1000
 
 
-            $driverBalance = UserBalance::firstOrCreate(['user_id' => $trip->driver_id], ['balance' => 0]);
+            $driverBalance = UserBalance::where('user_id', $trip->driver_id)
+                ->lockForUpdate()
+                ->firstOrCreate(
+                    ['user_id' => $trip->driver_id],
+                    ['balance' => 0]
+                );
 
             $reasonForDriver = [
                 'uz' => "Mavjud buyurtmadan bir yo‘lovchi olib tashlandi. Yo‘nalish: {$startQuarterName} dan {$endQuarterName} ga.
@@ -450,16 +472,13 @@ class BookingController extends Controller
                 'balance_after'      => $company->balance - $driverCommission,
                 'trip_id'            => $trip->id,
                 'type'               => 'outgoing',
-                'reason'             => 'Yo‘lovchi mavzjud buyurtmadan olib tashlandi. Xizmat haqining % qismi haydovchiga qaytarildi. '.$startQuarterName . ' dan ' . $endQuarterName . ' ga.',
+                'reason'             => 'Yo‘lovchi mavzjud buyurtmadan olib tashlandi. Xizmat haqining % qismi haydovchiga qaytarildi. ' . $startQuarterName . ' dan ' . $endQuarterName . ' ga.',
                 'booking_id'         => $booking->id,
                 'currency'           => 'UZS',
             ]);
 
-
-            $company->balance -= $driverCommission;
-            $company->total_income -= $driverCommission;
-            $company->save();
-
+            $company->decrement('balance', $driverCommission);
+            $company->decrement('total_income', $driverCommission);
 
             DB::commit();
 
