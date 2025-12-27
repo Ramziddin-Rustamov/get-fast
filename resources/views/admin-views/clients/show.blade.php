@@ -130,8 +130,13 @@
                     @csrf
                     <div class="mb-3">
                         <label for="amount" class="form-label">Amount</label>
-                        <input type="number" name="amount" id="amount" class="form-control" min="1000" 
-                               max="{{ $client->balance->sum('balance') }}" placeholder="Enter amount">
+                        <input type="number"
+       name="amount"
+       id="amount"
+       class="form-control"
+       min="1000"
+       max="{{ optional($client->balance)->balance ?? 0 }}"
+       placeholder="Enter amount">
                     </div>
 
                     <div class="mb-3">
