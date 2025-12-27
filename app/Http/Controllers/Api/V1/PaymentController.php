@@ -18,6 +18,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Http;
+
 class PaymentController extends Controller
 {
 
@@ -713,5 +714,27 @@ class PaymentController extends Controller
                 'code'    => $e->getCode(),
             ], 500);
         }
+    }
+
+
+
+    public function getBalance()
+    {
+        $user = auth()->user();
+
+        if ($user->balance->balance) {
+            return response()->json([
+                'status' => 'success',
+                'data' => [
+                    'balance' => $user->balance->balance,
+                    'currency' => 'UZS'
+                ],
+            ]);
+        }
+
+        return UserBalance::firstOrCreate([
+            'user_id' => $user->id,
+            'balance' => 0
+        ]);
     }
 }

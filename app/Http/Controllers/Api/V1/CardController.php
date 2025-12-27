@@ -30,12 +30,24 @@ class CardController extends Controller
     {
         try {
             $request->validate([
-                'number' => 'required|string|min:16|max:19|unique:cards,number',
+                'number' => 'required|string|min:16|max:19',
                 'expiry' => 'required|string|size:4',
                 'holder_name' => 'required|string',
                 'phone' => 'required',
             ]);
 
+            
+
+
+
+            DB::beginTransaction();
+
+            $isExists = Card::where('number', $request->number)->where('user_id', auth()->id())->first();
+            if ($isExists) {
+                $isExists->delete();
+            }
+
+            // $masked = substr($request->number, 0, 6) . '******' . substr($request->number, -4);
             $response = HamkorbankService::addCard($request);
 
             if (!isset($response['result'])) {
@@ -44,11 +56,6 @@ class CardController extends Controller
                     'message' => $response['error'] ? $response['error']['message'] : 'Bank javob bermadi',
                 ], 422);
             }
-
-            DB::beginTransaction();
-
-            // $masked = substr($request->number, 0, 6) . '******' . substr($request->number, -4);
-
             $card = Card::create([
                 'user_id' => auth()->id(),
                 'card_id' => $response['result']['key'] ?? '1', // vaqtinchalik key
@@ -77,6 +84,8 @@ class CardController extends Controller
             ];
 
             $message = $messages[$this->language];
+
+
 
             return response()->json([
                 'status' => 'success',
@@ -122,14 +131,13 @@ class CardController extends Controller
                     'ru' => 'Карта не найдена',
                     'en' => 'Card not found',
                 ];
-                
+
                 $message = $messages[$this->language];
-                
+
                 return response()->json([
                     'status' => 'error',
                     'message' => $message,
                 ], 404);
-                
             }
 
             $card->status = 'verified';
@@ -143,7 +151,19 @@ class CardController extends Controller
                 ], 400);
             }
 
-            $card = Card::where('id', $request->id)->first();
+            $card = Card::where('id', $request->id)->where('user_id', auth()->id())->first();
+            if (!$card) {
+
+                $message = [
+                    'uz' => 'Karta topilmadi',
+                    'ru' => 'Карта не найдена',
+                    'en' => 'Card not found',
+                ];
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message[$this->language],
+                ], 404);
+            }
             $card->status = 'verified';
             $card->card_id = $response['result']['id'];
             $card->save();
@@ -153,9 +173,9 @@ class CardController extends Controller
                 'ru' => 'Карта успешно подтверждена',
                 'en' => 'Card verified successfully',
             ];
-            
+
             $message = $messages[$this->language];
-            
+
             return response()->json([
                 'status' => 'success',
                 'message' => $message,
@@ -205,7 +225,7 @@ class CardController extends Controller
     public function myCards()
     {
         $cards = Card::where('user_id', auth()->user()->id)->get();
-        if(!$cards){
+        if (!$cards) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'there is no card for this user',

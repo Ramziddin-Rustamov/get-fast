@@ -27,11 +27,6 @@ class BookingService
         return $this->bookingRepository->createBooking($request);
     }
 
-    public function updateBooking($id, array $data)
-    {
-        return $this->bookingRepository->updateBooking($id, $data);
-    }
-
     public function cancelBooking($id)
     {
         return $this->bookingRepository->cancelBooking($id);

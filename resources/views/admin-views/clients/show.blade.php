@@ -79,6 +79,169 @@
         </div>
     </div>
 
+
+{{-- driver active card  --}}
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">💳 Active Card</h5>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>#</th>
+                        <th>Kartasi</th>
+                        <th>Expire</th>
+                        <th>status</th>
+                        <th>Ulangan nomer</th>
+
+                        <th>Yaratilgan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($client->cards->where('status', 'verified') as $card)
+                    <tr class="text-center">
+                        <td>{{ $card->id }}</td>
+                        <td>{{ $card->number }}</td>
+                        <td>{{ $card->expiry }}</td>
+                        <td>{{ $card->status }}</td>
+                        <td>{{ $card->phone }}</td>
+                        <td>{{ $card->created_at->format('Y-m-d') }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>  
+
+
+{{-- Transfer Modal --}}
+<div class="modal fade" id="transferModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">💸 Transfer Balance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ route('clients.transfer', $client->id) }}" method="POST">
+                    @csrf
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="number" name="amount" id="amount" class="form-control" min="1000" 
+                               max="{{ $client->balance->sum('balance') }}" placeholder="Enter amount">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="card_number" class="form-label">Kartasi</label>
+                        <select name="card_id" id="card_id" class="form-control">
+                            @foreach ($client->cards->where('status', 'verified') as $card)
+                                <option value="{{ $card->id }}">{{ $card->number }} - {{ $card->expiry_month }}/{{ $card->expiry }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+
+                    <div class="mb-3">
+                        <label for="note" class="form-label">Note</label>
+                        <textarea name="note" id="note" class="form-control" rows="2" placeholder="Optional note"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Withdraw Modal --}}
+<div class="modal fade" id="withdrawModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">🏧 Withdraw Balance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+            <form action="{{ route('users.admin.withdraw', $client->id) }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="action" value="minus">
+
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <input type="number"
+                               name="amount"
+                               class="form-control"
+                               min="1"
+                               max="{{ $client->balance->balance }}"
+                               placeholder="Enter amount"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Reason</label>
+                        <textarea name="note"
+                                  class="form-control"
+                                  rows="2"
+                                  placeholder="Withdraw sababi"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="fas fa-minus-circle"></i> Withdraw
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Pay Modal --}}
+<div class="modal fade" id="payModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">💰 Pay Balance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <form action="{{ route('users.admin.balance.add', $client->id) }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="action" value="plus">
+
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <input type="number"
+                               name="amount"
+                               class="form-control"
+                               min="1"
+                               placeholder="Enter amount"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Note</label>
+                        <textarea name="note"
+                                  class="form-control"
+                                  rows="2"
+                                  placeholder="Pay izohi"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plus-circle"></i> Pay
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
     {{-- Client Trips --}}
     <div class="card mb-4 shadow-sm border-0">
         <div class="card-body">
@@ -227,6 +390,27 @@
             <p class="fs-4">
                 So'm {{ number_format($client->balance?->balance ?? 0, 2, '.', ' ') }}
             </p>
+
+              {{-- Transfer / Pay button --}}
+         {{-- Transfer to card --}}
+         <button class="btn btn-success"
+         data-bs-toggle="modal"
+         data-bs-target="#transferModal">
+         <i class="fas fa-exchange-alt"></i> Transfer to card
+         </button>
+
+         {{-- Withdraw (minus) --}}
+         <button class="btn btn-danger"
+             data-bs-toggle="modal"
+             data-bs-target="#withdrawModal">
+         <i class="fas fa-minus-circle"></i> Withdraw
+         </button>
+
+         {{-- Pay (plus) --}}
+         <button class="btn btn-primary"
+             data-bs-toggle="modal"
+             data-bs-target="#payModal">
+         <i class="fas fa-plus-circle"></i> Pay by Company Account
         </div>
         
         

@@ -4,13 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 
 use App\Models\User;
-use App\Models\V1\Balance;
-use App\Models\V1\DriverPayment;
-use App\Models\V1\Region;
 use App\Models\V1\Vehicle;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\Controller;
 use App\Models\BalanceTransaction;
 use App\Models\UserBalance;
@@ -18,7 +13,6 @@ use App\Models\V1\Card;
 use App\Models\V1\CompanyBalance;
 use App\Models\V1\CompanyBalanceTransaction;
 use App\Models\V1\VehicleImages;
-use App\Services\V1\BankErrorService;
 use App\Services\V1\HamkorbankService;
 use App\Services\V1\SmsService;
 use Illuminate\Support\Facades\DB;
@@ -121,10 +115,17 @@ class DriverController extends Controller
             'message' => 'required|string|max:255',
         ]);
 
+        $message = [
+            'uz' => 'Qadam ilovasi adminlaridan xabar: ' . $request->message,
+            'ru' => 'Сообщение от администраторов приложения Qadam: ' . $request->message,
+            'en' => 'Message from Qadam app administrators: ' . $request->message,
+        ];
+        
+
         $driver = User::where('role', 'driver')->find($driverId);
         $phone = $driver->phone;
-        $message = $request->input('message');
-        $this->smsService->sendQueued($phone, $message, 'message-to-driver');
+       
+        $this->smsService->sendQueued($phone, $message[auth()->user()->authLanguage->language] ?? $message['uz'], 'message-to-driver');
 
 
         return redirect()->back()->with('success', 'Xabar muvaffaqiyatli yuborildi ' . $phone . ': ' . $message);
@@ -223,9 +224,6 @@ class DriverController extends Controller
 
         return back()->with('success', 'Barcha moshina rasmlari o‘chirildi');
     }
-
-
-
 
     public function refund(Request $request, $driverId)
     {
@@ -423,10 +421,170 @@ class DriverController extends Controller
         }
     }
 
-    // public function fillDriverBalance($driverId, $amount)
-    // {
-    //     $driver = User::where('role', 'driver')->find($driverId);
-    //     $driver->balance = $driver->balance + $amount;
-    //     $driver->save();
-    // }
+
+    public function withdrawFromUser(Request $request, $userID)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'note'   => 'nullable|string|max:255',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $user = User::findOrFail($userID);
+
+            $userBalance = UserBalance::where('user_id', $user->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$userBalance) {
+                throw new \Exception('User balance not found');
+            }
+
+            if ($userBalance->balance < $request->amount) {
+                throw new \Exception('Insufficient balance');
+            }
+
+            $beforeUserBalance = $userBalance->balance;
+            $afterUserBalance  = $beforeUserBalance - $request->amount;
+
+            $userBalance->update([
+                'balance' => $afterUserBalance
+            ]);
+
+            $message = [
+                'uz' => 'Pul hisobingizdan yechildi. Izoh: ' . $request->note,
+                'ru' => 'Средства списаны с вашего счета. Примечание: ' . $request->note,
+                'en' => 'Funds have been withdrawn from your account. Note: ' . $request->note,
+            ];
+
+            $lang = $user->authLanguage->language ?? 'uz';
+
+            BalanceTransaction::create([
+                'user_id'        => $user->id,
+                'type'           => 'debit',
+                'amount'         => $request->amount,
+                'balance_before' => $beforeUserBalance,
+                'balance_after'  => $afterUserBalance,
+                'status'         => 'success',
+                'reason'         => $message[$lang],
+            ]);
+
+            $companyBalance = CompanyBalance::lockForUpdate()->first();
+
+            if (!$companyBalance) {
+                $companyBalance = CompanyBalance::create(['balance' => 0]);
+            }
+
+            $beforeCompanyBalance = $companyBalance->balance;
+            $afterCompanyBalance  = $beforeCompanyBalance + $request->amount;
+
+            $companyBalance->update([
+                'balance' => $afterCompanyBalance,
+                'total_income' => $companyBalance->total_income + $request->amount
+            ]);
+
+            CompanyBalanceTransaction::create([
+                'company_balance_id' => $companyBalance->id,
+                'amount'             => $request->amount,
+                'balance_before'     => $beforeCompanyBalance,
+                'balance_after'      => $afterCompanyBalance,
+                'type'               => 'incoming',
+                'reason'             => 'Withdraw from user: ' . $user->id . ' | Note: ' . $request->note,
+                'currency'           => 'UZS',
+            ]);
+
+            DB::commit();
+
+            return back()->with('success', $message[$lang]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+
+    //   for clients and drivers 
+    public function payToUserToBalance(Request $request, $userID)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'note'   => 'nullable|string|max:255',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $user = User::findOrFail($userID);
+
+            // 🔒 Lock user balance
+            $userBalance = UserBalance::where('user_id', $user->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$userBalance) {
+                $userBalance = UserBalance::create([
+                    'user_id' => $user->id,
+                    'balance' => 0
+                ]);
+            }
+
+            // 🔒 Lock company balance
+            $companyBalance = CompanyBalance::lockForUpdate()->first();
+
+            if (!$companyBalance) {
+                throw new \Exception('Company balance not found');
+            }
+
+
+            // Save BEFORE values
+            $beforeUserBalance    = $userBalance->balance;
+            $afterUserBalance     = $beforeUserBalance + $request->amount;
+
+            $beforeCompanyBalance = $companyBalance->balance;
+            $afterCompanyBalance  = $beforeCompanyBalance - $request->amount;
+
+            // Update balances
+            $userBalance->update(['balance' => $afterUserBalance]);
+            $companyBalance->update(['balance' => $afterCompanyBalance]);
+
+            $message = [
+                'uz' => 'Admin tomonidan hisobingizga ' . $request->amount . ' so‘m qo‘shildi. Izoh: ' . $request->note,
+                'ru' => 'Администратор пополнил ваш баланс на ' . $request->amount . '. Примечание: ' . $request->note,
+                'en' => 'Admin credited your balance with ' . $request->amount . '. Note: ' . $request->note,
+            ];
+
+            $lang = $user->authLanguage->language ?? 'uz';
+
+            // User transaction
+            BalanceTransaction::create([
+                'user_id'        => $user->id,
+                'type'           => 'credit',
+                'amount'         => $request->amount,
+                'balance_before' => $beforeUserBalance,
+                'balance_after'  => $afterUserBalance,
+                'status'         => 'success',
+                'reason'         => $message[$lang],
+            ]);
+
+            // Company transaction
+            CompanyBalanceTransaction::create([
+                'company_balance_id' => $companyBalance->id,
+                'amount'             => $request->amount,
+                'balance_before'     => $beforeCompanyBalance,
+                'balance_after'      => $afterCompanyBalance,
+                'type'               => 'outgoing',
+                'reason'             => 'Admin payment to user ID ' . $user->id . '. Note: ' . $request->note,
+                'currency'           => 'UZS',
+            ]);
+
+            DB::commit();
+
+            return back()->with('success', $message[$lang]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', $e->getMessage());
+        }
+    }
 }

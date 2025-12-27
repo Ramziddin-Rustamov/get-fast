@@ -20,39 +20,6 @@ class BookingRepository
 
 
 
-    public $errorResponse = [
-        'uz' => [
-            'status' => 'error',
-            'message' => 'Topilmadi!'
-        ],
-        'ru' => [
-            'status' => 'error',
-            'message' => 'Не найдено!'
-        ],
-        'en' => [
-            'status' => 'error',
-            'message' => 'Not found!'
-        ]
-    ];
-
-    public $successResponse = [
-        'uz' => [
-            'status' => 'success',
-            'message' => 'Muvaffaqiyatli o‘chirildi!'
-        ],
-        'ru' => [
-            'status' => 'success',
-            'message' => 'Удалено успешно!'
-        ],
-        'en' => [
-            'status' => 'success',
-            'message' => 'Deleted successfully!'
-        ]
-    ];
-
-
-
-
     public function getAllBookings()
     {
         try {
@@ -66,11 +33,11 @@ class BookingRepository
     {
         $booking = Booking::with('passengers', 'trip.vehicle', 'trip')->where('user_id', auth()->user()->id)->find($id);
 
-        if (is_null($booking)) {
-            return response()->json($this->errorResponse[auth()->user()->authLanguage->language ?? 'uz'], 404);
-        }
-
-        return response()->json(new BookingResource($booking), 200);
+        return [
+            'status' => 'success',
+            'message' => 'Booking fetched successfully',
+            'data' => new BookingResource($booking)
+        ];
     }
 
     public function createBooking($data)
@@ -182,7 +149,7 @@ class BookingRepository
             }
 
 
-            $serviceFeePercent =  env('SERVICE_FEE_FOR_COMPLITING_ORDER'); // 5
+            $serviceFeePercent =  config('services.fees.service_fee_for_compliting_order'); // 5
             if (!$serviceFeePercent) {
                 $serviceFeePercent = 5;
             }
@@ -242,7 +209,7 @@ class BookingRepository
                 $endQuarterName = $trip->endQuarter->name ?? '';
 
                 $reasonForClient = [
-                    'uz' => "Siz yangi booking qildingiz (Booking ID: $booking->id) safari uchun (Safari: $startQuarterName → $endQuarterName). Umumiy summa: $totalPrice UZS",
+                    'uz' => "Siz yangi booking qildingiz (Booking ID: $booking->id) safari uchun (Safari: $startQuarterName → $endQuarterName). Umumiy summa: $totalPrice  UZS",
                     'en' => "You made a new booking (Booking ID: $booking->id) for your trip (Trip: $startQuarterName → $endQuarterName). Total price: $totalPrice UZS",
                     'ru' => "Вы сделали новое бронирование (Booking ID: $booking->id) для вашей поездки (Trip: $startQuarterName → $endQuarterName). Общая сумма: $totalPrice UZS"
                 ];
@@ -310,78 +277,6 @@ class BookingRepository
         }
     }
 
-
-    // public function updateBooking($id, array $data)
-    // {
-
-
-    //     try {
-
-    //         $booking = Booking::where('user_id', auth()->user()->id)->find($id);
-
-    //         if (is_null($booking)) {
-    //             return response()->json($this->errorResponse[auth()->user()->authLanguage->language ?? 'uz'], 404);
-    //         }
-
-    //         DB::beginTransaction();
-
-    //         $requestedSeats = isset($data['passengers']) ? count($data['passengers']) : $booking->seats_booked;
-    //         //                                         2                       1
-    //         if ($requestedSeats > $booking->seats_booked) {
-    //             $messages = [
-    //                 'uz' => 'Siz oldin band qilgan yo‘lovchilardan ko‘p yo‘lovchi qo‘sholmaysiz',
-    //                 'ru' => 'Вы не можете добавить больше пассажиров, чем уже забронировано',
-    //                 'en' => 'You cannot add more passengers than you have already booked',
-    //             ];
-    //             $language = auth()->user()->authLanguage->language ?? 'uz';
-    //             $message = $messages[$language];
-
-    //             return response()->json([
-    //                 'status' => 'error',
-    //                 'message' => $message
-    //             ], 422);
-    //         }
-
-    //         if ($requestedSeats == $booking->seats_booked) {
-    //             // user only want to update passengers
-    //             if (isset($data['passengers']) && is_array($data['passengers'])) {
-    //                 BookingPassengers::where('booking_id', $booking->id)->delete();
-    //                 foreach ($data['passengers'] as $passenger) {
-    //                     BookingPassengers::create([
-    //                         'booking_id' => $booking->id,
-    //                         'name' => $passenger['name'],
-    //                         'phone' => $passenger['phone'],
-    //                     ]);
-    //                 }
-    //             }
-    //         }
-
-
-    //         $booking->update([
-    //             'seats_booked' => $requestedSeats,
-    //             'total_price' => isset($data['passengers'])
-    //                 ? $booking->trip->price_per_seat * count($data['passengers'])
-    //                 : $booking->total_price,
-    //             'status' => $data['status'] ?? $booking->status,
-    //         ]);
-
-
-
-    //         DB::commit();
-
-    //         // Yangilangan bookingni yangi ma'lumotlar bilan qaytaramiz
-    //         $booking->load('passengers'); // Yo‘lovchilarni yangilab olish
-
-    //         return response()->json(new BookingResource($booking));
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'messsage' => 'Server error occurred'
-    //         ], 500);
-    //     }
-    // }
-
     public function cancelBooking($bookingId)
     {
 
@@ -409,9 +304,6 @@ class BookingRepository
                     'message' => $messages[$authLan] ?? $messages['uz']
                 ]);
             }
-
-
-
 
 
             if (in_array($booking->status, ['cancelled', 'pending', 'completed']) || in_array($booking->trip->status, ['cancelled', 'pending', 'completed'])) {
@@ -471,8 +363,9 @@ class BookingRepository
             $total = (float) $booking->total_price;
 
             // Cancelation fee foydalanuvchidan ushlab qolish
-            $cancelationFee = round($total * env('SERVICE_FEE_FOR_CANCELATION') / 100, 2); // 100000 * 0.5 = 50000
+            $cancelationFee = round($total * config('services.fees.service_fee_for_canceling_order') / 100, 2); // 100000 * 0.5 = 50000
             $refundForClient = round($total - $cancelationFee, 2);
+
 
             // === USER BALANCE UPDATE ===
             $userBalance = UserBalance::firstOrCreate(
@@ -487,7 +380,7 @@ class BookingRepository
             $end   = $trip->endQuarter->name ?? 'Nomaʼlum';
 
             $reasonForClientCancelation = [
-                'uz' => "Foydalanuvchi #{$booking->id} band qilgan safarni bekordi. Yo‘nalish: {$start} → {$end}. Qaytarilgan summa: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS.",
+                'uz' => "Foydalanuvchi #{$booking->id} band qilgan safarni bekor qildi. Yo‘nalish: {$start} → {$end}. Qaytarilgan summa: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS.",
                 'ru' => "Пользователь отменил бронирование #{$booking->id}. Маршрут: {$start} → {$end}. Возврат: {$refundForClient} UZS, комиссия за отмену: {$cancelationFee} UZS.",
                 'en' => "User cancelled booking #{$booking->id}. Route: {$start} → {$end}. Refund: {$refundForClient} UZS, cancellation fee: {$cancelationFee} UZS.",
             ];
@@ -513,7 +406,7 @@ class BookingRepository
             );
 
 
-            $driverCommission = round($total * env('SERVICE_FEE_FOR_DRIVERS_FOR_CLIENT_CANCEL_THE_BOOKING') / 100, 2); // 1 %  100000 * 0.01 = 1000
+            $driverCommission = round($total * config('services.fees.service_fee_for_drivers_for_client_cancel_the_booking') / 100, 2); // 1 %  100000 * 0.01 = 1000
             $driverBalanceBefore = $driverBalance->balance;
             $driverBalance->balance = ((($driverBalance->balance + $cancelationFee) - $total) + $driverCommission);
             $driverBalance->save();
@@ -552,8 +445,7 @@ class BookingRepository
             $booking->save();
 
             $companyBalance = CompanyBalance::first();
-            $companyBalance->balance = $companyBalance->balance + ($cancelationFee - $driverCommission);
-            $companyBalance->save();
+
 
             // Company got amount
             $cgot = $cancelationFee - $driverCommission;
@@ -564,25 +456,29 @@ class BookingRepository
 
             // Multi–language reason
             $companyReason = [
-                'uz' => "Foydalanuvchi trip #{$trip->id} safarni bekor qildi. Boshlanish nuqtasi: {$startQuarterName}, borish nuqtasi: {$endQuarterName}. Mijozga qaytarilgan summa: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS, haydovchi kompensatsiyasi: {$driverCommission} UZS. Kompaniya olgan sof summa: {$cgot} UZS.",
-
-                'ru' => "Пользователь отменил поездку #{$trip->id}. От: {$startQuarterName}, До: {$endQuarterName}. Возврат клиенту: {$refundForClient} UZS, комиссия: {$cancelationFee} UZS, компенсация водителю: {$driverCommission} UZS. Чистая прибыль компании: {$cgot} UZS.",
-
-                'en' => "User cancelled trip #{$trip->id}. From: {$startQuarterName}, To: {$endQuarterName}. Client refund: {$refundForClient} UZS, cancellation fee: {$cancelationFee} UZS, driver compensation: {$driverCommission} UZS. Company earned: {$cgot} UZS.",
+                'uz' => "Foydalanuvchi trip #{$trip->id} safarni bekor qildi. Boshlanish nuqtasi: {$startQuarterName}, borish nuqtasi: {$endQuarterName}.
+                 Mijozga qaytarilgan summa: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS, haydovchi kompensatsiyasi: {$driverCommission} UZS.
+                  Kompaniya olgan sof summa: {$cgot} UZS. va faqat biz kampaniya hisobidan havdovchiga qaytarib beryapmiz summa: {$driverCommission} UZS.",
+                'ru' => "Пользователь отменил поездку #{$trip->id}. От: {$startQuarterName}, До: {$endQuarterName}. Возврат клиенту: {$refundForClient} UZS, комиссия:
+                 {$cancelationFee} UZS, компенсация водителю: {$driverCommission} UZS. Чистая прибыль компании: {$cgot} UZS. Только мы возвращаем водителю: {$driverCommission} UZS.",
+                'en' => "User cancelled trip #{$trip->id}. From: {$startQuarterName}, To: {$endQuarterName}. Client refund: {$refundForClient} UZS, cancellation fee: 
+                {$cancelationFee} UZS, driver compensation: {$driverCommission} UZS. Company earned: {$cgot} UZS. Only we return to the driver: {$driverCommission} UZS.",
             ];
 
             // Create Company Balance Transaction
             CompanyBalanceTransaction::create([
                 'company_balance_id' => $companyBalance->id,
-                'amount'             => $cgot,
+                'amount'             => $driverCommission,
                 'balance_before'     => $companyBalance->balance,
-                'balance_after'      => $companyBalance->balance + $cgot,
+                'balance_after'      => $companyBalance->balance - $driverCommission,
                 'trip_id'            => $trip->id,
-                'type'               => 'income',
+                'type'               => 'outgoing',
                 'reason'             => $companyReason['uz'], // change to selected language if needed
                 'booking_id'         => $booking->id,
                 'currency'           => 'UZS',
             ]);
+            $companyBalance->balance = $companyBalance->balance - $driverCommission;
+            $companyBalance->save();
 
             DB::commit();
 

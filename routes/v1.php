@@ -62,6 +62,8 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'show']);
         Route::post('/', [App\Http\Controllers\Api\V1\BookingController::class, 'bookTrip']);
         Route::delete('/cancel/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'cancelBooking']);
+        Route::post('/{id}/add-passenger', [App\Http\Controllers\Api\V1\BookingController::class, 'addPassengerToBooking']);
+        Route::post('/{bookingId}/remove-passenger/{passengerId}', [App\Http\Controllers\Api\V1\BookingController::class, 'removePassengerFromBooking']);
     });
 
     Route::prefix('/user/balance-transactions')->group(function () {
@@ -119,6 +121,7 @@ Route::prefix('bank')->middleware('auth:api')->group(function () {
     Route::post('/check-card-balance', [CardController::class, 'checkCardBalance']);
     Route::post('create-payment', [\App\Http\Controllers\Api\V1\PaymentController::class, 'createPayment']);
     Route::post('confirm-payment', [\App\Http\Controllers\Api\V1\PaymentController::class, 'confirmPayment']);
+    Route::post('get-balance', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getBalance']);
     Route::post('resend-sms', [\App\Http\Controllers\Api\V1\PaymentController::class, 'resendSms']);
     Route::post('get-payment-info', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentInfo']);
     Route::get('payment-history', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentHistory']);

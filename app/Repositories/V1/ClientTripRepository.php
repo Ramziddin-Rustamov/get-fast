@@ -11,43 +11,6 @@ use Illuminate\Support\Carbon;
 class ClientTripRepository
 {
 
-
-    public $language = 'uz';
-
-    public function __construct()
-    {
-        $this->language = auth()->user()->authLanguage->language ?? 'uz';
-    }
-    public $errorResponse = [
-        'uz' => [
-            'status' => 'error',
-            'message' => 'Topilmadi!'
-        ],
-        'ru' => [
-            'status' => 'error',
-            'message' => 'Не найдено!'
-        ],
-        'en' => [
-            'status' => 'error',
-            'message' => 'Not found!'
-        ]
-    ];
-
-    public $successResponse = [
-        'uz' => [
-            'status' => 'success',
-            'message' => 'Muvaffaqiyatli o‘chirildi!'
-        ],
-        'ru' => [
-            'status' => 'success',
-            'message' => 'Удалено успешно!'
-        ],
-        'en' => [
-            'status' => 'success',
-            'message' => 'Deleted successfully!'
-        ]
-    ];
-
     public function getAllTrips()
     {
         try {
@@ -123,9 +86,6 @@ class ClientTripRepository
                 $q->where('user_id', auth()->id())
                     ->where('status', 'confirmed');
             })
-                ->where('status', 'active')
-                ->where('start_time', '<=', $now)
-                ->where('end_time', '>=', $now)
                 ->orderBy('id', 'asc')
                 ->paginate(10);
 

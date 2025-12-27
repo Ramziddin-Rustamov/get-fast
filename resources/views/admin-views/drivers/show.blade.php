@@ -102,8 +102,119 @@
     </div>
 </div>
 
+{{-- Withdraw Modal --}}
+<div class="modal fade" id="withdrawModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">🏧 Withdraw Balance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
 
+            <div class="modal-body">
+            <form action="{{ route('users.admin.withdraw', $driver->id) }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="action" value="minus">
 
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <input type="number"
+                               name="amount"
+                               class="form-control"
+                               min="1"
+                               max="{{ $driver->balance->balance }}"
+                               placeholder="Enter amount"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Reason</label>
+                        <textarea name="note"
+                                  class="form-control"
+                                  rows="2"
+                                  placeholder="Withdraw sababi"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100">
+                        <i class="fas fa-minus-circle"></i> Withdraw
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Pay Modal --}}
+<div class="modal fade" id="payModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">💰 Pay Balance</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <form action="{{ route('users.admin.balance.add', $driver->id) }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="action" value="plus">
+
+                    <div class="mb-3">
+                        <label class="form-label">Amount</label>
+                        <input type="number"
+                               name="amount"
+                               class="form-control"
+                               min="1"
+                               placeholder="Enter amount"
+                               required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Note</label>
+                        <textarea name="note"
+                                  class="form-control"
+                                  rows="2"
+                                  placeholder="Pay izohi"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plus-circle"></i> Pay
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+   {{-- Balance --}}
+   <div class="card mb-4 shadow-sm">
+    <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="card-title">💰 Balance</h5>
+            <p class="fs-4">So'm {{ number_format($driver->balance->balance, 2, '.', ' ') ?? '0' }}</p>
+        </div>
+
+                 {{-- Transfer to card --}}
+                <button class="btn btn-success"
+                data-bs-toggle="modal"
+                data-bs-target="#transferModal">
+                <i class="fas fa-exchange-alt"></i> Transfer to card
+                </button>
+
+                {{-- Withdraw (minus) --}}
+                <button class="btn btn-danger"
+                    data-bs-toggle="modal"
+                    data-bs-target="#withdrawModal">
+                <i class="fas fa-minus-circle"></i> Withdraw
+                </button>
+
+                {{-- Pay (plus) --}}
+                <button class="btn btn-primary"
+                    data-bs-toggle="modal"
+                    data-bs-target="#payModal">
+                <i class="fas fa-plus-circle"></i> Pay by Company Account
+    </button>
+    </div>
+</div>
 
 
 {{-- driver active card  --}}
@@ -142,20 +253,6 @@
     </div>
 </div>  
 
-   {{-- Balance --}}
-   <div class="card mb-4 shadow-sm">
-    <div class="card-body d-flex justify-content-between align-items-center">
-        <div>
-            <h5 class="card-title">💰 Balance</h5>
-            <p class="fs-4">So'm {{ number_format($driver->balance->balance, 2, '.', ' ') ?? '0' }}</p>
-        </div>
-
-        {{-- Transfer / Pay button --}}
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#transferModal">
-            <i class="fas fa-money-bill-wave"></i> Transfer
-        </button>
-    </div>
-</div>
 
 
 {{-- Balance Transactions --}}
@@ -250,7 +347,7 @@
                                     {{ \Carbon\Carbon::parse($trip->end_time)->format('d.m.Y H:i') }}
                                 </div>
                                 <div><strong>Price:</strong> {{ number_format($trip->price_per_seat, 0, '.', ' ') }} so'm</div>
-                                <div><strong>Seats:</strong> {{ $trip->available_seats }} / {{ $trip->total_seats }}</div>
+                                <div><strong>Seats:</strong> {{ $trip->available_seats }} available / {{ $trip->total_seats }} seats </div>
                             </div>
 
                             <span class="badge {{ $trip->status === 'cancelled' ? 'bg-danger' : 'bg-success' }}">

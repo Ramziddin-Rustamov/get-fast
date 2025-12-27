@@ -29,10 +29,14 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
     Route::get('drivers/{driver}/edit', [DriverController::class, 'edit'])->name('drivers.edit'); // Edit driver
     Route::put('drivers/{driver}', [DriverController::class, 'update'])->name('drivers.update'); // Update driver
     Route::delete('drivers/{driver}', [DriverController::class, 'destroy'])->name('drivers.destroy'); // Delete driver
-    Route::post('drivers/{driver}/send-sms', [DriverController::class, 'sendSms'])
-        ->name('drivers.sendSms');
-    Route::post('drivers/{driver}/transfer', [DriverController::class, 'refund'])
-        ->name('drivers.transfer');
+    Route::post('drivers/{driver}/send-sms', [DriverController::class, 'sendSms'])->name('drivers.sendSms');
+    Route::post('drivers/{driver}/transfer', [DriverController::class, 'refund'])->name('drivers.transfer');
+
+
+    // for overall users
+    Route::post('users/{userID}/withdraw', [DriverController::class, 'withdrawFromUser'])->name('users.admin.withdraw');
+    Route::post('users/{userID}/pay', [DriverController::class, 'payToUserToBalance'])->name('users.admin.balance.add');
+
     Route::post('drivers/{driver}/update-status', [DriverController::class, 'updateStatus'])
         ->name('drivers.updateStatus');
     // Driver – hamma rasmlarni o'chirish
@@ -57,6 +61,8 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
     Route::get('clients/{client}/balance', [ClientController::class, 'balance'])->name('clients.balance');
     Route::get('clients/{client}/images', [ClientController::class, 'images'])->name('clients.images');
     Route::post('clients/{client}/send-sms', [ClientController::class, 'sendSms'])->name('clients.sendSms');
+    Route::post('clients/{driver}/transfer', [ClientController::class, 'refund'])
+        ->name('clients.transfer');
 
     // ADMINS
     Route::get('admins', [AdminController::class, 'index'])->name('admins.index');
