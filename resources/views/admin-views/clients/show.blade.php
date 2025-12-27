@@ -135,7 +135,7 @@
        id="amount"
        class="form-control"
        min="1000"
-       max="{{ optional($client->balance)->balance ?? 0 }}"
+      max="{{ $client->balance?->balance ?? 0 }}"
        placeholder="Enter amount">
                     </div>
 
