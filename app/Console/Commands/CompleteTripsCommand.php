@@ -13,6 +13,7 @@ class CompleteTripsCommand extends Command
     protected $signature = 'trips:complete';
     protected $description = 'End time o‘tgan trip va bookinglarni completed qilish';
 
+
     public function handle()
     {
         $now = Carbon::now();
@@ -26,6 +27,7 @@ class CompleteTripsCommand extends Command
                 ->pluck('id');
 
             if ($tripIds->isEmpty()) {
+                $this->info('Trip va bookinglar muvaffaqiyatli completed qilindi');
                 DB::commit();
                 return;
             }
@@ -42,7 +44,6 @@ class CompleteTripsCommand extends Command
             DB::commit();
 
             $this->info('Trip va bookinglar muvaffaqiyatli completed qilindi');
-
         } catch (\Throwable $e) {
             DB::rollBack();
             $this->error($e->getMessage());
