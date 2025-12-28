@@ -5,6 +5,7 @@ namespace App\Http\Resources\V1;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Carbon\Carbon;
+
 class CompetedInProgressCanceledTripsForClientsResources extends JsonResource
 {
     public function toArray(Request $request): array
@@ -26,8 +27,12 @@ class CompetedInProgressCanceledTripsForClientsResources extends JsonResource
             : null;
         return [
             'id' => $this->id,
-            'from_where' => $this->startQuarter->name . ', ' . $this->startQuarter->district->name . ', ' . $this->startQuarter->district->region->name,
-            'to_where' => $this->endQuarter->name . ', ' . $this->endQuarter->district->name . ', ' . $this->endQuarter->district->region->name,
+            'from_region_id' => $this->start_region_id,
+            'end_region_id' => $this->end_region_id,
+            'from_district_id' => $this->start_district_id,
+            'end_district_id' => $this->end_district_id,
+            'from_quarter_id' => $this->start_quarter_id,
+            'end_quarter_id' => $this->end_quarter_id,
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'duration' => $duration_formatted, // Davomiylik (soatlar va daqiqalarda)
@@ -41,11 +46,30 @@ class CompetedInProgressCanceledTripsForClientsResources extends JsonResource
             'status' => $this->status,
             'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
             'updated_at' => $this->updated_at ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s') : null,
-           'driver' => $this->driver ? [
+            'driver' => $this->driver ? [
                 'id' => $this->driver->id,
                 'name' => $this->driver->name ?? null,
                 'role' => $this->driver->role ?? null,
             ] : 'No driver data',
+            'bookings' => $this->bookings->map(function ($booking) {
+                return [
+                    'booked_by_user' => [
+                        'id' => $booking->user->id,
+                        'first_name' => $booking->user->first_name,
+                        'last_name' => $booking->user->last_name,
+                        'phone' => $booking->user->phone,
+                        'email' => $booking->user->email,
+                        'booking_status' => $booking->status,
+                    ],
+                    'passengers' => $booking->passengers->map(function ($passenger) use ($booking) {
+                        return [
+                            'booking_status' => $booking->status,
+                            'name' => $passenger->name,
+                            'phone' => $passenger->phone,
+                        ];
+                    }),
+                ];
+            }),
 
             'vehicle' => $this->vehicle ? [
                 'id' => $this->vehicle->id,
@@ -68,11 +92,11 @@ class CompetedInProgressCanceledTripsForClientsResources extends JsonResource
             ] : 'No starting point data',
 
             'ending_point' => $this->endPoint ? [
-                    'id' => $this->endPoint->id,
-                    'lat' => $this->endPoint->lat,
-                    'long' => $this->endPoint->long,
+                'id' => $this->endPoint->id,
+                'lat' => $this->endPoint->lat,
+                'long' => $this->endPoint->long,
             ] : 'No ending point data',
-            
+
         ];
     }
 }
