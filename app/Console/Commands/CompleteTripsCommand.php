@@ -26,7 +26,6 @@ class CompleteTripsCommand extends Command
                 ->pluck('id');
 
             if ($tripIds->isEmpty()) {
-                $this->info('Completed qilinadigan trip yo‘q');
                 DB::commit();
                 return;
             }
