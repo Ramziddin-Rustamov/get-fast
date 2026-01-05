@@ -25,8 +25,15 @@
         
         <button type="submit" class="btn btn-primary">Filter</button>
         <a href="{{ route('orders.index') }}" class="btn btn-secondary">Reset</a>
-        
     </form>
+
+    <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-clock text-primary fs-5"></i>
+        <span class="text-secondary fw-semibold fs-6">
+            {{ \Carbon\Carbon::now()->locale('en')->translatedFormat('l, d F Y H:i') }}
+        </span>
+    </div>
+    
 
     {{-- Orders Table --}}
     <div class="table-responsive shadow rounded">

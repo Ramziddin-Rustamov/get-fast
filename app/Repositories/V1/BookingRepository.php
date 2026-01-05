@@ -14,11 +14,17 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\V1\CompanyBalance;
 use App\Models\V1\CompanyBalanceTransaction;
 use Carbon\Carbon;
+use App\Services\V1\SmsService;
 
 class BookingRepository
 {
 
+    protected SmsService $smsService;
 
+    public function __construct(SmsService $smsService)
+    {
+        $this->smsService = $smsService;
+    }
 
     public function getAllBookings()
     {
@@ -49,9 +55,9 @@ class BookingRepository
             $trip = Trip::with('vehicle')->find($data['trip_id']);
             if (is_null($trip)) {
                 $messages = [
-                    'uz' => 'Safar topilmadi',
-                    'ru' => 'Поездка не найдена',
-                    'en' => 'Trip not found',
+                    'uz' => 'Safar topilmadi, qayta urinib ko‘ring',
+                    'ru' => 'Поездка не найдена, повторите попытку',
+                    'en' => 'Trip not found, try again',
                 ];
                 return response()->json([
                     'status' => 'error',
@@ -78,16 +84,16 @@ class BookingRepository
             DB::beginTransaction();
             if ($requestedSeats > $trip->available_seats) {
                 $messages = [
-                    'uz' => 'Etarli joy mavjud emas',
-                    'ru' => 'Недостаточно мест',
-                    'en' => 'Not enough seats available',
+                    'uz' => 'yetarli joy mavjud emas, qayta urinib ko‘ring',
+                    'ru' => 'Недостаточно мест, повторите попытку',
+                    'en' => 'Not enough seats available, try again',
                 ];
                 return response()->json(['status' => 'error', 'message' => $messages[$authLan] ?? $messages['uz']], 422);
             }
 
             if ($trip->status == 'cancelled') {
                 $messages = [
-                    'uz' => 'Safar bekor qilingan',
+                    'uz' => 'Safar allaqachon bekor qilingan',
                     'ru' => 'Поездка уже отменена',
                     'en' => 'Trip already is cancelled',
                 ];
@@ -128,7 +134,7 @@ class BookingRepository
 
             if ($userBalance->balance < $totalPrice) {
                 $messages = [
-                    'uz' => 'Booking uchun yetarli balans yo‘q',
+                    'uz' => 'Buyurtma uchun yetarli balans mavjud emas',
                     'ru' => 'Недостаточно средств для бронирования',
                     'en' => 'Insufficient balance for booking',
                 ];
@@ -178,6 +184,8 @@ class BookingRepository
                 ];
 
 
+
+
                 $driverBalanceTransaction = new BalanceTransaction();
                 $driverBalanceTransaction->user_id = $trip->driver_id;
                 $driverBalanceTransaction->type = 'credit';
@@ -192,6 +200,25 @@ class BookingRepository
 
                 $driverBalance->balance = ($driverBalance->balance) + ($net_income);
                 $driverBalance->save();
+
+
+
+                $textSMSForDriver = [
+                'uz' => "Qadam ilovasida siz yangi buyurtma oldingiz. Umumiy summa: $totalPrice UZS, sizga tushadigan summa: $net_income UZS. Iltimos, buyurtmani bajarib bo'lgungizcha hisobingizdagi summani yechmang. 
+                Ilovadan batafsil tekshiring. Mijoz: {$booking->user->first_name} {$booking->user->last_name}, telefon raqami: {$booking->user->phone}, band qilingan joylar: $requestedSeats ta.",
+                'ru' => "В приложении Qadam у вас новый заказ. Общая сумма: $totalPrice UZS, вам поступит: $net_income UZS. Пожалуйста, не снимайте деньги с вашего счета, пока заказ не будет выполнен. 
+                Подробности можно проверить в приложении. Клиент: {$booking->user->first_name} {$booking->user->last_name}, телефон: {$booking->user->phone}, забронированные места: $requestedSeats.",
+                'en' => "You have a new order in the Qadam app. Total amount: $totalPrice UZS, your net income: $net_income UZS. Please do not withdraw the amount from your account until the order is completed. 
+                Check details in the app. Customer: {$booking->user->first_name} {$booking->user->last_name}, phone: {$booking->user->phone}, seats booked: $requestedSeats."
+                ];
+
+                $textSMSForDriver = $textSMSForDriver[$trip->driver->authLanguage->language] ?? $textSMSForDriver['uz'];
+                if($trip->driver->phone){
+                // SMS jo'natish
+                // $this->smsService->sendQueued($trip->driver->phone, $textSMSForDriver, 'send-sms-to-driver-about-new-booking');
+                }
+
+
             }
 
             if ($userBalance) {
@@ -221,6 +248,27 @@ class BookingRepository
 
                 $userBalance->balance = ($userBalance->balance) - ($totalPrice);
                 $userBalance->save();
+
+                $textSMSForClient = [
+                'uz' => "Qadam ilovasida siz yangi buyurtma qildingiz. Umumiy summa: $totalPrice UZS to‘landi. 
+                Haydovchi: {$trip->driver->first_name} {$trip->driver->last_name}, telefon raqami: {$trip->driver->phone}, band qilingan joylar: $requestedSeats ta. 
+                Sayohatni boshlashdan oldin, iltimos haydovchingiz bilan bog‘laning.",
+
+                'ru' => "В приложении Qadam вы сделали новый заказ. Общая сумма: $totalPrice UZS оплачена. 
+                Водитель: {$trip->driver->first_name} {$trip->driver->last_name}, телефон: {$trip->driver->phone}, забронированные места: $requestedSeats. 
+                Перед началом поездки, пожалуйста, свяжитесь с вашим водителем.",
+
+                'en' => "You have made a new booking in the Qadam app. Total amount: $totalPrice UZS has been paid. 
+                Driver: {$trip->driver->first_name} {$trip->driver->last_name}, phone: {$trip->driver->phone}, seats booked: $requestedSeats. 
+                Before starting the trip, please contact your driver."
+                ];
+
+                $textSMSForClient = $textSMSForClient[$booking->user->authLanguage->language] ?? $textSMSForClient['uz'];
+                // SMS jo'natish
+                if($booking->user->phone)
+                {
+                    // $this->smsService->sendQueued($booking->user->phone, $textSMSForClient, 'send-sms-to-driver-about-new-booking');
+                }
             }
 
             if ($companyBalance) {
@@ -300,9 +348,9 @@ class BookingRepository
             if (in_array($booking->status, ['cancelled', 'pending', 'completed']) || in_array($booking->trip->status, ['cancelled', 'pending', 'completed'])) {
 
                 $messages = [
-                    'uz' => 'Bu bosqichda buyurtmani bekor qilib bo‘lmaydi. (cancelled, pending, completed)',
+                    'uz' => 'Bu bosqichda buyurtmani bekor qilib bo‘lmaydi. ( bkor qilingan, ushlab turilgan, yakunlangan)',
                     'en' => 'Booking cannot be cancelled at this stage. (cancelled, pending, completed)',
-                    'ru' => 'На этом этапе бронирование нельзя отменить. (cancelled, pending, completed)',
+                    'ru' => 'На этом этапе бронирование нельзя отменить. (отменено, ожидается, завершено)',
                 ];
 
                 return response()->json([
@@ -316,9 +364,9 @@ class BookingRepository
             if (!$trip) {
 
                 $tripNotFound = [
-                    'uz' => 'Safar topilmadi.',
-                    'en' => 'Trip not found.',
-                    'ru' => 'Поездка не найдена.',
+                    'uz' => 'Safar topilmadi, eltimos qaytadan urinib ko‘ring',
+                    'en' => 'Trip not found, try again later',
+                    'ru' => 'Поездка не найдена, попробуйте позже',
                 ];
 
                 return response()->json([
@@ -354,7 +402,7 @@ class BookingRepository
             $total = (float) $booking->total_price;
 
             // Cancelation fee foydalanuvchidan ushlab qolish
-            $cancelationFee = round($total * config('services.fees.service_fee_for_canceling_order') / 100, 2); // 100000 * 0.5 = 50000
+            $cancelationFee = round($total * config('services.fees.service_fee_for_canceling_order') / 100, 2); // 100000 * 0.5 = 5000
             $refundForClient = round($total - $cancelationFee, 2);
 
 
@@ -373,10 +421,21 @@ class BookingRepository
             $end   = $trip->endQuarter->name ?? 'Nomaʼlum';
 
             $reasonForClientCancelation = [
-                'uz' => "Foydalanuvchi #{$booking->id} band qilgan safarni bekor qildi. Yo‘nalish: {$start} → {$end}. Qaytarilgan summa: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS.",
+                'uz' => "Siz #{$booking->id} band qilgan safarni bekor qildi. Yo‘nalish: {$start} → {$end}. Qaytarilgan summa: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS.",
                 'ru' => "Пользователь отменил бронирование #{$booking->id}. Маршрут: {$start} → {$end}. Возврат: {$refundForClient} UZS, комиссия за отмену: {$cancelationFee} UZS.",
                 'en' => "User cancelled booking #{$booking->id}. Route: {$start} → {$end}. Refund: {$refundForClient} UZS, cancellation fee: {$cancelationFee} UZS.",
             ];
+
+            $textSMSMessageToClientAboutCancelation = [
+                'uz' => "Siz qadam ilovasida band qilgan safar bekor qildingiz. Yo‘nalish: {$start} → {$end}. Qaytarilgan summa: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS.",
+                'ru' => "Вы отменили поездку #{$booking->id}. Маршрут: {$start} → {$end}. Возврат: {$refundForClient} UZS, комиссия за отмену: {$cancelationFee} UZS.",
+                'en' => "You cancelled the trip #{$booking->id}. Route: {$start} → {$end}. Refund: {$refundForClient} UZS, cancellation fee: {$cancelationFee} UZS.",
+            ];
+            $textSMSMessageToClientAboutCancelation = $textSMSMessageToClientAboutCancelation[$authLan] ?? $textSMSMessageToClientAboutCancelation['uz'];
+
+              if($user->phone){
+                // $this->smsService->sendQueued($user->phone, $textSMSMessageToClientAboutCancelation, 'send-sms-to-client-about-order-cancelation');
+              }
 
             BalanceTransaction::create([
                 'user_id' => $user->id,
@@ -411,11 +470,25 @@ class BookingRepository
 
             $start = $trip->startQuarter->name ?? 'Nomaʼlum';
             $end   = $trip->endQuarter->name ?? 'Nomaʼlum';
+
+
             $driverReason = [
                 'uz' => "Foydalanuvchi #{$booking->id} band qilgan safarni bekor qildi. Yo‘nalish: {$start} → {$end}. Haydovchidan qaytarib olingan summa: {$withdrawFromDriver} UZS (komissiya: {$driverCommission} UZS).",
                 'ru' => "Пользователь отменил бронирование #{$booking->id}. Маршрут: {$start} → {$end}. С водителя удержано: {$withdrawFromDriver} UZS (комиссия: {$driverCommission} UZS).",
                 'en' => "User cancelled booking #{$booking->id}. Route: {$start} → {$end}. Amount deducted from driver: {$withdrawFromDriver} UZS (fee: {$driverCommission} UZS).",
             ];
+
+
+            $textSMSMessageToDriverAboutCancelation = [
+                'uz' => "Mijoz {$booking->user->first_name} band qilgan safarni bekor qildi. Yo‘nalish: {$start} → {$end}. Sizdan qaytarib olingan summa: {$withdrawFromDriver} UZS (sizga qo‘shimcha to‘lab berildi: {$driverCommission} UZS).",
+                'ru' => "Клиент {$booking->user->first_name} отменил забронированную поездку. Маршрут: {$start} → {$end}. Сумма, возвращённая с вас: {$withdrawFromDriver} UZS (вам дополнительно выплачено: {$driverCommission} UZS).",
+                'en' => "Customer {$booking->user->first_name} has cancelled the booked trip. Route: {$start} → {$end}. Amount withdrawn from you: {$withdrawFromDriver} UZS (additional payment made to you: {$driverCommission} UZS)."
+            ];
+            $textSMSMessageToDriverAboutCancelation = $textSMSMessageToDriverAboutCancelation[$authLan] ?? $textSMSMessageToDriverAboutCancelation['uz'];
+
+              if($trip->driver->phone){
+                // $this->smsService->sendQueued($trip->driver->phone, $textSMSMessageToDriverAboutCancelation, 'send-sms-to-client-about-order-cancelation');
+              }
 
 
             BalanceTransaction::create([

@@ -209,7 +209,7 @@ class ClientController extends Controller
     /**
      * Clientga SMS yuborish
      */
-    public function sendSms(Request $request, $driverId)
+    public function sendSms(Request $request, $clientId)
     {
         $request->validate([
             'message' => 'required|string|max:255',
@@ -222,10 +222,11 @@ class ClientController extends Controller
         ];
 
 
-        $driver = User::where('role', 'driver')->find($driverId);
-        $phone = $driver->phone;
+        $client = User::where('role', 'client')->find($clientId);
+        $phone = $client->phone;
+        $message = $message[$client->authLanguage->language] ?? $message['uz'];
 
-        $this->smsService->sendQueued($phone, $message[auth()->user()->authLanguage->language] ?? $message['uz'], 'message-to-driver');
+        $this->smsService->sendQueued($phone, $message , 'message-to-client');
 
 
         return redirect()->back()->with('success', 'Xabar muvaffaqiyatli yuborildi ' . $phone . ': ' . $message);
@@ -344,11 +345,11 @@ class ClientController extends Controller
                 'balance_after'  => $userBalanceBefore - $amountInKopeyka / 100,
                 'status'     => 'success',
                 'reason' => $refundMessage[$driverLanguage ?? 'uz'],
-            ]);   
-             $compBalance = CompanyBalance::lockForUpdate()->firstOrCreate();
-             $compBalanceBefore = $compBalance->balance;
+            ]);
+            $compBalance = CompanyBalance::lockForUpdate()->firstOrCreate();
+            $compBalanceBefore = $compBalance->balance;
             $compBalance->decrement('balance', $amountInKopeyka / 100);
-      
+
 
             $refundReasonForCompany = [
                 'uz' => "Pul muvaffaqiyatli qaytarildi. Karta: {$card->number}, summa: {$formattedAmount} so'm" . $client->first_name . "va" . "telefon raqami" . " " . $client->phone,

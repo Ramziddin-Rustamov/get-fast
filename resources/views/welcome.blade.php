@@ -1,183 +1,184 @@
-@extends('layouts.app')
+<!DOCTYPE html>
+<html lang="uz">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="Qadam — bir yo‘nalishda ketayotgan odamlarni bog‘lovchi qulay ilova" />
+        <meta name="author" content="Qadam App" />
+        <title>Qadam — Yo‘ldosh topish ilovasi</title>
+        <link rel="icon" type="image/x-icon" href="{{ asset('landing-page/favicon.ico') }}" />
+        <link href="{{ asset('landing-page/styles.css') }}" rel="stylesheet" />
 
-@section('content')
-@auth
-    
-<div class="vh-100 d-flex align-items-center justify-content-center" >
-    <div class="container text-center">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card shadow-lg border-0" style="border-radius: 15px;">
-                    <div class="card-header bg-primary text-white" style="border-top-left-radius: 15px; border-top-right-radius: 15px;">
-                        <h3 class="mb-0">Boshqaruv Panelga Xush Kelibsiz</h3>
-                    </div>
-                    <div class="card-body p-5" style="background: #f7f9fc; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
-                        <p class="lead mb-4">Assalomu alaykum, <strong>{{ Auth::user()->first_name ?? Auth::user()->phone }}</strong>!</p>
-                        <p class="mb-4">Sizning boshqaruv panelingizdan barcha imkoniyatlardan foydalanishingiz mumkin.</p>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" />
+        <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,600;1,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Mulish:ital,wght@0,300;0,500;0,600;0,700;1,300;1,500;1,600;1,700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
+    </head>
 
-                        <a href="{{ route('auth.logout.post') }}" 
-                           class="btn btn-danger btn-lg"
-                           onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                           Chiqish
-                        </a>
-
-                        <form id="logout-form" action="{{ route('auth.logout.post') }}" method="POST" class="d-none">
-                            @csrf
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-@endauth
-@guest
-<!-- Hero / Landing Image Section -->
-<section class="hero-section text-center d-flex align-items-center" style="background: url('https://images.pexels.com/photos/8828455/pexels-photo-8828455.jpeg') center/cover no-repeat;
- height: 80vh; border-radius: 15px; ">
-    <div class="container text-white">
-        <h1 class="display-4 fw-bold mb-3 text-primary backdrop">Sayohatingizni Osonlashtiring</h1>
-        <p class="lead mb-4 fw-bold text-primary">Eng qulay yo‘llar bilan haydovchi va yo‘lovchilarni bog‘laymiz</p>
-        <a href="{{ route('login') }}" class="btn btn-lg btn-primary shadow">Boshlash</a>
-    </div>
-</section>
-
-
-<!-- Features & Opportunities Section -->
-<section id="features-opportunities" class="py-5" style="background: #f8f9fa;">
-    <div class="container">
-        <!-- Section Header -->
-        <div class="text-center mb-5">
-            <h2 class="fw-bold display-5" style="color: #222;">Qadam Ilovasi</h2>
-            <p class="text-muted fs-5 mx-auto" style="max-width: 700px;">
-                Safaringizni eng qulay va xavfsiz tarzda osonlashtiruvchi platforma. O‘zbekiston bo‘ylab viloyatlar ichida yoki aro sayohat qilish mumkin. Ilova ikki xil foydalanuvchi uchun mo‘ljallangan: <strong>Haydovchi</strong> va <strong>Mijoz</strong>.
-            </p>
-        </div>
-
-        <!-- Haydovchi va Mijoz Cards -->
-        <div class="row g-4">
-            <!-- Haydovchi Card -->
-            <div class="col-md-6">
-                <div class="card h-100 shadow-sm border-0 rounded-5 p-5" style="transition: transform 0.3s; background: #ffffff;">
-                    <div class="text-center mb-4">
-                        <img src="https://img.icons8.com/ios-filled/100/4a90e2/driver.png" alt="Driver" class="mb-3">
-                        <h4 class="fw-bold" style="color: #333;">1️⃣ Haydovchi uchun Imkoniyatlar</h4>
-                    </div>
-                    <ul class="list-unstyled fs-6 text-secondary" style="line-height: 1.8;">
-                        <li>🚗 Bo‘sh o‘rindiqlarni e’lon qilish va mijozlarni topish</li>
-                        <li>💰 Narxni belgilash va shoshilinch safarlar uchun moslashuv</li>
-                        <li>📦 Yuk va pochta tashish imkoniyati</li>
-                        <li>💳 Tez va qulay to‘lov (naxt yoki karta orqali)</li>
-                        <li>📅 Moslashuvchan jadval: har kuni qatnashish va foydalanuvchilar bilan safar qilish</li>
+    <body id="page-top">
+        <!-- Navigation-->
+        <nav class="navbar navbar-expand-lg navbar-light fixed-top shadow-sm" id="mainNav">
+            <div class="container px-5">
+                <a class="navbar-brand fw-bold" href="#page-top">Qadam</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive">
+                    Menu <i class="bi-list"></i>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarResponsive">
+                    <ul class="navbar-nav ms-auto me-4 my-3 my-lg-0">
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#features">Imkoniyatlar</a></li>
+                        <li class="nav-item"><a class="nav-link me-lg-3" href="#download">Yuklab olish</a></li>
                     </ul>
+                      <a href="https://t.me/ramziddin_rustam" class="btn btn-primary">
+                        <i class="bi-chat-text-fill me-2"></i> Fikr bildirish
+                      </a>
+                 
                 </div>
             </div>
+        </nav>
 
-            <!-- Mijoz Card -->
-            <div class="col-md-6">
-                <div class="card h-100 shadow-sm border-0 rounded-5 p-5" style="transition: transform 0.3s; background: #ffffff;">
-                    <div class="text-center mb-4">
-                        <img src="https://img.icons8.com/ios-filled/100/4a90e2/passenger.png" alt="Passenger" class="mb-3">
-                        <h4 class="fw-bold" style="color: #333;">2️⃣ Mijoz uchun Imkoniyatlar</h4>
+        <!-- Header-->
+        <header class="masthead">
+            <div class="container px-5">
+                <div class="row gx-5 align-items-center">
+                    <div class="col-lg-6">
+                        <div class="mb-5 text-center text-lg-start">
+                            <h1 class="display-1 lh-1 mb-3">
+                                Bir yo‘nalishda — birga yo‘lga chiqing
+                            </h1>
+                            <p class="lead fw-normal text-muted mb-5">
+                                Qadam — bir shahardan boshqasiga ketayotgan odamlarni bog‘lovchi qulay va ishonchli ilova.
+                            </p>
+                            <div class="d-flex flex-column flex-lg-row align-items-center">
+                                <a class="me-lg-3 mb-4 mb-lg-0" href="#">
+                                    <img class="app-badge" src="{{ asset('landing-page/img/google-play-badge.svg') }}" />
+                                </a>
+                                <a href="#">
+                                    <img class="app-badge" src="{{ asset('landing-page/img/app-store-badge.svg') }}" />
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    <ul class="list-unstyled fs-6 text-secondary" style="line-height: 1.8;">
-                        <li>🚌 Arzon va tez transport topish imkoniyati</li>
-                        <li>📍 Viloyatlar va mahallalararo safarlar</li>
-                        <li>💳 To‘lov karta yoki naxt orqali, ilova avtomatik hisob-kitob qiladi</li>
-                        <li>📆 Ikkita kunlik safarlarni rejalashtirish va joylash</li>
-                        <li>👍 Foydalanuvchi reytingi va sharhlar bilan ishonch hosil qilish</li>
-                    </ul>
+
+                    <div class="col-lg-6">
+                        <div class="masthead-device-mockup">
+                            <div class="device-wrapper">
+                                <div class="device" data-device="iPhoneX" data-orientation="portrait" data-color="black">
+                                    <div class="screen bg-black">
+                                        <video muted autoplay loop style="max-width: 100%; height: 100%">
+                                            <source src="{{ asset('landing-page/img/demo-screen.mp4') }}" type="video/mp4" />
+                                        </video>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-        </div>
+        </header>
 
-        <!-- Additional Features -->
-        <div class="text-center mt-5">
-            <h3 class="fw-bold mb-4" style="color: #222;">Qo‘shimcha Imkoniyatlar</h3>
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="card shadow-sm rounded-5 p-4 h-100" style="background: #ffffff;">
-                        <h5 class="fw-semibold">⏱ Shoshilinch va samarali</h5>
-                        <p class="text-secondary">Vaqtingizni tejash va bo‘sh o‘rindiqlardan optimal foydalanish.</p>
-                    </div>
+        <!-- Quote-->
+        <aside class="text-center bg-gradient-primary-to-secondary">
+            <div class="container px-5">
+                <div class="h2 fs-1 text-white mb-4">
+                    "Qadam — safarni arzonroq, qulayroq va yanada ijtimoiy qiladi."
                 </div>
-                <div class="col-md-4">
-                    <div class="card shadow-sm rounded-5 p-4 h-100" style="background: #ffffff;">
-                        <h5 class="fw-semibold">💬 Foydalanuvchi sharhlari</h5>
-                        <p class="text-secondary">Haydovchi yoki mijoz sifatida ishonch hosil qilish imkoniyati.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card shadow-sm rounded-5 p-4 h-100" style="background: #ffffff;">
-                        <h5 class="fw-semibold">📲 Mobil ilova</h5>
-                        <p class="text-secondary">App Store va Play Marketda mavjud bo‘lib, har doim yoningizda.</p>
+            </div>
+        </aside>
+
+        <!-- Features-->
+        <section id="features">
+            <div class="container px-5">
+                <div class="row gx-5 align-items-center">
+                    <div class="col-lg-8">
+                        <div class="row gx-5">
+                            <div class="col-md-6 mb-5 text-center">
+                                <i class="bi-phone icon-feature text-gradient mb-3"></i>
+                                <h3>Qulay ilova</h3>
+                                <p class="text-muted">
+                                    Haydovchi va yo‘lovchilarni bir necha soniyada toping.
+                                </p>
+                            </div>
+                            <div class="col-md-6 mb-5 text-center">
+                                <i class="bi-camera icon-feature text-gradient mb-3"></i>
+                                <h3>Jonli safarlar</h3>
+                                <p class="text-muted">
+                                    Safar tafsilotlari, joy va vaqt aniq ko‘rsatiladi.
+                                </p>
+                            </div>
+                            <div class="col-md-6 text-center">
+                                <i class="bi-gift icon-feature text-gradient mb-3"></i>
+                                <h3>Bepul foydalanish</h3>
+                                <p class="text-muted">
+                                    Ilovani yuklab olish va foydalanish mutlaqo bepul.
+                                </p>
+                            </div>
+                            <div class="col-md-6 text-center">
+                                <i class="bi-patch-check icon-feature text-gradient mb-3"></i>
+                                <h3>Ishonchli tizim</h3>
+                                <p class="text-muted">
+                                    Reyting va tekshiruvlar orqali xavfsizlik ta’minlanadi.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</section>
+        </section>
 
-<!-- Optional Hover Effect for Cards -->
-<style>
-.card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-}
-</style>
-<!-- Coming Soon Section -->
-<section class="coming-soon-section d-flex align-items-center justify-content-center" 
-         style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); min-height: 70vh; color: #fff; text-align: center;">
-    <div class="container">
-        <h1 class="display-3 fw-bold mb-3 animate__animated animate__fadeInDown">Coming Soon</h1>
-        <p class="lead mb-4 fs-4 animate__animated animate__fadeInUp">
-            Qadam ilovasi tez orada <strong>App Store</strong> va <strong>Google Play</strong>da!<br>
-            Sizning sayohatlaringizni eng oson va xavfsiz qilamiz.
-        </p>
-        <a href="{{ route('login') }}" class="btn btn-light btn-lg px-5 py-3 shadow animate__animated animate__zoomIn">
-            Oldindan Kirish
-        </a>
-    </div>
-</section>
+        <!-- Info section-->
+        <section class="bg-light">
+            <div class="container px-5">
+                <div class="row align-items-center">
+                    <div class="col-lg-5">
+                        <h2 class="display-4 mb-4">
+                            Safarni birga boshlash vaqti keldi
+                        </h2>
+                        <p class="lead text-muted">
+                            Qadam orqali siz yo‘l xarajatlarini bo‘lishasiz, yangi odamlar bilan tanishasiz va
+                            har bir safarni yanada samarali qilasiz.
+                        </p>
+                    </div>
+                    <div class="col-lg-6">
+                        <img class="img-fluid rounded-circle" src="https://source.unsplash.com/u8Jn2rzYIps/900x900" />
+                    </div>
+                </div>
+            </div>
+        </section>
 
-<!-- Animate.css CDN for animations -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-<!-- App Store & Play Market Section -->
-<section class="download-app-section py-5" style="background: #f8f9fa;">
-    <div class="container text-center">
-        <h2 class="fw-bold mb-4" style="color: #222;">Ilovani Yuklab Oling</h2>
-        <p class="text-muted fs-5 mb-5 mx-auto" style="max-width: 700px;">
-            Android va iOS uchun qulay ilovamiz bilan sayohatingizni yanada oson va xavfsiz qiling. Tez orada App Store va Google Play orqali yuklab olishingiz mumkin.
-        </p>
-        <div class="d-flex justify-content-center flex-wrap gap-3">
-            <a href="#" class="btn btn-dark btn-lg px-4 py-3 shadow rounded-4 d-flex align-items-center gap-2">
-                <img src="https://img.icons8.com/ios-filled/30/ffffff/apple-logo.png" alt="App Store">
-                App Store
-            </a>
-            <a href="#" class="btn btn-primary btn-lg px-4 py-3 shadow rounded-4 d-flex align-items-center gap-2" style="background: linear-gradient(135deg,#6a11cb,#2575fc); border: none;">
-                <img src="https://img.icons8.com/ios-filled/30/ffffff/google-play.png" alt="Google Play">
-                Google Play
-            </a>
-        </div>
-    </div>
-</section>
+        <!-- CTA-->
+        <section class="cta">
+            <div class="cta-content">
+                <div class="container px-5">
+                    <h2 class="text-white display-1 mb-4">
+                        Kutmang.<br />Yo‘lga chiqing.
+                    </h2>
+                    <a class="btn btn-outline-light py-3 px-4 rounded-pill" href="#">
+                        Ilovani yuklab olish
+                    </a>
+                </div>
+            </div>
+        </section>
 
-<!-- Optional Hover Effect -->
-<style>
-.btn:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 25px rgba(0,0,0,0.2);
-    transition: all 0.3s ease;
-}
-</style>
-<!-- Footer Section -->
-<footer class="bg-dark text-white py-4">
-    <div class="container text-center">
-        <p class="mb-1">&copy; 2025 Qadam Ilovasi. Barcha huquqlar himoyalangan.</p>
-        <p class="mb-0" style="font-weight: 500;">Powered by <span style="color: #6a11cb;">GOTOGETHER</span></p>
-    </div>
-</footer>
+        <!-- Download-->
+        <section class="bg-gradient-primary-to-secondary" id="download">
+            <div class="container px-5">
+                <h2 class="text-center text-white mb-4">
+                    Qadam ilovasini tez kunda yuklab oling
+                </h2>
+                <div class="d-flex justify-content-center">
+                    <a class="me-3" href="#"><img class="app-badge" src="{{ asset('landing-page/img/google-play-badge.svg') }}"></a>
+                    <a href="#"><img class="app-badge" src="{{ asset('landing-page/img/app-store-badge.svg') }}"></a>
+                </div>
+            </div>
+        </section>
 
-@endguest
-
-@endsection
+        <!-- Footer-->
+        <footer class="bg-black text-center py-5">
+            <div class="text-white-50 small">
+                &copy; Qadam 2025. Barcha huquqlar himoyalangan.
+            </div>
+        </footer>
+    </body>
+</html>

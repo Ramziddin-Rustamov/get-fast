@@ -3,14 +3,11 @@
 namespace App\Repositories\V1;
 
 use App\Models\Sms;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SmsRepository
 {
-
     protected string $smsUrl;
     protected string $smsFaceName;
     protected string $smsUsername;
@@ -18,55 +15,81 @@ class SmsRepository
 
     public function __construct()
     {
-        $this->smsUrl = config('services.sms.url', env('SMS_API_URL'));
-        $this->smsFaceName = config('services.sms.face_name', env('SMS_API_FACE_NAME'));
-        $this->smsUsername = config('services.sms.username', env('SMS_API_USERNAME'));
-        $this->smsPassword = config('services.sms.password', env('SMS_API_PASSWORD'));
+        $this->smsUrl = config('services.sms.url');
+        $this->smsFaceName = config('services.sms.face_name');
+        $this->smsUsername = config('services.sms.username');
+        $this->smsPassword = config('services.sms.password');
     }
 
-    public function send(string $phone, string $message, string $action)
+    /**
+     * Send SMS (used in Queue)
+     */
+    public function send(string $phone, string $text, string $action): void
     {
-        try {
-            $messageId = $this->getMessageID($action, $phone, $message);
+        $phone = $this->normalizePhone($phone);
+        $messageId = $this->getMessageID($action, $phone, $text);
 
-            $message = [
-                'messages' => [
-                    [
-                        'recipient' => $phone,
-                        'message-id' => $messageId,
-                        'sms' => [
-                            'originator' => "$this->smsFaceName",
-                            'content' => [
-                                'text' => $message,
-                            ],
+        $payload = [
+            'messages' => [
+                [
+                    'recipient' => $phone,
+                    'message-id' => $messageId,
+                    'sms' => [
+                        'originator' => $this->smsFaceName,
+                        'content' => [
+                            'text' => $text,
                         ],
                     ],
                 ],
-            ];
+            ],
+        ];
 
-            Http::withBasicAuth($this->smsUsername, $this->smsPassword)->post($this->smsUrl, $message);
-        } catch (\Exception $exception) {
-            DB::rollBack();
-            return response()->json(['error' => 'Server error occurred'], 500);
+        try {
+            $response = Http::withBasicAuth(
+                $this->smsUsername,
+                $this->smsPassword
+            )->post($this->smsUrl, $payload);
+
+            if (!$response->successful()) {
+                Log::error('SMS SEND FAILED', [
+                    'phone'  => $phone,
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ]);
+
+                throw new \Exception('SMS API error: ' . $response->status());
+            }
+
+            Log::info('SMS SENT SUCCESS', [
+                'phone' => $phone,
+                'message_id' => $messageId,
+            ]);
+        } catch (\Throwable $e) {
+            Log::critical('SMS QUEUE FAILED', [
+                'phone' => $phone,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
         }
     }
 
-    protected function getMessageID($action, $phone, $message): string
+    protected function getMessageID(string $action, string $phone, string $message): string
     {
-        try {
-            $model = new Sms();
-            $model->action = $action;
-            $model->phone = $phone;
-            $model->content = $message;
-            $model->save();
+        $sms = new Sms();
+        $sms->action = $action;
+        $sms->phone = $phone;
+        $sms->content = $message;
+        $sms->save();
 
-            $message_id = $model->action . '_' . $model->id;
-        } catch (\Exception $exception) {
-            DB::rollBack();
-            Log::error('SMS messageID generate failed: ' . $exception->getMessage());
-            return response()->json(['error' => 'Server error occurred'], 500);
-        }
+        return $action . '_' . $sms->id;
+    }
 
-        return $message_id;
+    /**
+     * +998901234567 → 998901234567
+     */
+    protected function normalizePhone(string $phone): string
+    {
+        return ltrim($phone, '+');
     }
 }

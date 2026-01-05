@@ -18,5 +18,4 @@ class SmsService
     {
         ProcessSms::dispatch($phone, $message, $action);
     }
-
 }

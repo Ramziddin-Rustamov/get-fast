@@ -14,9 +14,6 @@ class ProcessSms implements ShouldQueue
     protected string $message;
     protected string $action;
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(string $phone, string $message, string $action)
     {
         $this->phone = $phone;
@@ -24,11 +21,9 @@ class ProcessSms implements ShouldQueue
         $this->action = $action;
     }
 
-    /**
-     * Execute the job.
-     */
-    public function handle(SmsRepository $repository): void
+    public function handle(): void
     {
-        $repository->send($this->phone, $this->message, $this->action);
+        app(SmsRepository::class)
+            ->send($this->phone, $this->message, $this->action);
     }
 }

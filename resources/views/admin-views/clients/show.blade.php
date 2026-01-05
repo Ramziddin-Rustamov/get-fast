@@ -496,7 +496,7 @@
     {{-- Send SMS --}}
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <h5 class="card-title">✉ Clientga SMS yuborish</h5>
+            <h5 class="card-title">✉ Mijozni telefon raqamiga SMS yuborish . Mijoz tili : <span class="fw-bold badge bg-success" >{{ $client->authLanguage->language }}</span></h5>
 
             <form action="{{ route('clients.sendSms', $client->id) }}" method="POST">
                 @csrf

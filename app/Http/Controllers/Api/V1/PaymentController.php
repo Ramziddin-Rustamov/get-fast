@@ -396,9 +396,6 @@ class PaymentController extends Controller
         }
     }
 
-
-
-
     /** ------------------ 🟧 Resend SMS ------------------ */
     public function resendSms(Request $request)
     {

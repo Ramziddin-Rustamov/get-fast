@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\V1\UserLanguage;
+use Illuminate\Support\Facades\Http;
 
 class APIAuthController extends Controller
 {
@@ -75,7 +76,7 @@ class APIAuthController extends Controller
 
             // smsni navbatga yuborish
 
-            // SMS uchun xabar
+            // SMS uchun xabar ishladi
             // $this->smsService->sendQueued($user->phone, $text, 'register');
 
             $messages = [
@@ -91,7 +92,6 @@ class APIAuthController extends Controller
                 'status' => 'success',
                 'message' => $message,
                 'user_phone' => $user->phone,
-                'code' => $code
             ]);
         } catch (\Throwable $th) {
             DB::rollback();
@@ -121,11 +121,11 @@ class APIAuthController extends Controller
                 $user->save();
 
                 $userBalance = UserBalance::lockForUpdate()
-                ->firstOrCreate(
-                    ['user_id' => $user->id],
-                    ['balance' => 0.00]
-                );
-            
+                    ->firstOrCreate(
+                        ['user_id' => $user->id],
+                        ['balance' => 0.00]
+                    );
+
 
                 UserLanguage::updateOrCreate([
                     'user_id' => $user->id,
@@ -220,7 +220,7 @@ class APIAuthController extends Controller
             $user->save();
 
             DB::commit();
-            $text = "Qadam ilovasida ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+            $text = "Qadam ilovasida ro'yhatdan o'tish uchun qayta yuborilgan tasdiqlash kodi: $code";
             // smsni navbatga yuborish
             $this->smsService->sendQueued($user->phone, $text, 'register');
             $messages = [
@@ -355,7 +355,7 @@ class APIAuthController extends Controller
 
             $text = $messages[$language];
 
-            // SMS yuborish (Queue yoki to‘g‘ridan-to‘g‘ri)
+            // SMS yuborish (Queue yoki to‘g‘ridan-to‘g‘ri) ishladi. 
             // $this->smsService->sendQueued($user->phone, $text, 'password_reset');
             // SMS yuborish joyi (integratsiya qilasiz)
 
@@ -909,37 +909,64 @@ class APIAuthController extends Controller
 
     public function sendSmsAsTest(Request $request)
     {
+        $code = '654321';
 
-        try {
+        $text = "Qadam ilovasida ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+        $this->smsService->sendQueued($request->phone, $text, 'register');
 
-            // return  config('services.sms.url', env('SMS_API_URL'));
-            // return config('services.sms.face_name', env('SMS_API_FACE_NAME'));
-            //  return config('services.sms.username', env('SMS_API_USERNAME'));
-            // return config('services.sms.password', env('SMS_API_PASSWORD'));
+        return response()->json([
+            'status' => 'success',
+            'message' => 'SMS queue ga qo‘shildi',
+        ]);
 
 
-            $messages = [
-                'uz' => "SMS muvaffaqiyatli yuborildi.",
-                'ru' => "SMS успешно отправлены.",
-                'en' => "SMS sent successfully.",
-            ];
 
-            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+        // try {
 
-            $code = rand(100000, 999999);
+        //     //    return  config('services.sms.url', env('SMS_API_URL'));
+        //     // return config('services.sms.face_name', env('SMS_API_FACE_NAME'));
+        //     //  return config('services.sms.username', env('SMS_API_USERNAME'));
+        //     // return config('services.sms.password', env('SMS_API_PASSWORD'));
 
-            $text = "Ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
-            $this->smsService->sendQueued($request->phone, $text, 'register');
 
-            return response()->json([
-                'status' => 'success',
-                'message' => $message,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
-        }
+        //     $messages = [
+        //         'uz' => "SMS muvaffaqiyatli yuborildi.",
+        //         'ru' => "SMS успешно отправлены.",
+        //         'en' => "SMS sent successfully.",
+        //     ];
+
+        //     $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+
+
+        // $this->smsService->sendQueued($request->phone, $text, 'register');
+
+        //     return response()->json([
+        //         'status' => 'success',
+        //         'message' => $message,
+        //     ]);
+        // } catch (\Exception $e) {
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => $e->getMessage()
+        //     ], 500);
+        // }
+
+        // $response = Http::withBasicAuth(
+        //     config('services.sms.username'),
+        //     config('services.sms.password')
+        // )->post('https://send.smsxabar.uz/broker-api/send', [
+        //     "messages" => [
+        //         [
+        //             "recipient" => $request->phone,
+        //             "message-id" => "register_{$request->phone}_" . time(),
+        //             "sms" => [
+        //                 "originator" => "3700",
+        //                 "content" => [
+        //                     "text" => $text
+        //                 ]
+        //             ]
+        //         ]
+        //     ]
+        // ]);
     }
 }
