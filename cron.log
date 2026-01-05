@@ -1,0 +1,13 @@
+Trip va bookinglar yo`q
+
+   INFO  Running scheduled tasks.  
+
+  2025-12-28 18:50:00 Running ['artisan' bookings:cancel-expired]  161.82ms FAIL
+  ⇂ '/usr/bin/php8.3' 'artisan' bookings:cancel-expired > '/dev/null' 2>&1  
+  2025-12-28 18:50:00 Running ['artisan' trips:move-expired-canceled]  155.19ms FAIL
+  ⇂ '/usr/bin/php8.3' 'artisan' trips:move-expired-canceled > '/dev/null' 2>&1  
+
+   INFO  No scheduled commands are ready to run.  
+
+   INFO  No scheduled commands are ready to run.  
+

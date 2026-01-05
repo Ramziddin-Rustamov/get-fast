@@ -1,28 +1,27 @@
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Client Details'); ?>
 
-@section('title', 'Client Details')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container py-4">
 
-    <a href="{{ route('clients.index') }}" class="btn btn-secondary mt-3">⬅ Back to List</a>
+    <a href="<?php echo e(route('clients.index')); ?>" class="btn btn-secondary mt-3">⬅ Back to List</a>
     <h1 class="mb-4 text-center">👤 Client Details</h1>
 
-    {{-- Alerts --}}
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
+    
+    <?php if(session('success')): ?>
+        <div class="alert alert-success"><?php echo e(session('success')); ?></div>
+    <?php endif; ?>
+    <?php if(session('error')): ?>
+        <div class="alert alert-danger"><?php echo e(session('error')); ?></div>
+    <?php endif; ?>
 
 
-    {{-- Basic Info --}}
+    
     <div class="card mb-4 shadow-lg border-0 rounded-4">
         <div class="card-header bg-primary text-white rounded-top-4">
             <h4 class="mb-0">
                 <i class="fas fa-user"></i> 
-                {{ $client->first_name }} {{ $client->last_name }}
+                <?php echo e($client->first_name); ?> <?php echo e($client->last_name); ?>
+
             </h4>
         </div>
 
@@ -30,12 +29,13 @@
 
             <div class="row mb-2">
                 <div class="col-md-6">
-                    <p><strong>📞 Telefon:</strong> {{ $client->phone }}</p>
+                    <p><strong>📞 Telefon:</strong> <?php echo e($client->phone); ?></p>
                 </div>
                 <div class="col-md-6">
                     <p><strong>🛡 Rol:</strong> 
                         <span class="badge bg-info px-3 py-2 rounded-pill">
-                            {{ ucfirst($client->role) }}
+                            <?php echo e(ucfirst($client->role)); ?>
+
                         </span>
                     </p>
                 </div>
@@ -45,13 +45,15 @@
                 <div class="col-md-6">
                     <p>
                         <strong>📍 Region:</strong> 
-                        {{ $client->region->name_uz ?? 'N/A' }}
+                        <?php echo e($client->region->name_uz ?? 'N/A'); ?>
+
                     </p>
                 </div>
                 <div class="col-md-6">
                     <p>
                         <strong>🏘 District:</strong> 
-                        {{ $client->region->district->name_uz ?? 'N/A' }}
+                        <?php echo e($client->region->district->name_uz ?? 'N/A'); ?>
+
                     </p>
                 </div>
             </div>
@@ -60,18 +62,19 @@
                 <div class="col-md-6">
                     <p>
                         <strong>📌 Quarter:</strong> 
-                        {{ $client->region->district->quarter->name ?? 'N/A' }}
+                        <?php echo e($client->region->district->quarter->name ?? 'N/A'); ?>
+
                     </p>
                 </div>
 
                 <div class="col-md-6">
                     <p>
                         <strong>✔ SMS Tasdiqlanganmi:</strong>
-                        @if($client->is_verified)
+                        <?php if($client->is_verified): ?>
                             <span class="badge bg-success px-3 py-2 rounded-pill">Ha</span>
-                        @else
+                        <?php else: ?>
                             <span class="badge bg-danger px-3 py-2 rounded-pill">Yo'q</span>
-                        @endif
+                        <?php endif; ?>
                     </p>
                 </div>
             </div>
@@ -80,7 +83,7 @@
     </div>
 
 
-{{-- driver active card  --}}
+
 
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
@@ -100,16 +103,16 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($client->cards->where('status', 'verified') as $card)
+                    <?php $__currentLoopData = $client->cards->where('status', 'verified'); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <tr class="text-center">
-                        <td>{{ $card->id }}</td>
-                        <td>{{ $card->number }}</td>
-                        <td>{{ $card->expiry }}</td>
-                        <td>{{ $card->status }}</td>
-                        <td>{{ $card->phone }}</td>
-                        <td>{{ $card->created_at->format('Y-m-d') }}</td>
+                        <td><?php echo e($card->id); ?></td>
+                        <td><?php echo e($card->number); ?></td>
+                        <td><?php echo e($card->expiry); ?></td>
+                        <td><?php echo e($card->status); ?></td>
+                        <td><?php echo e($card->phone); ?></td>
+                        <td><?php echo e($card->created_at->format('Y-m-d')); ?></td>
                     </tr>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
             </table>
         </div>
@@ -117,7 +120,7 @@
 </div>  
 
 
-{{-- Transfer Modal --}}
+
 <div class="modal fade" id="transferModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content shadow">
@@ -126,8 +129,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form action="{{ route('clients.transfer', $client->id) }}" method="POST">
-                    @csrf
+                <form action="<?php echo e(route('clients.transfer', $client->id)); ?>" method="POST">
+                    <?php echo csrf_field(); ?>
                     <div class="mb-3">
                         <label for="amount" class="form-label">Amount</label>
                         <input type="number"
@@ -135,16 +138,16 @@
                         id="amount"
                         class="form-control"
                         min="1000"
-                        max="{{ $client->balance?->balance}}"
+                        max="<?php echo e($client->balance?->balance); ?>"
                         placeholder="Enter amount">
                     </div>
 
                     <div class="mb-3">
                         <label for="card_number" class="form-label">Kartasi</label>
                         <select name="card_id" id="card_id" class="form-control">
-                            @foreach ($client->cards->where('status', 'verified') as $card)
-                                <option value="{{ $card->id }}">{{ $card->number }} - {{ $card->expiry_month }}/{{ $card->expiry }}</option>
-                            @endforeach
+                            <?php $__currentLoopData = $client->cards->where('status', 'verified'); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($card->id); ?>"><?php echo e($card->number); ?> - <?php echo e($card->expiry_month); ?>/<?php echo e($card->expiry); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         </select>
                     </div>
 
@@ -162,7 +165,7 @@
     </div>
 </div>
 
-{{-- Withdraw Modal --}}
+
 <div class="modal fade" id="withdrawModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content shadow">
@@ -172,8 +175,8 @@
             </div>
 
             <div class="modal-body">
-            <form action="{{ route('users.admin.withdraw', $client->id) }}" method="POST">
-                    @csrf
+            <form action="<?php echo e(route('users.admin.withdraw', $client->id)); ?>" method="POST">
+                    <?php echo csrf_field(); ?>
                     <input type="hidden" name="action" value="minus">
 
                     <div class="mb-3">
@@ -182,7 +185,7 @@
                                name="amount"
                                class="form-control"
                                min="1"
-                               max="{{ $client->balance?->balance }}"
+                               max="<?php echo e($client->balance?->balance); ?>"
                                placeholder="Enter amount"
                                required>
                     </div>
@@ -204,7 +207,7 @@
     </div>
 </div>
 
-{{-- Pay Modal --}}
+
 <div class="modal fade" id="payModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content shadow">
@@ -214,8 +217,8 @@
             </div>
 
             <div class="modal-body">
-                <form action="{{ route('users.admin.balance.add', $client->id) }}" method="POST">
-                    @csrf
+                <form action="<?php echo e(route('users.admin.balance.add', $client->id)); ?>" method="POST">
+                    <?php echo csrf_field(); ?>
                     <input type="hidden" name="action" value="plus">
 
                     <div class="mb-3">
@@ -247,171 +250,182 @@
 
 
 
-    {{-- Client Trips --}}
+    
     <div class="card mb-4 shadow-sm border-0">
         <div class="card-body">
             <h4 class="card-title mb-3">
                 <i class="fas fa-calendar-check text-primary"></i>
                 <strong>Buyurtmalar</strong> 
-                <span class="badge bg-primary ms-2">{{ $client->bookings->count() }}</span>
+                <span class="badge bg-primary ms-2"><?php echo e($client->bookings->count()); ?></span>
             </h4>
     
-            @if($client->bookings->count())
-                @foreach($client->bookings->sortByDesc('created_at') as $booking)
+            <?php if($client->bookings->count()): ?>
+                <?php $__currentLoopData = $client->bookings->sortByDesc('created_at'); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $booking): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <div class="border rounded p-3 mb-3 bg-white shadow-sm">
     
-                        {{-- HEADER --}}
+                        
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="badge bg-dark px-3 py-2">#{{ $booking->id }}</span>
+                            <span class="badge bg-dark px-3 py-2">#<?php echo e($booking->id); ?></span>
     
                             <span class="badge 
-                                {{ $booking->status === 'expired' ? 'bg-danger' : ($booking->status === 'cancelled' ? 'bg-secondary' : 'bg-success') }}  
+                                <?php echo e($booking->status === 'expired' ? 'bg-danger' : ($booking->status === 'cancelled' ? 'bg-secondary' : 'bg-success')); ?>  
                                 px-3 py-2">
                                 <i class="fas fa-info-circle"></i> 
-                                {{ ucfirst($booking->status) }}
+                                <?php echo e(ucfirst($booking->status)); ?>
+
                             </span>
                         </div>
     
                         <hr>
     
-                        {{-- MAIN GRID --}}
+                        
                         <div class="row mb-2">
     
                             <div class="col-md-6 mb-2">
                                 <i class="fas fa-users text-primary"></i>
                                 <strong>Seats:</strong>
-                                {{ $booking->seats_booked }}
+                                <?php echo e($booking->seats_booked); ?>
+
                             </div>
     
                             <div class="col-md-6 mb-2">
                                 <i class="fas fa-money-bill-wave text-success"></i>
                                 <strong>Total Price:</strong>
-                                {{ number_format($booking->total_price, 0, '.', ' ') }} so'm
+                                <?php echo e(number_format($booking->total_price, 0, '.', ' ')); ?> so'm
                             </div>
     
                             <div class="col-md-6 mb-2">
                                 <i class="fas fa-clock text-info"></i>
                                 <strong>Created:</strong>
-                                {{ $booking->created_at->format('d.m.Y H:i') }}
+                                <?php echo e($booking->created_at->format('d.m.Y H:i')); ?>
+
                             </div>
     
                         </div>
     
-                        {{-- PASSENGERS --}}
+                        
                         <div class="mt-3">
                             <h6 class="fw-bold">
                                 <i class="fas fa-user-friends text-primary"></i>
-                                Yo‘lovchilar ({{ $booking->passengers->count() }})
+                                Yo‘lovchilar (<?php echo e($booking->passengers->count()); ?>)
                             </h6>
     
-                            @if($booking->passengers->count())
+                            <?php if($booking->passengers->count()): ?>
                                 <ul class="list-group mt-2">
-                                    @foreach($booking->passengers as $p)
+                                    <?php $__currentLoopData = $booking->passengers; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
                                                 <i class="fas fa-user-circle me-2 text-secondary"></i>
-                                                <strong>{{ $p->name }}</strong>
+                                                <strong><?php echo e($p->name); ?></strong>
                                             </div>
                                             <div>
                                                 <i class="fas fa-phone-alt text-success me-1"></i>
-                                                {{ $p->phone }}
+                                                <?php echo e($p->phone); ?>
+
                                             </div>
                                         </li>
-                                    @endforeach
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </ul>
-                            @else
+                            <?php else: ?>
                                 <p class="text-muted mt-1">Yo‘lovchi qo‘shilmagan.</p>
-                            @endif
+                            <?php endif; ?>
                         </div>
     
                         <hr>
     
-                        {{-- TRIP INFO --}}
+                        
                         <div class="row mb-2">
     
                             <div class="col-md-6 mb-2">
                                 <i class="fas fa-map-marker-alt text-danger"></i>
                                 <strong>From:</strong><br>
-                                {{ $booking->trip->startQuarter->name ?? 'N/A' }} —
-                                {{ $booking->trip->startQuarter->district->name_uz ?? '' }},
-                                {{ $booking->trip->startQuarter->district->region->name_uz ?? '' }}
+                                <?php echo e($booking->trip->startQuarter->name ?? 'N/A'); ?> —
+                                <?php echo e($booking->trip->startQuarter->district->name_uz ?? ''); ?>,
+                                <?php echo e($booking->trip->startQuarter->district->region->name_uz ?? ''); ?>
+
                             </div>
     
                             <div class="col-md-6 mb-2">
                                 <i class="fas fa-flag-checkered text-success"></i>
                                 <strong>To:</strong><br>
-                                {{ $booking->trip->endQuarter->name ?? 'N/A' }} —
-                                {{ $booking->trip->endQuarter->district->name_uz ?? '' }},
-                                {{ $booking->trip->endQuarter->district->region->name_uz ?? '' }}
+                                <?php echo e($booking->trip->endQuarter->name ?? 'N/A'); ?> —
+                                <?php echo e($booking->trip->endQuarter->district->name_uz ?? ''); ?>,
+                                <?php echo e($booking->trip->endQuarter->district->region->name_uz ?? ''); ?>
+
                             </div>
     
                             <div class="col-md-6 mb-2">
                                 <i class="fas fa-hourglass-start text-primary"></i>
                                 <strong>Start Time:</strong>
-                                {{ \Carbon\Carbon::parse($booking->trip->start_time)->format('d.m.Y H:i') }}
+                                <?php echo e(\Carbon\Carbon::parse($booking->trip->start_time)->format('d.m.Y H:i')); ?>
+
                             </div>
     
                             <div class="col-md-6 mb-2">
                                 <i class="fas fa-hourglass-end text-danger"></i>
                                 <strong>End Time:</strong>
-                                {{ \Carbon\Carbon::parse($booking->trip->end_time)->format('d.m.Y H:i') }}
+                                <?php echo e(\Carbon\Carbon::parse($booking->trip->end_time)->format('d.m.Y H:i')); ?>
+
                             </div>
     
                             <div class="col-md-6 mb-2">
                                 <i class="fas fa-money-check-alt text-success"></i>
                                 <strong>Seat Price:</strong>
-                                {{ number_format($booking->trip->price_per_seat, 0, '.', ' ') }} so'm
+                                <?php echo e(number_format($booking->trip->price_per_seat, 0, '.', ' ')); ?> so'm
                             </div>
     
                             <div class="col-md-6 mb-2">
                                 <i class="fas fa-calendar-plus text-secondary"></i>
                                 <strong>Trip Created:</strong>
-                                {{ \Carbon\Carbon::parse($booking->trip->created_at)->format('d.m.Y H:i') }}
+                                <?php echo e(\Carbon\Carbon::parse($booking->trip->created_at)->format('d.m.Y H:i')); ?>
+
                             </div>
     
                         </div>
     
                     </div>
-                @endforeach
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
-              {{-- Pagination --}}
+              
             <div class="d-flex justify-content-center mt-3">
-                {{ $bookings->links('pagination::bootstrap-5') }}
+                <?php echo e($bookings->links('pagination::bootstrap-5')); ?>
+
             </div>
-            @else
+            <?php else: ?>
                 <p class="text-muted">Hozircha buyurtmalar mavjud emas.</p>
-            @endif
+            <?php endif; ?>
         </div>
     </div>
     
 
 
 
-   {{-- Balance --}}
+   
    <div class="card mb-4 shadow-sm">
     <div class="card-body d-flex justify-content-between align-items-center">
         <div>
             <h5 class="card-title">💰 Balance</h5>
             <p class="fs-4">
-                So'm {{ number_format($client->balance?->balance ?? 0, 2, '.', ' ') }}
+                So'm <?php echo e(number_format($client->balance?->balance ?? 0, 2, '.', ' ')); ?>
+
             </p>
 
-              {{-- Transfer / Pay button --}}
-         {{-- Transfer to card --}}
+              
+         
          <button class="btn btn-success"
          data-bs-toggle="modal"
          data-bs-target="#transferModal">
          <i class="fas fa-exchange-alt"></i> Transfer to card
          </button>
 
-         {{-- Withdraw (minus) --}}
+         
          <button class="btn btn-danger"
              data-bs-toggle="modal"
              data-bs-target="#withdrawModal">
          <i class="fas fa-minus-circle"></i> Withdraw
          </button>
 
-         {{-- Pay (plus) --}}
+         
          <button class="btn btn-primary"
              data-bs-toggle="modal"
              data-bs-target="#payModal">
@@ -420,19 +434,17 @@
         
         
 
-        {{-- Transfer / Pay button --}}
-        {{-- <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#transferModal">
-            <i class="fas fa-money-bill-wave"></i> Transfer
-        </button> --}}
+        
+        
     </div>
 </div>
 
-{{-- Balance Transactions --}}
+
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
-        <h5 class="card-title">💳 Pul harakatlari ({{ $client->balanceTransactions()->count() }})</h5>
+        <h5 class="card-title">💳 Pul harakatlari (<?php echo e($client->balanceTransactions()->count()); ?>)</h5>
 
-        @if($balanceTransactions->count())
+        <?php if($balanceTransactions->count()): ?>
             <div class="table-responsive">
                 <table class="table table-bordered table-hover align-middle">
                     <thead class="table-dark text-center">
@@ -449,57 +461,59 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($balanceTransactions as $transaction)
+                        <?php $__currentLoopData = $balanceTransactions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $transaction): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <tr class="text-center">
-                            <td>{{ $transaction->id }}</td>
+                            <td><?php echo e($transaction->id); ?></td>
                             <td>
-                                <span class="badge {{ $transaction->type === 'debit' ? 'bg-danger' : 'bg-success' }}">
-                                    {{ $transaction->type === 'debit' ? 'Chiqim' : 'Kirim' }}
+                                <span class="badge <?php echo e($transaction->type === 'debit' ? 'bg-danger' : 'bg-success'); ?>">
+                                    <?php echo e($transaction->type === 'debit' ? 'Chiqim' : 'Kirim'); ?>
+
                                 </span>
                             </td>
-                            <td>So'm {{ number_format($transaction->amount, 2, '.', ' ') }}</td>
-                            <td>So'm {{ number_format($transaction->balance_before, 2, '.', ' ') }}</td>
-                            <td>So'm {{ number_format($transaction->balance_after, 2, '.', ' ') }}</td>
-                            <td>{{ $transaction->trip_id ?? '-' }}</td>
+                            <td>So'm <?php echo e(number_format($transaction->amount, 2, '.', ' ')); ?></td>
+                            <td>So'm <?php echo e(number_format($transaction->balance_before, 2, '.', ' ')); ?></td>
+                            <td>So'm <?php echo e(number_format($transaction->balance_after, 2, '.', ' ')); ?></td>
+                            <td><?php echo e($transaction->trip_id ?? '-'); ?></td>
                             <td>
-                                @if($transaction->status === 'success')
+                                <?php if($transaction->status === 'success'): ?>
                                     <span class="badge bg-success">Muvaffaqiyatli</span>
-                                @elseif($transaction->status === 'pending')
+                                <?php elseif($transaction->status === 'pending'): ?>
                                     <span class="badge bg-warning text-dark">Kutilmoqda</span>
-                                @else
+                                <?php else: ?>
                                     <span class="badge bg-danger">Xato</span>
-                                @endif
+                                <?php endif; ?>
                             </td>
-                            <td>{{ $transaction->reason ?? '-' }}</td>
-                            <td>{{ \Carbon\Carbon::parse($transaction->created_at)->format('d.m.Y H:i') }}</td>
+                            <td><?php echo e($transaction->reason ?? '-'); ?></td>
+                            <td><?php echo e(\Carbon\Carbon::parse($transaction->created_at)->format('d.m.Y H:i')); ?></td>
                         </tr>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </tbody>
                 </table>
             </div>
 
-            {{-- Pagination --}}
-            @if($balanceTransactions->hasPages())
+            
+            <?php if($balanceTransactions->hasPages()): ?>
             <div class="d-flex justify-content-center mt-3">
-                {{ $balanceTransactions->links('pagination::bootstrap-5') }}
-            </div>
-            @endif
+                <?php echo e($balanceTransactions->links('pagination::bootstrap-5')); ?>
 
-        @else
+            </div>
+            <?php endif; ?>
+
+        <?php else: ?>
             <p class="text-muted text-center">Hozircha pul harakatlari mavjud emas.</p>
-        @endif
+        <?php endif; ?>
     </div>
 </div>
 
 
 
-    {{-- Send SMS --}}
+    
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <h5 class="card-title">✉ Mijozni telefon raqamiga SMS yuborish . Mijoz tili : <span class="fw-bold badge bg-success" >{{ $client->authLanguage->language }}</span></h5>
+            <h5 class="card-title">✉ Clientga SMS yuborish</h5>
 
-            <form action="{{ route('clients.sendSms', $client->id) }}" method="POST">
-                @csrf
+            <form action="<?php echo e(route('clients.sendSms', $client->id)); ?>" method="POST">
+                <?php echo csrf_field(); ?>
                 <div class="mb-3">
                     <label for="message" class="form-label">Xabar</label>
                     <textarea name="message" id="message" class="form-control" rows="3"
@@ -514,7 +528,9 @@
 
 </div>
 
-{{-- FontAwesome --}}
+
 <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH /var/www/get-fast/resources/views/admin-views/clients/show.blade.php ENDPATH**/ ?>
