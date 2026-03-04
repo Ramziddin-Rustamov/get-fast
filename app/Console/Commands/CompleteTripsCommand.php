@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\DB;
 
 class CompleteTripsCommand extends Command
 {
-    // protected $signature = 'trips:complete';
-    // protected $description = 'End time o‘tgan trip va bookinglarni completed qilish';
+    protected $signature = 'trips:complete';
+    protected $description = 'End time o‘tgan trip va bookinglarni completed qilish';
 
 
     // public function handle()
