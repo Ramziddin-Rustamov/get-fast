@@ -81,7 +81,7 @@
 
                     <div class="mb-3">
                         <label for="card_number" class="form-label">Kartasi</label>
-                        <select name="card_id" id="card_id" class="form-control">
+                        <select name="id" id="id" class="form-control">
                             @foreach ($driver->cards->where('status', 'verified') as $card)
                                 <option value="{{ $card->id }}">{{ $card->number }} - {{ $card->expiry_month }}/{{ $card->expiry }}</option>
                             @endforeach
@@ -121,8 +121,6 @@
                         <input type="number"
                                name="amount"
                                class="form-control"
-                               min="1"
-                               max="{{ $driver->balance->balance }}"
                                placeholder="Enter amount"
                                required>
                     </div>
@@ -589,7 +587,7 @@
         {{-- Message Driver --}}
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <h5 class="card-title">✉ Send SMS to Driver</h5>
+            <h5 class="card-title">✉ Send SMS to Driver <span class="text-dark text-underline"> Driver language : {{$driver->authLanguage->language}}</span> </h5>
 
             <form action="{{ route('drivers.sendSms', $driver->id) }}" method="POST">
                 @csrf

@@ -232,7 +232,7 @@ class DriverController extends Controller
             DB::beginTransaction();
 
             $request->validate([
-                'card_id' => 'required|exists:cards,id',
+                'id' => 'required|exists:cards,id',
                 'amount' => 'required|integer',
             ]);
 
@@ -267,7 +267,7 @@ class DriverController extends Controller
             }
 
 
-            $card = Card::where('id', $request->card_id)
+            $card = Card::where('id', $request->id)
                 ->where('user_id', $driver->id)
                 ->first();
 
@@ -285,9 +285,7 @@ class DriverController extends Controller
 
             // Card parametri
             $cardParam = [];
-            if (!empty($card->number)) {
-                $cardParam['number'] = $card->number;
-            } elseif (!empty($card->card_id)) {
+            if(!empty($card->card_id)) {
                 $cardParam['id'] = $card->card_id;
             } else {
                 $messages = [
@@ -363,7 +361,7 @@ class DriverController extends Controller
 
 
             // smsni navbatga yuborish
-            $this->smsService->sendQueued($driver->phone, $refundMessage[$driverLanguage ?? 'uz'], 'refund-driver-by-admins');
+            // $this->smsService->sendQueued($driver->phone, $refundMessage[$driverLanguage ?? 'uz'], 'refund-driver-by-admins');
 
             $messages = [
                 'uz' => 'Pul muvaffaqiyatli qaytarildi',
@@ -442,9 +440,6 @@ class DriverController extends Controller
                 throw new \Exception('User balance not found');
             }
 
-            if ($userBalance->balance < $request->amount) {
-                throw new \Exception('Insufficient balance');
-            }
 
             $beforeUserBalance = $userBalance->balance;
             $afterUserBalance  = $beforeUserBalance - $request->amount;

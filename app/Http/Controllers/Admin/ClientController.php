@@ -226,7 +226,7 @@ class ClientController extends Controller
         $phone = $client->phone;
         $message = $message[$client->authLanguage->language] ?? $message['uz'];
 
-        $this->smsService->sendQueued($phone, $message , 'message-to-client');
+        $this->smsService->sendQueued($phone, $message, 'message-to-client');
 
 
         return redirect()->back()->with('success', 'Xabar muvaffaqiyatli yuborildi ' . $phone . ': ' . $message);
@@ -285,16 +285,14 @@ class ClientController extends Controller
                     'en' => 'User has no card!'
                 ];
 
-                return redirect()->back()->with('error', $messages[$driverLanguage]);
+                return redirect()->back()->with('error', $messages[$clientLanguage]);
             }
 
             $amountInKopeyka = $request->amount * 100; // Test summasi
 
             // Card parametri
             $cardParam = [];
-            if (!empty($card->number)) {
-                $cardParam['number'] = $card->number;
-            } elseif (!empty($card->card_id)) {
+            if (!empty($card->card_id)) {
                 $cardParam['id'] = $card->card_id;
             } else {
                 $messages = [
@@ -308,9 +306,9 @@ class ClientController extends Controller
 
             // Payer_data majburiy, hatto test summasi uchun ham
             $payerData = [
-                "surname"     => $cleint->last_name ?? 'Test',
-                "first_name"  => $cleint->first_name ?? 'Test',
-                "middle_name" => $cleint->father_name ?? 'Test',
+                "surname"     => $client->last_name ?? 'Test',
+                "first_name"  => $client->first_name ?? 'Test',
+                "middle_name" => $client->father_name ?? 'Test',
             ];
 
             $data = [

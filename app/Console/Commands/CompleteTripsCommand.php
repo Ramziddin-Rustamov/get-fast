@@ -27,11 +27,7 @@ class CompleteTripsCommand extends Command
                 ->pluck('id');
 
             if ($tripIds->isEmpty()) {
-<<<<<<< HEAD
                 $this->info('Trip va bookinglar muvaffaqiyatli completed qilindi');
-=======
-            $this->info('Trip va bookinglar yo`q');
->>>>>>> b8921af (merged)
                 DB::commit();
                 return;
             }

@@ -77,6 +77,7 @@ class PaymentController extends Controller
             ]);
 
 
+
             if ($check == 0) { // 0 - balans yetarli emas
                 $messages = [
                     'uz' => "Karta balansida mablag‘ yetarli emas",
@@ -98,8 +99,7 @@ class PaymentController extends Controller
                 "amount"        => (int) $data['amount'] * 100,
                 "currency_code" => "860",
                 "card" => [
-                    "number" => $card->number,
-                    "expiry" => $card->expiry,
+                    'ID' => $card->card_id,
                 ],
                 "details" => [
                     [
@@ -516,7 +516,24 @@ class PaymentController extends Controller
                 'card_id' => 'required|exists:cards,id',
                 'amount' => 'required|integer',
             ]);
+
+            $user = auth()->user();
             $userLanguage = auth()->user()->authLanguage->language ?? 'uz';
+
+            if ($user->balance->balance < $request->amount) {
+                $message = [
+                    'uz' => 'Siz hisobingizdagi mablag‘dan ko‘proq pul yecha olmaysiz!',
+                    'ru' => 'Вы не можете вывести сумму, превышающую баланс на вашем счёте!',
+                    'en' => 'You cannot withdraw an amount greater than your account balance!',
+                ];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message[$userLanguage]
+                ]);
+            }
+
+
 
             if ($request->amount <= 0) {
                 $messages = [
@@ -554,7 +571,7 @@ class PaymentController extends Controller
                 ]);
             }
 
-            $user = auth()->user();
+
 
             $card = Card::where('id', $request->card_id)
                 ->where('user_id', $user->id)
@@ -577,9 +594,7 @@ class PaymentController extends Controller
 
             // Card parametri
             $cardParam = [];
-            if (!empty($card->number)) {
-                $cardParam['number'] = $card->number;
-            } elseif (!empty($card->card_id)) {
+            if (!empty($card->card_id)) {
                 $cardParam['id'] = $card->card_id;
             } else {
                 $messages = [

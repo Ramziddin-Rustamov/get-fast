@@ -181,8 +181,6 @@
                         <input type="number"
                                name="amount"
                                class="form-control"
-                               min="1"
-                               max="{{ $client->balance?->balance }}"
                                placeholder="Enter amount"
                                required>
                     </div>

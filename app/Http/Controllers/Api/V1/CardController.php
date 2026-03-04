@@ -29,6 +29,9 @@ class CardController extends Controller
     public function addCard(Request $request)
     {
         try {
+
+            DB::beginTransaction();
+
             $request->validate([
                 'number' => 'required|string|min:16|max:19',
                 'expiry' => 'required|string|size:4',
@@ -36,16 +39,25 @@ class CardController extends Controller
                 'phone' => 'required',
             ]);
 
-            
+
+            $last4 = substr($request->number, -4);
 
 
-
-            DB::beginTransaction();
-
-            $isExists = Card::where('number', $request->number)->where('user_id', auth()->id())->first();
+            $isExists = Card::where('number', $last4)
+                ->where('user_id', auth()->id())
+                ->first();
             if ($isExists) {
                 $isExists->delete();
             }
+
+            $messages = [
+                'uz' => 'Karta muvaffaqiyatli qo‘shildi. SMS kodi orqali tasdiqlang.',
+                'ru' => 'Карта успешно добавлена. Подтвердите с помощью SMS кода.',
+                'en' => 'Card added successfully. Verify with SMS code.',
+            ];
+
+            $message = $messages[$this->language];
+
 
             // $masked = substr($request->number, 0, 6) . '******' . substr($request->number, -4);
             $response = HamkorbankService::addCard($request);
@@ -56,17 +68,25 @@ class CardController extends Controller
                     'message' => $response['error'] ? $response['error']['message'] : 'Bank javob bermadi',
                 ], 422);
             }
+
+
+            $maskedHolder = $this->maskHolderName($request->holder_name);
+            
             $card = Card::create([
-                'user_id' => auth()->id(),
-                'card_id' => $response['result']['key'] ?? '1', // vaqtinchalik key
-                'number' => $request->number,
-                'expiry' => $request->expiry,
-                'phone' => $request->phone,
-                'label' => $request->holder_name,
+                'user_id'    => auth()->id(),
+                'card_id'    => $response['result']['key'] ?? '1',
+                'number'     => $response['result']['number'] ?? '12',       
+                'expiry'     => $response['result']['expiry'],
+                'phone'      => $response['result']['phone'],
+                'label'      => $maskedHolder,       // ✅ masklangan holder
                 'is_default' => !Card::where('user_id', auth()->id())->exists(),
-                'status' => 'not_verified',
-                'meta' => json_encode($response ?? []),
+                'status'     => 'not_verified',
+                'meta'       => json_encode($response ?? []),
             ]);
+
+
+
+
 
             PaymentLog::create([
                 'request' => json_encode($request->all()),
@@ -75,16 +95,6 @@ class CardController extends Controller
             ]);
 
             DB::commit();
-
-
-            $messages = [
-                'uz' => 'Karta muvaffaqiyatli qo‘shildi. SMS kodi orqali tasdiqlang.',
-                'ru' => 'Карта успешно добавлена. Подтвердите с помощью SMS кода.',
-                'en' => 'Card added successfully. Verify with SMS code.',
-            ];
-
-            $message = $messages[$this->language];
-
 
 
             return response()->json([
@@ -120,9 +130,6 @@ class CardController extends Controller
                 'confirm_code' => 'required|string|min:4|max:8',
             ]);
 
-
-            $response = HamkorbankService::verifyCard($request);
-
             $card = Card::where('id', $request->id)->first();
             if (!$card) {
 
@@ -143,13 +150,7 @@ class CardController extends Controller
             $card->status = 'verified';
             $card->save();
 
-            // Agar Hamkorbankdan error qaytsa:
-            if (isset($response['error'])) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $response['error']['message'] ?? 'Verification failed',
-                ], 400);
-            }
+
 
             $card = Card::where('id', $request->id)->where('user_id', auth()->id())->first();
             if (!$card) {
@@ -164,6 +165,17 @@ class CardController extends Controller
                     'message' => $message[$this->language],
                 ], 404);
             }
+
+            $response = HamkorbankService::verifyCard($request);
+            // Agar Hamkorbankdan error qaytsa:
+            if (isset($response['error'])) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $response['error']['message'] ?? 'Verification failed',
+                ], 400);
+            }
+
+
             $card->status = 'verified';
             $card->card_id = $response['result']['id'];
             $card->save();
@@ -236,5 +248,21 @@ class CardController extends Controller
             'message' => 'My cards retrieved successfully',
             'cards' => $cards,
         ]);
+    }
+
+
+    public function maskHolderName(string $name): string
+    {
+        $parts = explode(' ', $name);
+
+        return collect($parts)->map(function ($part) {
+            if (strlen($part) <= 3) {
+                return substr($part, 0, 1) . '****';
+            }
+
+            return substr($part, 0, 3)
+                . str_repeat('*', max(strlen($part) - 6, 2))
+                . substr($part, -2);
+        })->implode(' ');
     }
 }

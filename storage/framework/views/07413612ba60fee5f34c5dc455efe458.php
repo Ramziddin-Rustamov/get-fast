@@ -79,7 +79,7 @@
 
                     <div class="mb-3">
                         <label for="card_number" class="form-label">Kartasi</label>
-                        <select name="card_id" id="card_id" class="form-control">
+                        <select name="id" id="id" class="form-control">
                             <?php $__currentLoopData = $driver->cards->where('status', 'verified'); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <option value="<?php echo e($card->id); ?>"><?php echo e($card->number); ?> - <?php echo e($card->expiry_month); ?>/<?php echo e($card->expiry); ?></option>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -119,8 +119,6 @@
                         <input type="number"
                                name="amount"
                                class="form-control"
-                               min="1"
-                               max="<?php echo e($driver->balance->balance); ?>"
                                placeholder="Enter amount"
                                required>
                     </div>
@@ -595,7 +593,7 @@
         
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <h5 class="card-title">✉ Send SMS to Driver</h5>
+            <h5 class="card-title">✉ Send SMS to Driver <span class="text-dark text-underline"> Driver language : <?php echo e($driver->authLanguage->language); ?></span> </h5>
 
             <form action="<?php echo e(route('drivers.sendSms', $driver->id)); ?>" method="POST">
                 <?php echo csrf_field(); ?>

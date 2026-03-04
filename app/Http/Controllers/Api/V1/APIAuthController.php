@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\V1\UserLanguage;
+use Exception;
 use Illuminate\Support\Facades\Http;
 
 class APIAuthController extends Controller
@@ -92,8 +93,9 @@ class APIAuthController extends Controller
                 'status' => 'success',
                 'message' => $message,
                 'user_phone' => $user->phone,
+                'code' => $code
             ]);
-        } catch (\Throwable $th) {
+        } catch (Exception $th) {
             DB::rollback();
             return response()->json([
                 'status' => 'error',
