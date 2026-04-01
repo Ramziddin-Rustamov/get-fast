@@ -11,6 +11,8 @@ class PublicTripResource extends JsonResource
     public function toArray(Request $request): array
     {
 
+        $lang = auth()->user()->authLanguage->language ?? 'uz';
+
         $start_time = $this->start_time ? Carbon::parse($this->start_time) : null;
         $end_time = $this->end_time ? Carbon::parse($this->end_time) : null;
 
@@ -28,12 +30,12 @@ class PublicTripResource extends JsonResource
             : null;
         return [
             'id' => $this->id,
-            'from_region_id' => $this->start_region_id,
-            'to_region_id' => $this->end_region_id,
-            'from_district_id' => $this->start_district_id,
-            'to_district_id' => $this->end_district_id,
-            'from_quarter_id' => $this->start_quarter_id,
-            'to_quarter_id' => $this->end_quarter_id,
+            'start_region' => $this->startRegion->{'name_' . $lang} ?? null,
+            'end_region' => $this->endRegion->{'name_' . $lang} ?? null,
+            'start_district' => $this->startDistrict->{'name_' . $lang} ?? null,
+            'end_district' => $this->endDistrict->{'name_' . $lang} ?? null,
+            'start_quarter' => $this->startQuarter->{'name_' . $lang} ?? null,
+            'end_quarter' => $this->endQuarter->{'name_' . $lang} ?? null,
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'duration' => $duration_formatted, // Davomiylik (soatlar va daqiqalarda)
