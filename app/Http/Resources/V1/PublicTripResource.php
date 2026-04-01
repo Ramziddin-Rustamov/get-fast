@@ -34,8 +34,8 @@ class PublicTripResource extends JsonResource
             'end_region' => $this->endRegion->{'name_' . $lang} ?? null,
             'start_district' => $this->startDistrict->{'name_' . $lang} ?? null,
             'end_district' => $this->endDistrict->{'name_' . $lang} ?? null,
-            'start_quarter' => $this->startQuarter->{'name_' . $lang} ?? null,
-            'end_quarter' => $this->endQuarter->{'name_' . $lang} ?? null,
+            'start_quarter' => $this->startQuarter->name ?? null,
+            'end_quarter' => $this->endQuarter->name ?? null,
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'duration' => $duration_formatted, // Davomiylik (soatlar va daqiqalarda)
