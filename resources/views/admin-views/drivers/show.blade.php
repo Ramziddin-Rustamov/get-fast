@@ -142,7 +142,7 @@
     </div>
 </div>
 
-{{-- Pay Modal --}}
+{{-- Pay by company account  Modal --}}
 <div class="modal fade" id="payModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content shadow">

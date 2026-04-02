@@ -21,13 +21,15 @@ class HamkorbankService
 
     public static function getToken(): ?string
     {
-        $url = 'https://dev-open-api.hamkorbank.uz/token';
+        $url = 'https://test-openapi.hamkorbank.uz/token';
         $key = config('services.hamkorbank.key');
         $secret = config('services.hamkorbank.secret');
 
         $response = Http::withBasicAuth($key, $secret)
             ->asForm()
-            ->post($url, ['grant_type' => 'client_credentials']);
+            ->post($url, [
+                'grant_type' => 'client_credentials'
+            ]);
 
         if ($response->failed()) {
             PaymentLog::create([
@@ -39,6 +41,8 @@ class HamkorbankService
 
         return $response->json()['access_token'] ?? null;
     }
+
+
 
     /** ✅ 1. Foydalanuvchining telefon raqamiga tegishli kartalar ro‘yxatini olish */
     //DONE ###################### --- DONE -------- #############################
@@ -76,38 +80,46 @@ class HamkorbankService
     public static function addCard(Request $request)
     {
         $token = self::getToken();
+
         if (!$token) {
             return [
                 'status' => false,
                 'error' => 'Token olinmadi'
             ];
         }
+
+       
+
         $payload = [
             "jsonrpc" => "2.0",
             "method"  => "card.create",
-            "params"  => [[
+            "params"  => [
                 "number" => $request->input('number'),
                 "expiry" => $request->input('expiry'),
                 "phone"  => $request->input('phone'),
-            ]],
+            ],
             "id" => (string) Str::uuid(),
         ];
 
-
         $response = Http::withToken($token)
-            ->withHeaders(['Content-Type' => 'application/json'])
-            ->post(self::baseUrl(), $payload);
-
-        PaymentLog::create([
-            'request' => json_encode($payload),
-            'user_id' => Auth::id(),
-            'response' => $response->body(),
-        ]);
+        ->withHeaders([
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ])
+        ->withOptions([
+            'curl' => [
+                CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2, // TLSv1.2 majburlash
+            ],
+        ])
+        ->post(self::baseUrl(), $payload);
+        
+        $reponse = $response->json();
+        dd($reponse);
 
         if ($response->failed()) {
             return [
-                $response->json(),
                 'status' => 'error',
+                'data' => $response->json(),
             ];
         }
 
@@ -454,19 +466,18 @@ class HamkorbankService
     {
         $token = self::getToken();
         if (!$token) return ['status' => 'error', 'message' => 'Token not found'];
-    
+
         $payload = [
             "jsonrpc" => "2.0",
             "method"  => "pay.a2c",
             "params"  => [$data], // array ichida bitta obyekt
             "id"      => (string) Str::uuid(),
         ];
-    
+
         $response = Http::withToken($token)
             ->withHeaders(['Content-Type' => 'application/json'])
             ->post(self::baseUrl(), $payload);
-    
+
         return $response->json();
     }
-    
 }

@@ -285,7 +285,7 @@ class DriverController extends Controller
 
             // Card parametri
             $cardParam = [];
-            if(!empty($card->card_id)) {
+            if (!empty($card->card_id)) {
                 $cardParam['id'] = $card->card_id;
             } else {
                 $messages = [
@@ -522,8 +522,12 @@ class DriverController extends Controller
             // 🔒 Lock company balance
             $companyBalance = CompanyBalance::lockForUpdate()->first();
 
+            // Agar mavjud bo'lmasa, yaratish
             if (!$companyBalance) {
-                throw new \Exception('Company balance not found');
+                $companyBalance = CompanyBalance::create([
+                    'balance' => 0,        // boshlang'ich balans
+                    'total_income' => 0,   // boshlang'ich total income
+                ]);
             }
 
 
