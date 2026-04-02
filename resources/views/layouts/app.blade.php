@@ -15,7 +15,7 @@
     <!-- FontAwesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha384-qIgtX3TJL3zI6AOMsBoC3RnUedbLgPoLm1fIxSkKpTME4xD9FfJpLzQ2Np9nXKFN" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
         <!-- Scripts -->
 
@@ -99,6 +99,12 @@
                                         {{ __('Payments') }}
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="dropdown-item  {{ request()->routeIs('support.index') ? 'active bg-success rounded' : '' }}"
+                                       href="{{ route('support.index') }}">
+                                        {{ __('Support Help') }}
+                                    </a>
+                                </li>
 
                               
                                 
@@ -161,7 +167,7 @@
         </main>
     </div>
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @yield('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

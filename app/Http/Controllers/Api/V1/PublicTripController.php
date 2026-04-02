@@ -20,7 +20,9 @@ class PublicTripController extends Controller
     public function getTripsWithLessInfo()
     {
         $userLang = $this->getUserLang();
-        $trips = Trip::whereIn('status', ['active', 'full'])->paginate(20);
+        $trips = Trip::whereIn('status', ['active', 'full'])
+            ->latest() // created_at bo‘yicha tartiblash
+            ->paginate(20);
 
         $messages = [
             'uz' => 'Safarlar muvaffaqiyatli olindi',
@@ -136,6 +138,7 @@ class PublicTripController extends Controller
         // Cache 20 sekund
         $trips = Cache::remember($cacheKey, 20, function () {
             return Trip::whereIn('status', ['active', 'full'])
+                ->latest('created_at')
                 ->paginate(20);
         });
 

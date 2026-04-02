@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\APIAuthController;
 use App\Http\Controllers\Api\V1\CardController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\SupportMessageController;
 
 
 // Route::post('login', [AuthController::class, 'login']);
@@ -129,4 +130,11 @@ Route::prefix('bank')->middleware('auth:api')->group(function () {
     Route::post('get-payment-info', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentInfo']);
     Route::get('payment-history', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentHistory']);
     Route::post('refund-to-my-card-from-balance', [\App\Http\Controllers\Api\V1\PaymentController::class, 'refund']);
+});
+
+
+
+
+Route::prefix('support')->group(function () {
+    Route::post('/', [SupportMessageController::class, 'store']);
 });
