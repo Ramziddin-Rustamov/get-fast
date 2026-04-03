@@ -62,7 +62,10 @@ return [
         env('SERVICE_FEE_FOR_CANCELATION'),
         'service_fee_for_drivers_for_client_cancel_the_booking' => env('SERVICE_FEE_FOR_DRIVERS_FOR_CLIENT_CANCEL_THE_BOOKING'),
         'service_fee_for_compliting_order' => env('SERVICE_FEE_FOR_COMPLITING_ORDER')
+    ],
 
+    'bank_certificate' => [
+        'cert' => env('BANK_CERT'),
+        'key' => env('BANK_KEY')
     ]
-
 ];

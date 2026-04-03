@@ -19,11 +19,13 @@ class HamkorbankService
         return rtrim(config('services.hamkorbank.url'), '/');
     }
 
-    public static function getToken(): ?string
+    public static function getToken()
     {
         $url = 'https://test-openapi.hamkorbank.uz/token';
         $key = config('services.hamkorbank.key');
         $secret = config('services.hamkorbank.secret');
+
+
 
         $response = Http::withBasicAuth($key, $secret)
             ->asForm()
@@ -79,6 +81,7 @@ class HamkorbankService
     //###################### --- DONE -------- #############################
     public static function addCard(Request $request)
     {
+
         $token = self::getToken();
 
         if (!$token) {
@@ -102,19 +105,21 @@ class HamkorbankService
         ];
 
         $response = Http::withToken($token)
-        ->withHeaders([
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-        ])
-        ->withOptions([
-            'curl' => [
-                CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2, // TLSv1.2 majburlash
-            ],
-        ])
-        ->post(self::baseUrl(), $payload);
-        
-        $reponse = $response->json();
-        dd($reponse);
+            ->withHeaders(['Content-Type' => 'application/json'])
+            ->withOptions([
+                'cert' => base_path(config('services.bank.cert')),  // .crt fayl
+                'ssl_key' => base_path(config('services.bank.key')), // .key fayl
+                'curl' => [
+                    CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+                ],
+            ])
+            ->post(self::baseUrl(), $payload);
+
+        PaymentLog::create([
+            'request' => json_encode($payload),
+            'user_id' => Auth::id(),
+            'response' => $response->body(),
+        ]);
 
         if ($response->failed()) {
             return [
