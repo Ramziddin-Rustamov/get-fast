@@ -29,7 +29,9 @@ class HamkorbankService
 
         $response = Http::withBasicAuth($key, $secret)
             ->asForm()
-            ->post($url, ['grant_type' => 'client_credentials']);
+            ->post($url, [
+                'grant_type' => 'client_credentials'
+            ]);
 
         if ($response->failed()) {
             PaymentLog::create([
@@ -41,6 +43,8 @@ class HamkorbankService
 
         return $response->json()['access_token'] ?? null;
     }
+
+
 
     /** ✅ 1. Foydalanuvchining telefon raqamiga tegishli kartalar ro‘yxatini olish */
     //DONE ###################### --- DONE -------- #############################
@@ -79,29 +83,37 @@ class HamkorbankService
     {
 
         $token = self::getToken();
+
         if (!$token) {
             return [
                 'status' => false,
                 'error' => 'Token olinmadi'
             ];
         }
+
+       
+
         $payload = [
             "jsonrpc" => "2.0",
             "method"  => "card.create",
-            "params"  => [[
+            "params"  => [
                 "number" => $request->input('number'),
                 "expiry" => $request->input('expiry'),
                 "phone"  => $request->input('phone'),
-            ]],
+            ],
             "id" => (string) Str::uuid(),
         ];
-
 
         $response = Http::withToken($token)
             ->withHeaders(['Content-Type' => 'application/json'])
             ->withOptions([
+<<<<<<< HEAD
                 'cert' => base_path(config('services.bank_certificate.cert')),  // .crt fayl
                 'ssl_key' => base_path(config('services.bank_certificate.key')), // .key fayl
+=======
+                'cert' => base_path(config('services.bank.cert')),  // .crt fayl
+                'ssl_key' => base_path(config('services.bank.key')), // .key fayl
+>>>>>>> 3ede477
                 'curl' => [
                     CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
                 ],
@@ -116,8 +128,8 @@ class HamkorbankService
 
         if ($response->failed()) {
             return [
-                $response->json(),
                 'status' => 'error',
+                'data' => $response->json(),
             ];
         }
 

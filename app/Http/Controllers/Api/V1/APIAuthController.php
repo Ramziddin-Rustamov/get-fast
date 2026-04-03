@@ -793,9 +793,9 @@ class APIAuthController extends Controller
             $user->email = $request->email;
             $user->save();
 
-            $this->handleImageUpdate($request, $user->id, 'image', 'profile', 'uploads/profile');
-            $this->handleImageUpdate($request, $user->id, 'passport', 'passport', 'uploads/passport');
-            $this->handleImageUpdate($request, $user->id, 'driving_licence', 'driving_licence', 'uploads/driving');
+            // $this->handleImageUpdate($request, $user->id, 'image', 'profile', 'uploads/profile');
+            // $this->handleImageUpdate($request, $user->id, 'passport', 'passport', 'uploads/passport');
+            // $this->handleImageUpdate($request, $user->id, 'driving_licence', 'driving_licence', 'uploads/driving');
 
 
             DB::commit();

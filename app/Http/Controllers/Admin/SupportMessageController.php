@@ -1,28 +1,53 @@
 <?php
-
 namespace App\Http\Controllers\Admin;
 
-use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Models\V1\Chat;
+use App\Models\SupportMessage;
+use Illuminate\Http\Request;
+
 class SupportMessageController extends Controller
 {
-    public function send(Request $request, Chat $chat)
+    /**
+     * Admin uchun barcha xabarlar
+     */
+    public function index()
     {
-        $message = $chat->messages()->create([
-            'sender_type' => 'support',
-            'sender_id' => auth()->id(),
-            'message' => $request->message,
-            'is_read_by_support' => true,
-            'is_read_by_user' => false,
-        ]);
+        $messages = SupportMessage::latest()->paginate(10);
 
-        $chat->update([
-            'last_message_id' => $message->id
-        ]);
+        return view('admin-views.support-messages.index', compact('messages'));
+       
+    }
 
-        // broadcast(new NewMessage($message))->toOthers();
+    /**
+     * Bitta xabarni ko‘rish
+     */
+    public function show($id)
+    {
+        $message = SupportMessage::findOrFail($id);
 
-        return response()->json($message);
+        return view('admin-views.support-messages.show', compact('message'));
+    }
+
+    /**
+     * Admin javob berishi
+     */
+    public function markAsAnswered(Request $request, $id)
+    {
+        $message = SupportMessage::findOrFail($id);
+        $message->status = 'answered';
+        $message->save();
+
+        return redirect()->back()->with('success', 'Xabaringiz muvaffaqiyatli javob berildi');
+    }
+
+    /**
+     * O‘chirish (Admin)
+     */
+    public function destroy($id)
+    {
+        $message = SupportMessage::findOrFail($id);
+        $message->delete();
+
+        return redirect()->back()->with('success', 'Xabaringiz muvaffaqiyatli o‘chirildi');
     }
 }

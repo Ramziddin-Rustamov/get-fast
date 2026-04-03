@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\APIAuthController;
 use App\Http\Controllers\Api\V1\CardController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\SupportMessageController;
 
 
 // Route::post('login', [AuthController::class, 'login']);
@@ -41,20 +42,14 @@ Route::middleware('auth:api')->group(function () {
     });
 
     Route::prefix('client/trips')->group(function () {
-        // Route::get('/', [App\Http\Controllers\Api\V1\ClientTripController::class, 'index']);
+        Route::get('/', [App\Http\Controllers\Api\V1\ClientTripController::class, 'index']);
         Route::get('/get-canceled-trips', [App\Http\Controllers\Api\V1\ClientTripController::class, 'canceledTrips']);
         Route::get('/get-inprogress-trips', [App\Http\Controllers\Api\V1\ClientTripController::class, 'inprogressTrips']);
         Route::get('/get-completed-trips', [App\Http\Controllers\Api\V1\ClientTripController::class, 'completedTrips']);
         Route::get('/booking/{id}', [App\Http\Controllers\Api\V1\ClientTripController::class, 'show']);
     });
 
-    Route::middleware('auth:api')->prefix('public/trips')->group(function () {
-        // for public view
-        Route::get('/', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripsWithLessInfo']);
-        Route::get('/search/available-trips', [App\Http\Controllers\Api\V1\PublicTripController::class, 'search']);
-        Route::get('/view', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getAllTripsForPublic']);
-        Route::get('/view/{id}', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripByIdForPublic']);
-    });
+
 
     Route::prefix('client/booking')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\BookingController::class, 'index']);
@@ -77,13 +72,22 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\DriverExpiredTripsControllerApi::class, 'getExpeiredTrips']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\DriverExpiredTripsControllerApi::class, 'getExpiredTrip']);
     });
+});
+
+
+    Route::prefix('public/trips')->group(function () {
+        // for public view
+        Route::get('/', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripsWithLessInfo']);
+        Route::get('/search/available-trips', [App\Http\Controllers\Api\V1\PublicTripController::class, 'search']);
+        Route::get('/view', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getAllTripsForPublic']);
+        Route::get('/view/{id}', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripByIdForPublic']);
+    });
 
     Route::get('regions', [App\Http\Controllers\Api\V1\RegionController::class, 'index']);
     Route::get('districts', [App\Http\Controllers\Api\V1\DistrictsController::class, 'index']);
     Route::get('/districts/region/{id}', [App\Http\Controllers\Api\V1\DistrictsController::class, 'getRegion']);
     Route::get('quarters', [App\Http\Controllers\Api\V1\QuarterController::class, 'index']);
     Route::get('quarters/districts/{id}', [App\Http\Controllers\Api\V1\QuarterController::class, 'getVillagesByDistrict']);
-});
 
 Route::prefix('auth')->group(function () {
 
@@ -126,4 +130,11 @@ Route::prefix('bank')->middleware('auth:api')->group(function () {
     Route::post('get-payment-info', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentInfo']);
     Route::get('payment-history', [\App\Http\Controllers\Api\V1\PaymentController::class, 'getPaymentHistory']);
     Route::post('refund-to-my-card-from-balance', [\App\Http\Controllers\Api\V1\PaymentController::class, 'refund']);
+});
+
+
+
+
+Route::prefix('support')->group(function () {
+    Route::post('/', [SupportMessageController::class, 'store']);
 });

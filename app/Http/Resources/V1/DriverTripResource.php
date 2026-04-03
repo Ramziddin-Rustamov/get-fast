@@ -79,19 +79,33 @@ class DriverTripResource extends JsonResource
             ] : 'No ending point data',
             'bookings' => $this->bookings->map(function ($booking) {
                 return [
+                    'id' => $booking->id,
+                    'trip_id' => $booking->trip_id,
+                    'user_id' => $booking->user_id,
+                    'status' => $booking->status,
+                    'seats_booked' => $booking->seats_booked,
+                    'total_price' => $booking->total_price,
+                    'created_at' => $booking->created_at,
                     'booked_by_user' => [
                         'id' => $booking->user->id,
                         'first_name' => $booking->user->first_name,
                         'last_name' => $booking->user->last_name,
                         'phone' => $booking->user->phone,
                         'email' => $booking->user->email,
+                        // agar userda boshqa fieldlar bo‘lsa qo‘shing
                     ],
                     'passengers' => $booking->passengers->map(function ($passenger) {
                         return [
+                            'id' => $passenger->id,
                             'name' => $passenger->name,
                             'phone' => $passenger->phone,
+                            'passport_number' => $passenger->passport_number ?? null,
+                            'birth_date' => $passenger->birth_date ?? null,
+                            // agar boshqa fieldlar bo‘lsa qo‘shing
                         ];
                     }),
+                    // Agar bookingda boshqa relationlar bo‘lsa qo‘shish mumkin
+                    'other_fields' => $booking->other_field ?? null,
                 ];
             }),
         ];

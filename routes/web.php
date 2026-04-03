@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\SupportMessageController;
 use App\Http\Controllers\WelcomeController;
 
 
@@ -20,6 +21,16 @@ Route::post('logout', [AuthController::class, 'logout'])->name('auth.logout.post
 
 
 Route::middleware(['can:admin', 'auth'])->group(function () {
+
+
+    // Admin routes
+    Route::prefix('support')->group(function () {
+        Route::get('/', [SupportMessageController::class, 'index'])->name('support.index');
+        Route::get('/{id}', [SupportMessageController::class, 'show'])->name('support.show');
+        Route::post('/{id}/answer', [SupportMessageController::class, 'markAsAnswered'])->name('support.MarkAsAnswered');
+        Route::delete('/{id}', [SupportMessageController::class, 'destroy'])->name('support.destroy');
+    });
+
 
     // DRIVERS
     Route::get('drivers', [DriverController::class, 'index'])->name('drivers.index');          // List all drivers
