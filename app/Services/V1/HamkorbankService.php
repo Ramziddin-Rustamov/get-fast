@@ -80,6 +80,60 @@ class HamkorbankService
     /** ✅ 2. Karta qo‘shish */
     //###################### --- DONE -------- #############################
 
+    public static function addCard(Request $request)
+    {
+        // Token olish
+        $token = self::getToken();
+
+        if (!$token) {
+            return [
+                'status' => false,
+                'error'  => 'Token olinmadi',
+            ];
+        }
+
+        // JSON-RPC payload
+        $payload = [
+            'jsonrpc' => '2.0',
+            'method'  => 'card.create',
+            'params'  => [
+                'number' => $request->input('number'),
+                'expiry' => $request->input('expiry'),
+                'phone'  => $request->input('phone'),
+            ],
+            'id' => (string) Str::uuid(),
+        ];
+
+        // Bank API ga so‘rov yuborish
+        $response = Http::withToken($token)
+            ->withHeaders(['Content-Type' => 'application/json'])
+            ->withOptions([
+                'cert' => base_path(config('services.bank_certificate.cert')),  // .crt fayl
+                'ssl_key' => base_path(config('services.bank_certificate.key')), // .key fayl
+                'curl' => [
+                    CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+                ],
+            ])
+            ->post(self::baseUrl(), $payload);
+
+        // So‘rov va javobni logga yozish
+        PaymentLog::create([
+            'request'  => json_encode($payload, JSON_UNESCAPED_UNICODE),
+            'user_id'  => Auth::id(),
+            'response' => $response->body(),
+        ]);
+
+        // Agar so‘rov muvaffaqiyatsiz bo‘lsa
+        if ($response->failed()) {
+            return [
+                'status' => 'error',
+                'data'   => $response->json(),
+            ];
+        }
+
+        // Muvaffaqiyatli javobni qaytarish
+        return $response->json();
+    }
 
     /** ✅ 3. Karta verify qilish (SMS kodi bilan) */
     //DONE ###################### --- DONE -------- #############################
