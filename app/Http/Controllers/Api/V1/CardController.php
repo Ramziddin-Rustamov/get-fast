@@ -95,7 +95,7 @@ class CardController extends Controller
                 'response' => json_encode($response),
             ]);
 
-            // DB::commit();
+            DB::commit();
 
 
             return response()->json([
@@ -124,7 +124,7 @@ class CardController extends Controller
     public function verifyCard(Request $request)
     {
 
-        // try {
+        try {
         $request->validate([
             'id' => 'required|exists:cards,id',
             'card_key' => 'required',
@@ -194,19 +194,14 @@ class CardController extends Controller
             'message' => $message,
             'card' => $response['result'] ?? null,
         ]);
-        // } catch (\Illuminate\Http\Client\RequestException $e) {
-        //     // HTTP so‘rov bilan bog‘liq xatoliklar
-        //     return response()->json([
-        //         'status' => 'error',
-        //         'message' => 'Request error: ' . $e->getMessage(),
-        //     ], 500);
-        // } catch (\Exception $e) {
-        //     // Boshqa har qanday xatoliklar
-        //     return response()->json([
-        //         'status' => 'error',
-        //         'message' => 'Unexpected error: ' . $e->getMessage(),
-        //     ], 500);
-        // }
+
+        } catch (\Exception $e) {
+            // Boshqa har qanday xatoliklar
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Unexpected error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
 
