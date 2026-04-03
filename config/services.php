@@ -65,7 +65,7 @@ return [
     ],
 
     'bank_certificate' => [
-        'cert' => env('BANK_CERT'),
-        'key' => env('BANK_KEY')
+        'cert' => env('BANK_CERT_PATH'),
+        'key' => env('BANK_KEY_PATH')
     ]
 ];
