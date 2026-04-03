@@ -25,17 +25,10 @@ class CardController extends Controller
     }
 
 
-    public static function addCard(Request $request)
-    {
-       return HamkorbankService::addCard($request);
-    }
-
     /** ✅ Karta qo‘shish */
     //DONE ###################### --- DONE -------- #############################
-    public function addCards(Request $request)
+    public function addCard(Request $request)
     {
-        $response = HamkorbankService::getToken();
-        return $response;
         try {
 
             DB::beginTransaction();
@@ -64,7 +57,7 @@ class CardController extends Controller
                 'en' => 'Card added successfully. Verify with SMS code.',
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
 
 
             // $masked = substr($request->number, 0, 6) . '******' . substr($request->number, -4);
@@ -102,7 +95,7 @@ class CardController extends Controller
                 'response' => json_encode($response),
             ]);
 
-            DB::commit();
+            // DB::commit();
 
 
             return response()->json([
@@ -131,89 +124,89 @@ class CardController extends Controller
     public function verifyCard(Request $request)
     {
 
-        try {
-            $request->validate([
-                'id' => 'required|exists:cards,id',
-                'card_key' => 'required',
-                'confirm_code' => 'required|string|min:4|max:8',
-            ]);
+        // try {
+        $request->validate([
+            'id' => 'required|exists:cards,id',
+            'card_key' => 'required',
+            'confirm_code' => 'required|string|min:4|max:8',
+        ]);
 
-            $card = Card::where('id', $request->id)->first();
-            if (!$card) {
-
-                $messages = [
-                    'uz' => 'Karta topilmadi',
-                    'ru' => 'Карта не найдена',
-                    'en' => 'Card not found',
-                ];
-
-                $message = $messages[$this->language];
-
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $message,
-                ], 404);
-            }
-
-            $card->status = 'verified';
-            $card->save();
-
-
-
-            $card = Card::where('id', $request->id)->where('user_id', auth()->id())->first();
-            if (!$card) {
-
-                $message = [
-                    'uz' => 'Karta topilmadi',
-                    'ru' => 'Карта не найдена',
-                    'en' => 'Card not found',
-                ];
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $message[$this->language],
-                ], 404);
-            }
-
-            $response = HamkorbankService::verifyCard($request);
-            // Agar Hamkorbankdan error qaytsa:
-            if (isset($response['error'])) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $response['error']['message'] ?? 'Verification failed',
-                ], 400);
-            }
-
-
-            $card->status = 'verified';
-            $card->card_id = $response['result']['id'];
-            $card->save();
+        $card = Card::where('id', $request->id)->first();
+        if (!$card) {
 
             $messages = [
-                'uz' => 'Karta muvaffaqiyatli tasdiqlandi',
-                'ru' => 'Карта успешно подтверждена',
-                'en' => 'Card verified successfully',
+                'uz' => 'Karta topilmadi',
+                'ru' => 'Карта не найдена',
+                'en' => 'Card not found',
             ];
 
             $message = $messages[$this->language];
 
             return response()->json([
-                'status' => 'success',
+                'status' => 'error',
                 'message' => $message,
-                'card' => $response['result'] ?? null,
-            ]);
-        } catch (\Illuminate\Http\Client\RequestException $e) {
-            // HTTP so‘rov bilan bog‘liq xatoliklar
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Request error: ' . $e->getMessage(),
-            ], 500);
-        } catch (\Exception $e) {
-            // Boshqa har qanday xatoliklar
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Unexpected error: ' . $e->getMessage(),
-            ], 500);
+            ], 404);
         }
+
+        $card->status = 'verified';
+        $card->save();
+
+
+
+        $card = Card::where('id', $request->id)->where('user_id', auth()->id())->first();
+        if (!$card) {
+
+            $message = [
+                'uz' => 'Karta topilmadi',
+                'ru' => 'Карта не найдена',
+                'en' => 'Card not found',
+            ];
+            return response()->json([
+                'status' => 'error',
+                'message' => $message[$this->language],
+            ], 404);
+        }
+
+        $response = HamkorbankService::verifyCard($request);
+        // Agar Hamkorbankdan error qaytsa:
+        if (isset($response['error'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $response['error']['message'] ?? 'Verification failed',
+            ], 400);
+        }
+
+
+        $card->status = 'verified';
+        $card->card_id = $response['result']['id'];
+        $card->save();
+
+        $messages = [
+            'uz' => 'Karta muvaffaqiyatli tasdiqlandi',
+            'ru' => 'Карта успешно подтверждена',
+            'en' => 'Card verified successfully',
+        ];
+
+        $message = $messages[auth()->user()->language] ?? 'uz';
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $message,
+            'card' => $response['result'] ?? null,
+        ]);
+        // } catch (\Illuminate\Http\Client\RequestException $e) {
+        //     // HTTP so‘rov bilan bog‘liq xatoliklar
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => 'Request error: ' . $e->getMessage(),
+        //     ], 500);
+        // } catch (\Exception $e) {
+        //     // Boshqa har qanday xatoliklar
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => 'Unexpected error: ' . $e->getMessage(),
+        //     ], 500);
+        // }
     }
 
 

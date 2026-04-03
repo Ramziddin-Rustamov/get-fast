@@ -82,7 +82,6 @@ class HamkorbankService
 
     public static function addCard(Request $request)
     {
-
         // Token olish
         $token = self::getToken();
 
@@ -98,9 +97,11 @@ class HamkorbankService
             'jsonrpc' => '2.0',
             'method'  => 'card.create',
             'params'  => [
-                'number' => $request->input('number'),
-                'expiry' => $request->input('expiry'),
-                'phone'  => $request->input('phone'),
+                [
+                    'number' => $request->input('number'),
+                    'expiry' => $request->input('expiry'),
+                    'phone'  => $request->input('phone'),
+                ]
             ],
             'id' => (string) Str::uuid(),
         ];
@@ -158,6 +159,13 @@ class HamkorbankService
 
             $response = \Illuminate\Support\Facades\Http::withToken($token)
                 ->withHeaders(['Content-Type' => 'application/json; charset=utf-8'])
+                ->withOptions([
+                    'cert' => base_path(config('services.bank_certificate.cert')),  // .crt fayl
+                    'ssl_key' => base_path(config('services.bank_certificate.key')), // .key fayl
+                    'curl' => [
+                        CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+                    ],
+                ])
                 ->post(self::baseUrl(), $payload);
 
             \App\Models\V1\PaymentLog::create([
