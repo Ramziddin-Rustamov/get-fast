@@ -25,34 +25,9 @@ class CardController extends Controller
     }
 
 
-    public static function addCard()
+    public static function addCard(Request $request)
     {
-        $url = 'https://test-openapi.hamkorbank.uz/token';
-        $key = config('services.hamkorbank.key');
-        $secret = config('services.hamkorbank.secret');
-
-        $response = Http::withBasicAuth($key, $secret)
-        ->withOptions([
-            'cert' => storage_path('certificate/test.crt'),
-            'ssl_key' => storage_path('certificate/test.key'),
-            'curl' => [
-                CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
-            ],
-            'verify' => false,
-        ])
-            ->asForm()
-            ->post($url, ['grant_type' => 'client_credentials']);
-
-        return $response;
-        if ($response->failed()) {
-            PaymentLog::create([
-                'request' => 'token_request',
-                'response' => $response->body(),
-            ]);
-            return null;
-        }
-
-        return $response->json()['access_token'] ?? null;
+       return HamkorbankService::addCard($request);
     }
 
     /** ✅ Karta qo‘shish */
