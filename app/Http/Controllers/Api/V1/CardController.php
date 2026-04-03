@@ -8,15 +8,15 @@ use App\Models\V1\PaymentLog;
 use App\Services\V1\HamkorbankService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Svg\Tag\Rect;
+use Illuminate\Support\Facades\Http;
 
 class CardController extends Controller
 {
     private $language;
-    public function __construct()
-    {
-        $this->language = auth()->user()->authLanguage->language ?? 'uz';
-    }
+    // public function __construct()
+    // {
+    //     $this->language = auth()->user()->authLanguage->language ?? 'uz';
+    // }
     /** ✅ Karta ro‘yxati (foydalanuvchi telefon raqami bilan) */
     //DONE ###################### --- DONE -------- #############################
     public function cardList($phoneNumber)
@@ -24,10 +24,43 @@ class CardController extends Controller
         return HamkorbankService::cardListForPhoneNumber($phoneNumber);
     }
 
+
+    public static function addCard()
+    {
+        $url = 'https://test-openapi.hamkorbank.uz/token';
+        $key = config('services.hamkorbank.key');
+        $secret = config('services.hamkorbank.secret');
+
+        $response = Http::withBasicAuth($key, $secret)
+        ->withOptions([
+            'cert' => storage_path('certificate/test.crt'),
+            'ssl_key' => storage_path('certificate/test.key'),
+            'curl' => [
+                CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+            ],
+            'verify' => false,
+        ])
+            ->asForm()
+            ->post($url, ['grant_type' => 'client_credentials']);
+
+        return $response;
+        if ($response->failed()) {
+            PaymentLog::create([
+                'request' => 'token_request',
+                'response' => $response->body(),
+            ]);
+            return null;
+        }
+
+        return $response->json()['access_token'] ?? null;
+    }
+
     /** ✅ Karta qo‘shish */
     //DONE ###################### --- DONE -------- #############################
-    public function addCard(Request $request)
+    public function addCards(Request $request)
     {
+        $response = HamkorbankService::getToken();
+        return $response;
         try {
 
             DB::beginTransaction();
@@ -71,11 +104,11 @@ class CardController extends Controller
 
 
             $maskedHolder = $this->maskHolderName($request->holder_name);
-            
+
             $card = Card::create([
                 'user_id'    => auth()->id(),
                 'card_id'    => $response['result']['key'] ?? '1',
-                'number'     => $response['result']['number'] ?? '12',       
+                'number'     => $response['result']['number'] ?? '12',
                 'expiry'     => $response['result']['expiry'],
                 'phone'      => $response['result']['phone'],
                 'label'      => $maskedHolder,       // ✅ masklangan holder
