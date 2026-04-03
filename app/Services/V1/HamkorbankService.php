@@ -82,6 +82,14 @@ class HamkorbankService
 
     public static function addCard(Request $request)
     {
+
+        $data = 
+        [
+            'cert' => base_path(config('services.bank_certificate.cert')),  // .crt fayl
+                'ssl_key' => base_path(config('services.bank_certificate.key')), //
+        ];
+
+        dd($data);
         // Token olish
         $token = self::getToken();
 
