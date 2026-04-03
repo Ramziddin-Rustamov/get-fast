@@ -100,8 +100,8 @@ class HamkorbankService
         $response = Http::withToken($token)
             ->withHeaders(['Content-Type' => 'application/json'])
             ->withOptions([
-                'cert' => base_path(config('services.bank.cert')),  // .crt fayl
-                'ssl_key' => base_path(config('services.bank.key')), // .key fayl
+                'cert' => base_path(config('services.bank_certificate.cert')),  // .crt fayl
+                'ssl_key' => base_path(config('services.bank_certificate.key')), // .key fayl
                 'curl' => [
                     CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
                 ],
