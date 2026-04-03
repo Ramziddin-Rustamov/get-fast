@@ -12,11 +12,7 @@ use Illuminate\Support\Facades\Http;
 
 class CardController extends Controller
 {
-    private $language;
-    // public function __construct()
-    // {
-    //     $this->language = auth()->user()->authLanguage->language ?? 'uz';
-    // }
+     
     /** ✅ Karta ro‘yxati (foydalanuvchi telefon raqami bilan) */
     //DONE ###################### --- DONE -------- #############################
     public function cardList($phoneNumber)
@@ -57,7 +53,7 @@ class CardController extends Controller
                 'en' => 'Card added successfully. Verify with SMS code.',
             ];
 
-            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+            $message = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
 
 
             // $masked = substr($request->number, 0, 6) . '******' . substr($request->number, -4);
@@ -140,7 +136,7 @@ class CardController extends Controller
                 'en' => 'Card not found',
             ];
 
-            $message = $messages[$this->language];
+            $message = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
 
             return response()->json([
                 'status' => 'error',
@@ -163,7 +159,7 @@ class CardController extends Controller
             ];
             return response()->json([
                 'status' => 'error',
-                'message' => $message[$this->language],
+                'message' => $message[auth()->user()->authLanguage->language] ?? $message['uz'],
             ], 404);
         }
 
@@ -187,7 +183,7 @@ class CardController extends Controller
             'en' => 'Card verified successfully',
         ];
 
-        $message = $messages[auth()->user()->language] ?? 'uz';
+        $message = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
 
         return response()->json([
             'status' => 'success',
