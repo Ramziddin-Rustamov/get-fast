@@ -33,6 +33,8 @@ class HamkorbankService
                 'grant_type' => 'client_credentials'
             ]);
 
+
+     
         if ($response->failed()) {
             PaymentLog::create([
                 'request' => 'token_request',
@@ -40,6 +42,7 @@ class HamkorbankService
             ]);
             return null;
         }
+       
 
         return $response->json()['access_token'] ?? null;
     }
@@ -91,6 +94,7 @@ class HamkorbankService
                 'error'  => 'Token olinmadi',
             ];
         }
+       
 
         // JSON-RPC payload
         $payload = [

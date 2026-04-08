@@ -121,6 +121,7 @@ Route::prefix('bank')->middleware('auth:api')->group(function () {
     Route::get('/my-registered-cards', [CardController::class, 'myCards']);
     Route::post('/add-card', [CardController::class, 'addCard']);
     Route::post('/verify-card', [CardController::class, 'verifyCard']);
+    Route::delete('/delete-card/{id}', [CardController::class, 'deleteCard']);
     Route::post('/get-info-about-card', [CardController::class, 'getCardInfo']);
     Route::post('/check-card-balance', [CardController::class, 'checkCardBalance']);
     Route::post('create-payment', [\App\Http\Controllers\Api\V1\PaymentController::class, 'createPayment']);

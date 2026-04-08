@@ -25,98 +25,98 @@ class CardController extends Controller
     //DONE ###################### --- DONE -------- #############################
     public function addCard(Request $request)
     {
-        try {
+        // try {
 
-            DB::beginTransaction();
+        DB::beginTransaction();
 
-            $request->validate([
-                'number' => 'required|string|min:16|max:19',
-                'expiry' => 'required|string|size:4',
-                'holder_name' => 'required|string',
-                'phone' => 'required',
-            ]);
-
-
-            $last4 = substr($request->number, -4);
+        $request->validate([
+            'number' => 'required|string|min:16|max:19',
+            'expiry' => 'required|string|size:4',
+            'holder_name' => 'required|string',
+            'phone' => 'required',
+        ]);
 
 
-
-            $isExists = Card::where('user_id', auth()->id())
-                ->where('phone', $request->phone)
-                ->where('expiry', $request->expiry)
-                ->where('number', 'LIKE', "%{$last4}")
-                ->first();
-
-
-            if ($isExists) {
-                $isExists->delete();
-            }
-
-            $messages = [
-                'uz' => 'Karta muvaffaqiyatli qo‘shildi. SMS kodi orqali tasdiqlang.',
-                'ru' => 'Карта успешно добавлена. Подтвердите с помощью SMS кода.',
-                'en' => 'Card added successfully. Verify with SMS code.',
-            ];
-
-            $message = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
-
-
-            // $masked = substr($request->number, 0, 6) . '******' . substr($request->number, -4);
-            $response = HamkorbankService::addCard($request);
-
-            if (!isset($response['result'])) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $response['error'] ? $response['error']['message'] : 'Bank javob bermadi',
-                ], 422);
-            }
-
-
-            $maskedHolder = $this->maskHolderName($request->holder_name);
-
-            $card = Card::create([
-                'user_id'    => auth()->id(),
-                'card_id'    => $response['result']['key'] ?? '1',
-                'number'     => $response['result']['number'] ?? '12',
-                'expiry'     => $response['result']['expiry'],
-                'phone'      => $response['result']['phone'],
-                'label'      => $maskedHolder,       // ✅ masklangan holder
-                'is_default' => !Card::where('user_id', auth()->id())->exists(),
-                'status'     => 'not_verified',
-                'meta'       => json_encode($response ?? []),
-            ]);
+        $last4 = substr($request->number, -4);
 
 
 
+        $isExists = Card::where('user_id', auth()->id())
+            ->where('phone', $request->phone)
+            ->where('expiry', $request->expiry)
+            ->where('number', 'LIKE', "%{$last4}")
+            ->first();
 
 
-            PaymentLog::create([
-                'request' => json_encode($request->all()),
-                'user_id' => auth()->id(),
-                'response' => json_encode($response),
-            ]);
+        if ($isExists) {
+            $isExists->delete();
+        }
 
-            DB::commit();
+        $messages = [
+            'uz' => 'Karta muvaffaqiyatli qo‘shildi. SMS kodi orqali tasdiqlang.',
+            'ru' => 'Карта успешно добавлена. Подтвердите с помощью SMS кода.',
+            'en' => 'Card added successfully. Verify with SMS code.',
+        ];
+
+        $message = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
 
 
-            return response()->json([
-                'status' => 'success',
-                'message' => $message,
-                'card' => [
-                    'id' => $card->id,
-                    'label' => $card->label, // small typo tuzatildi: 'lable' -> 'label'
-                    'phone' => $card->phone,
-                    'key' => $response['result']['key'] ?? null,
-                ],
-            ]);
-        } catch (\Throwable $e) {
-            DB::rollBack();
+        // $masked = substr($request->number, 0, 6) . '******' . substr($request->number, -4);
+        $response = HamkorbankService::addCard($request);
 
+        if (!is_array($response) || !isset($response['result'])) {
             return response()->json([
                 'status' => 'error',
-                'message' => $e->getMessage(),
-            ], 500);
+                'message' => $response['error']['message'] ?? 'Bank javob bermadi',
+                'raw' => $response
+            ], 422);
         }
+
+        $maskedHolder = $this->maskHolderName($request->holder_name);
+
+        $card = Card::create([
+            'user_id'    => auth()->id(),
+            'card_id'    => $response['result']['key'] ?? '1',
+            'number'     => $response['result']['number'] ?? '12',
+            'expiry'     => $response['result']['expiry'],
+            'phone'      => $response['result']['phone'],
+            'label'      => $maskedHolder,       // ✅ masklangan holder
+            'is_default' => !Card::where('user_id', auth()->id())->exists(),
+            'status'     => 'not_verified',
+            'meta'       => json_encode($response ?? []),
+        ]);
+
+
+
+
+
+        PaymentLog::create([
+            'request' => json_encode($request->all()),
+            'user_id' => auth()->id(),
+            'response' => json_encode($response),
+        ]);
+
+        DB::commit();
+
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $message,
+            'card' => [
+                'id' => $card->id,
+                'label' => $card->label, // small typo tuzatildi: 'lable' -> 'label'
+                'phone' => $card->phone,
+                'key' => $response['result']['key'] ?? null,
+            ],
+        ]);
+        // } catch (\Throwable $e) {
+        //     DB::rollBack();
+
+        //     return response()->json([
+        //         'status' => 'error',
+        //         'message' => $e->getMessage(),
+        //     ], 500);
+        // }
     }
 
 
@@ -256,5 +256,55 @@ class CardController extends Controller
                 . str_repeat('*', max(strlen($part) - 6, 2))
                 . substr($part, -2);
         })->implode(' ');
+    }
+
+    public function deleteCard(Request $request)
+    {
+        $card = Card::where('id', $request->id)
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$card) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Card not found',
+            ], 404);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $wasDefault = $card->is_default;
+
+            // Kartani o‘chiramiz
+            $card->delete();
+
+            // Agar o‘chirilgan karta default bo‘lsa
+            if ($wasDefault) {
+
+                $newDefault = Card::where('user_id', auth()->id())
+                    ->first();
+
+                if ($newDefault) {
+                    $newDefault->update([
+                        'is_default' => true
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Card deleted successfully',
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 }
