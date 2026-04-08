@@ -77,7 +77,6 @@ class PaymentController extends Controller
             ]);
 
 
-
             if ($check == 0) { // 0 - balans yetarli emas
                 $messages = [
                     'uz' => "Karta balansida mablag‘ yetarli emas",
@@ -85,7 +84,7 @@ class PaymentController extends Controller
                     'en' => "Insufficient funds on card balance"
                 ];
 
-                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+                $message = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
 
                 return response()->json([
                     'success' => false,
@@ -99,7 +98,7 @@ class PaymentController extends Controller
                 "amount"        => (int) $data['amount'] * 100,
                 "currency_code" => "860",
                 "card" => [
-                    'ID' => $card->card_id,
+                    'id' => $card->card_id,
                 ],
                 "details" => [
                     [
@@ -109,11 +108,9 @@ class PaymentController extends Controller
                 ],
                 "payer_data" => [
                     "nationality"   => "UZB",
-                    "first_name"    => $user->first_name,
-                    "surname"       => $user->last_name,
-                    "father_name"   => $user->father_name,
-                    "email"         => $user->email,
-                    "phone"         => $user->phone ?? null,
+                    "first_name"    => $user->first_name ?? null,
+                    "surname"       => $user->last_name ?? null,
+                    "middle_name"   => $user->father_name ?? null
                 ]
             ];
 
@@ -196,7 +193,7 @@ class PaymentController extends Controller
                         'en' => 'Balance filled manually by user and confirmed without SMS'
                     ];
 
-                    $trx->reason = $reasons[auth()->user()->authLanguage->language ?? 'uz'];
+                    $trx->reason = $reasons[auth()->user()->authLanguage->language] ?? $messages['uz'];
                     $trx->reference_id = null;
                     $trx->save();
 
@@ -219,7 +216,7 @@ class PaymentController extends Controller
                         'en' => 'Payment created successfully, there is no need to confirm the payment',
                     ];
 
-                    $messagereturn = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+                    $messagereturn = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
 
                     return response()->json([
                         'status' => 'success',
@@ -290,7 +287,7 @@ class PaymentController extends Controller
                     'en' => 'Payment status already changed',
                 ];
 
-                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+                $message = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
 
                 return response()->json([
                     'status' => 'success',
@@ -351,7 +348,7 @@ class PaymentController extends Controller
                 'en' => 'Balance filled manually by user and confirmed by SMS'
             ];
 
-            $trx->reason = $reasons[auth()->user()->authLanguage->language ?? 'uz'];
+            $trx->reason = $reasons[auth()->user()->authLanguage->language] ?? $reasons['uz'];
 
             $trx->reference_id = null;
             $trx->save();
@@ -377,7 +374,7 @@ class PaymentController extends Controller
                 'en' => 'Payment confirmed successfully',
             ];
 
-            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+            $message = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
 
             return response()->json([
                 'status' => 'success',
