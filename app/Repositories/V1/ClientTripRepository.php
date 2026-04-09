@@ -13,45 +13,57 @@ use function Symfony\Component\Clock\now;
 class ClientTripRepository
 {
 
+
     public function getAllTrips()
     {
         try {
             $trips =  Trip::whereIn('status', ['active', 'full'])->paginate(10);
             return ClientTripResource::collection($trips);
         } catch (\Exception $e) {
-            return response()->json($this->errorResponse[$this->language], 404);
+            return response()->json([
+                'status' => 'error',
+                'messsage ' => " Hozircha trip yo'q",
+            ], 404);
         }
     }
 
     // tested
     public function getTripById($id)
     {
-        try {
             $booking = Trip::whereHas('bookings', function ($q) use ($id) {
                 $q->where('user_id', auth()->id())->where('id', $id);
             })
                 ->orderBy('id', 'asc')
                 ->first();
 
+            $lang =  auth()->user()->authLanguage->language ?? 'uz';
+
+            $messages = [
+                'not_found' => [
+                    'uz' => 'Safar topilmadi',
+                    'en' => 'Trip not found',
+                    'ru' => 'Поездка не найдена',
+                ],
+                'success' => [
+                    'uz' => 'Safar muvaffaqiyatli olindi',
+                    'en' => 'Trip fetched successfully',
+                    'ru' => 'Поездка успешно получена',
+                ],
+            ];
+
             if (is_null($booking)) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Trip not found',
+                    'message' => $messages['not_found'][$lang] ?? $messages['not_found']['uz'],
                 ], 404);
             }
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Trip fetched successfully',
+                'message' => $messages['success'][$lang] ?? $messages['success']['uz'],
                 'data' => new ClientTripWithMoreInfoResource($booking),
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-                'data' => null
-            ], 404);
-        }
+        
     }
     // tested
     public function canceledTripsForClient()
@@ -76,10 +88,10 @@ class ClientTripRepository
                 ];
 
                 return response()->json([
-                    'status' => 'error',
+                    'status' => 'success',
                     'message' => $messages[$language] ?? $messages['uz'],
                     'data' => null
-                ], 404);
+                ], 200);
             }
 
             return response()->json([
@@ -124,10 +136,10 @@ class ClientTripRepository
 
             if ($inProgressTrips->isEmpty()) {
                 return response()->json([
-                    'status' => 'error',
+                    'status' => 'success',
                     'message' => $messagesNot[auth()->user()->authLanguage->language] ?? $messagesNot['uz'],
                     'data' => null
-                ], 404);
+                ], 200);
             }
 
             $messageSuccess = [
@@ -173,10 +185,10 @@ class ClientTripRepository
                 $message = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
 
                 return response()->json([
-                    'status' => 'error',
+                    'status' => 'success',
                     'message' => $message,
                     'data' => null
-                ], 404);
+                ], 200);
             }
             return response()->json([
                 'status' => 'success',

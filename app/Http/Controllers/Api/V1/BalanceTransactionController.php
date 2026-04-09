@@ -14,7 +14,7 @@ class BalanceTransactionController extends Controller
     
     public function getAllUserBalanceTransactions(Request $request)
     {
-        $userTransaction = BalanceTransaction::where('user_id', $request->user()->id)->paginate(20);
+        $userTransaction = BalanceTransaction::where('user_id', $request->user()->id)->orderBy('created_at', 'DESC')->paginate(20);
         if ($userTransaction) {
             return BalanceTransactionResource::collection($userTransaction);
         }
@@ -36,7 +36,7 @@ class BalanceTransactionController extends Controller
     public function downloadPdfTransactions(Request $request)
     {
 
-        $transactions = BalanceTransaction::where('user_id', $request->user()->id)->get();
+        $transactions = BalanceTransaction::where('user_id', $request->user()->id)->orderBy('created_at', 'DESC')->get();
 
         // Tilga mos sarlavha va ustun nomlarini tayyorlash
         $titles = [
@@ -87,7 +87,7 @@ class BalanceTransactionController extends Controller
     public function downloadOnePdfTransaction($id)
     {
 
-        $transaction = BalanceTransaction::where('user_id', auth()->user()->id)->find($id);
+        $transaction = BalanceTransaction::where('user_id', auth()->user()->id)->orderBy('created_at', 'DESC')->find($id);
         if (!$transaction) {
             $messages = [
                 'uz' => "Balans tranzaksiyalari topilmadi.",

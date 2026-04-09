@@ -25,7 +25,7 @@ class CardController extends Controller
     //DONE ###################### --- DONE -------- #############################
     public function addCard(Request $request)
     {
-        // try {
+        try {
 
         DB::beginTransaction();
 
@@ -109,14 +109,14 @@ class CardController extends Controller
                 'key' => $response['result']['key'] ?? null,
             ],
         ]);
-        // } catch (\Throwable $e) {
-        //     DB::rollBack();
+        } catch (\Throwable $e) {
+            DB::rollBack();
 
-        //     return response()->json([
-        //         'status' => 'error',
-        //         'message' => $e->getMessage(),
-        //     ], 500);
-        // }
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
 
