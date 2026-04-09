@@ -13,6 +13,7 @@ class ClientTripResource extends JsonResource
         $start_time = $this->start_time ? Carbon::parse($this->start_time) : null;
         $end_time = $this->end_time ? Carbon::parse($this->end_time) : null;
 
+        $lang = auth()->user()->authLanguage->language ?? 'uz';
         // Davomiylikni hisoblash
         $duration = $start_time && $end_time ? $start_time->diff($end_time) : null;
 
@@ -27,17 +28,15 @@ class ClientTripResource extends JsonResource
             : null;
         return [
             'id' => $this->id,
-            'from_where' => $this->startQuarter->name . ', ' . $this->startQuarter->district->name . ', ' . $this->startQuarter->district->region->name,
-            'to_where' => $this->endQuarter->name . ', ' . $this->endQuarter->district->name . ', ' . $this->endQuarter->district->region->name,
+            'start_region' => $this->startRegion->{'name_' . $lang} ?? $this->startRegion->name_uz ?? null,
+            'end_region' => $this->endRegion->{'name_' . $lang} ?? $this->endRegion->name_uz ?? null,
+            'start_district' => $this->startDistrict->{'name_' . $lang} ?? $this->startDistrict->name_uz ?? null,
+            'end_district' => $this->endDistrict->{'name_' . $lang} ?? $this->endDistrict->name_uz ?? null,
 
-            'start_quarter_id' => $this->start_quarter_id,
-            'end_quarter_id' => $this->end_quarter_id,
-            'start_region_id' => $this->start_region_id,
-            'end_region_id' => $this->end_region_id,
-            'start_district_id' => $this->start_district_id,
-            'end_district_id' => $this->end_district_id,
+            'start_quarter' => $this->startQuarter->name ?? null,
+            'end_quarter' => $this->endQuarter->name ?? null,
 
-            
+
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'duration' => $duration_formatted, // Davomiylik (soatlar va daqiqalarda)
@@ -51,7 +50,7 @@ class ClientTripResource extends JsonResource
             'status' => $this->status,
             'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
             'updated_at' => $this->updated_at ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s') : null,
-           'driver' => $this->driver ? [
+            'driver' => $this->driver ? [
                 'id' => $this->driver->id,
                 'name' => $this->driver->name ?? null,
                 'role' => $this->driver->role ?? null,
@@ -78,9 +77,9 @@ class ClientTripResource extends JsonResource
             ] : 'No starting point data',
 
             'ending_point' => $this->endPoint ? [
-                    'id' => $this->endPoint->id,
-                    'lat' => $this->endPoint->lat,
-                    'long' => $this->endPoint->long,
+                'id' => $this->endPoint->id,
+                'lat' => $this->endPoint->lat,
+                'long' => $this->endPoint->long,
             ] : 'No ending point data',
         ];
     }

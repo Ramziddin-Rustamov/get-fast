@@ -13,6 +13,8 @@ class CompetedInProgressCanceledTripsForClientsResources extends JsonResource
         $start_time = $this->start_time ? Carbon::parse($this->start_time) : null;
         $end_time = $this->end_time ? Carbon::parse($this->end_time) : null;
 
+        $lang = auth()->user()->authLanguage->language ?? 'uz';
+
         // Davomiylikni hisoblash
         $duration = $start_time && $end_time ? $start_time->diff($end_time) : null;
 
@@ -27,12 +29,14 @@ class CompetedInProgressCanceledTripsForClientsResources extends JsonResource
             : null;
         return [
             'id' => $this->id,
-            'from_region_id' => $this->start_region_id,
-            'end_region_id' => $this->end_region_id,
-            'from_district_id' => $this->start_district_id,
-            'end_district_id' => $this->end_district_id,
-            'from_quarter_id' => $this->start_quarter_id,
-            'end_quarter_id' => $this->end_quarter_id,
+            'start_region' => $this->startRegion->{'name_' . $lang} ?? $this->startRegion->name_uz ?? null,
+            'end_region' => $this->endRegion->{'name_' . $lang} ?? $this->endRegion->name_uz ?? null,
+            'start_district' => $this->startDistrict->{'name_' . $lang} ?? $this->startDistrict->name_uz ?? null,
+            'end_district' => $this->endDistrict->{'name_' . $lang} ?? $this->endDistrict->name_uz ?? null,
+
+            'start_quarter' => $this->startQuarter->name ?? null,
+            'end_quarter' => $this->endQuarter->name ?? null,
+
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'duration' => $duration_formatted, // Davomiylik (soatlar va daqiqalarda)
