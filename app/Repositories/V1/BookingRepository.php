@@ -49,10 +49,15 @@ class BookingRepository
     public function createBooking($data)
     {
         try {
+
+            DB::beginTransaction();
             $authLan = auth()->user()->authLanguage->language ?? 'uz';
 
 
-            $trip = Trip::with('vehicle')->find($data['trip_id']);
+            $trip = Trip::with('vehicle')
+                ->where('id', $data['trip_id'])
+                ->lockForUpdate()
+                ->first();
             if (is_null($trip)) {
                 $messages = [
                     'uz' => 'Safar topilmadi, qayta urinib ko‘ring',
@@ -81,7 +86,6 @@ class BookingRepository
 
 
 
-            DB::beginTransaction();
             if ($requestedSeats > $trip->available_seats) {
                 $messages = [
                     'uz' => 'yetarli joy mavjud emas, qayta urinib ko‘ring',
@@ -121,11 +125,19 @@ class BookingRepository
 
 
             // Trip available seats update
-            $trip->available_seats -= $requestedSeats;
+            // $trip->available_seats -= $requestedSeats;
+            // if ($trip->available_seats <= 0) {
+            //     $trip->status = 'full';
+            // }
+            // $trip->save();
+
+            $trip->decrement('available_seats', $requestedSeats);
+
+            $trip->refresh();
+
             if ($trip->available_seats <= 0) {
-                $trip->status = 'full';
+                $trip->update(['status' => 'full']);
             }
-            $trip->save();
 
             $totalPrice = $trip->price_per_seat * $requestedSeats;
             $totalPrice = number_format((float)$totalPrice, 2, '.', '');
@@ -204,21 +216,19 @@ class BookingRepository
 
 
                 $textSMSForDriver = [
-                'uz' => "Qadam ilovasida siz yangi buyurtma oldingiz. Umumiy summa: $totalPrice UZS, sizga tushadigan summa: $net_income UZS. Iltimos, buyurtmani bajarib bo'lgungizcha hisobingizdagi summani yechmang. 
+                    'uz' => "Qadam ilovasida siz yangi buyurtma oldingiz. Umumiy summa: $totalPrice UZS, sizga tushadigan summa: $net_income UZS. Iltimos, buyurtmani bajarib bo'lgungizcha hisobingizdagi summani yechmang. 
                 Ilovadan batafsil tekshiring. Mijoz: {$booking->user->first_name} {$booking->user->last_name}, telefon raqami: {$booking->user->phone}, band qilingan joylar: $requestedSeats ta.",
-                'ru' => "В приложении Qadam у вас новый заказ. Общая сумма: $totalPrice UZS, вам поступит: $net_income UZS. Пожалуйста, не снимайте деньги с вашего счета, пока заказ не будет выполнен. 
+                    'ru' => "В приложении Qadam у вас новый заказ. Общая сумма: $totalPrice UZS, вам поступит: $net_income UZS. Пожалуйста, не снимайте деньги с вашего счета, пока заказ не будет выполнен. 
                 Подробности можно проверить в приложении. Клиент: {$booking->user->first_name} {$booking->user->last_name}, телефон: {$booking->user->phone}, забронированные места: $requestedSeats.",
-                'en' => "You have a new order in the Qadam app. Total amount: $totalPrice UZS, your net income: $net_income UZS. Please do not withdraw the amount from your account until the order is completed. 
+                    'en' => "You have a new order in the Qadam app. Total amount: $totalPrice UZS, your net income: $net_income UZS. Please do not withdraw the amount from your account until the order is completed. 
                 Check details in the app. Customer: {$booking->user->first_name} {$booking->user->last_name}, phone: {$booking->user->phone}, seats booked: $requestedSeats."
                 ];
 
                 $textSMSForDriver = $textSMSForDriver[$trip->driver->authLanguage->language] ?? $textSMSForDriver['uz'];
-                if($trip->driver->phone){
-                // SMS jo'natish
-                // $this->smsService->sendQueued($trip->driver->phone, $textSMSForDriver, 'send-sms-to-driver-about-new-booking');
+                if ($trip->driver->phone) {
+                    // SMS jo'natish
+                    // $this->smsService->sendQueued($trip->driver->phone, $textSMSForDriver, 'send-sms-to-driver-about-new-booking');
                 }
-
-
             }
 
             if ($userBalance) {
@@ -250,23 +260,22 @@ class BookingRepository
                 $userBalance->save();
 
                 $textSMSForClient = [
-                'uz' => "Qadam ilovasida siz yangi buyurtma qildingiz. Umumiy summa: $totalPrice UZS to‘landi. 
+                    'uz' => "Qadam ilovasida siz yangi buyurtma qildingiz. Umumiy summa: $totalPrice UZS to‘landi. 
                 Haydovchi: {$trip->driver->first_name} {$trip->driver->last_name}, telefon raqami: {$trip->driver->phone}, band qilingan joylar: $requestedSeats ta. 
                 Sayohatni boshlashdan oldin, iltimos haydovchingiz bilan bog‘laning.",
 
-                'ru' => "В приложении Qadam вы сделали новый заказ. Общая сумма: $totalPrice UZS оплачена. 
+                    'ru' => "В приложении Qadam вы сделали новый заказ. Общая сумма: $totalPrice UZS оплачена. 
                 Водитель: {$trip->driver->first_name} {$trip->driver->last_name}, телефон: {$trip->driver->phone}, забронированные места: $requestedSeats. 
                 Перед началом поездки, пожалуйста, свяжитесь с вашим водителем.",
 
-                'en' => "You have made a new booking in the Qadam app. Total amount: $totalPrice UZS has been paid. 
+                    'en' => "You have made a new booking in the Qadam app. Total amount: $totalPrice UZS has been paid. 
                 Driver: {$trip->driver->first_name} {$trip->driver->last_name}, phone: {$trip->driver->phone}, seats booked: $requestedSeats. 
                 Before starting the trip, please contact your driver."
                 ];
 
                 $textSMSForClient = $textSMSForClient[$booking->user->authLanguage->language] ?? $textSMSForClient['uz'];
                 // SMS jo'natish
-                if($booking->user->phone)
-                {
+                if ($booking->user->phone) {
                     // $this->smsService->sendQueued($booking->user->phone, $textSMSForClient, 'send-sms-to-driver-about-new-booking');
                 }
             }
@@ -327,7 +336,10 @@ class BookingRepository
             $authLan = $user->authLanguage->language ?? 'uz';
 
             // Booking qidirish
-            $booking = Booking::where('user_id', $user->id)->find($bookingId);
+            $booking = Booking::where('user_id', $user->id)
+                ->where('id', $bookingId)
+                ->lockForUpdate()
+                ->first();
 
 
             if (!$booking) {
@@ -360,7 +372,9 @@ class BookingRepository
             }
 
 
-            $trip = Trip::find($booking->trip_id);
+            $trip = Trip::where('id', $booking->trip_id)
+                ->lockForUpdate()
+                ->first();
             if (!$trip) {
 
                 $tripNotFound = [
@@ -433,9 +447,9 @@ class BookingRepository
             ];
             $textSMSMessageToClientAboutCancelation = $textSMSMessageToClientAboutCancelation[$authLan] ?? $textSMSMessageToClientAboutCancelation['uz'];
 
-              if($user->phone){
+            if ($user->phone) {
                 // $this->smsService->sendQueued($user->phone, $textSMSMessageToClientAboutCancelation, 'send-sms-to-client-about-order-cancelation');
-              }
+            }
 
             BalanceTransaction::create([
                 'user_id' => $user->id,
@@ -486,9 +500,9 @@ class BookingRepository
             ];
             $textSMSMessageToDriverAboutCancelation = $textSMSMessageToDriverAboutCancelation[$authLan] ?? $textSMSMessageToDriverAboutCancelation['uz'];
 
-              if($trip->driver->phone){
+            if ($trip->driver->phone) {
                 // $this->smsService->sendQueued($trip->driver->phone, $textSMSMessageToDriverAboutCancelation, 'send-sms-to-client-about-order-cancelation');
-              }
+            }
 
 
             BalanceTransaction::create([
@@ -505,13 +519,18 @@ class BookingRepository
             ]);
 
             // === TRIP SEAT ADJUSTMENT ===
-            $trip->available_seats = $trip->available_seats + $booking->seats_booked;
-            $trip->status = 'active';
-            $trip->save();
+            // $trip->available_seats = $trip->available_seats + $booking->seats_booked;
+            // $trip->status = 'active';
+            // $trip->save();
+
+            $trip->increment('available_seats', $booking->seats_booked);
+            $trip->update(['status' => 'active']);
+
 
             // === BOOKING STATUS UPDATE ===
-            $booking->status = 'cancelled';
-            $booking->save();
+            $booking->update([
+                'status' => 'cancelled'
+            ]);
 
             $companyBalance = CompanyBalance::lockForUpdate()->firstOrFail();
 

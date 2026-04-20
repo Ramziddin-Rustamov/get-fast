@@ -14,39 +14,39 @@ class CompleteTripsCommand extends Command
     protected $description = 'End time o‘tgan trip va bookinglarni completed qilish';
 
 
-    // public function handle()
-    // {
-    //     $now = Carbon::now();
+    public function handle()
+    {
+        $now = Carbon::now();
 
-    //     DB::beginTransaction();
+        DB::beginTransaction();
 
-    //     try {
-    //         // 1️⃣ End time o‘tgan va active/full bo‘lgan triplar
-    //         $tripIds = Trip::whereIn('status', ['active', 'full'])
-    //             ->where('end_time', '<', $now)
-    //             ->pluck('id');
+        try {
+            // 1️⃣ End time o‘tgan va active/full bo‘lgan triplar
+            $tripIds = Trip::whereIn('status', ['active', 'full'])
+                ->where('end_time', '<', $now)
+                ->pluck('id');
 
-    //         if ($tripIds->isEmpty()) {
-    //             $this->info('Trip va bookinglar muvaffaqiyatli completed qilindi');
-    //             DB::commit();
-    //             return;
-    //         }
+            if ($tripIds->isEmpty()) {
+                $this->info('Trip va bookinglar muvaffaqiyatli completed qilindi');
+                DB::commit();
+                return;
+            }
 
-    //         // 2️⃣ Triplarni completed qilish
-    //         Trip::whereIn('id', $tripIds)
-    //             ->update(['status' => 'completed']);
+            // 2️⃣ Triplarni completed qilish
+            Trip::whereIn('id', $tripIds)
+                ->update(['status' => 'completed']);
 
-    //         // 3️⃣ Bookinglarni completed qilish (cancelled bo‘lmaganlar)
-    //         Booking::whereIn('trip_id', $tripIds)
-    //             ->where('status', '!=', 'cancelled')
-    //             ->update(['status' => 'completed']);
+            // 3️⃣ Bookinglarni completed qilish (cancelled bo‘lmaganlar)
+            Booking::whereIn('trip_id', $tripIds)
+                ->where('status', '!=', 'cancelled')
+                ->update(['status' => 'completed']);
 
-    //         DB::commit();
+            DB::commit();
 
-    //         $this->info('Trip va bookinglar muvaffaqiyatli completed qilindi');
-    //     } catch (\Throwable $e) {
-    //         DB::rollBack();
-    //         $this->error($e->getMessage());
-    //     }
-    // }
+            $this->info('Trip va bookinglar muvaffaqiyatli completed qilindi');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            $this->error($e->getMessage());
+        }
+    }
 }

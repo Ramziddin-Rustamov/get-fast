@@ -11,6 +11,7 @@ use App\Http\Resources\V1\BookingResource;
 use App\Models\BalanceTransaction;
 use App\Models\UserBalance;
 use App\Models\V1\Booking;
+use App\Models\V1\Trip;
 use App\Models\V1\BookingPassengers;
 use App\Models\V1\CompanyBalance;
 use App\Models\V1\CompanyBalanceTransaction;
@@ -140,28 +141,46 @@ class BookingController extends Controller
         DB::beginTransaction();
 
         try {
+            $lang = auth()->user()->authLanguage->language ?? 'uz';
             $request->validate([
                 'name' => 'required|string|max:255',
                 'phone' => 'required|string|max:20',
             ]);
 
+            $booking = Booking::with('trip')
+                ->where('user_id', auth()->id())->lockForUpdate()
+                ->find($bookingId);
 
-            $booking = Booking::with('trip')->where('user_id', auth()->id())->find($bookingId);
+
 
             if (!$booking) {
+                $messages = [
+                    'uz' => 'Buyurtma topilmadi',
+                    'ru' => 'Бронирование не найдено',
+                    'en' => 'Booking not found',
+                ];
+                DB::rollBack();
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Buyurtma topilmadi'
+                    'message' => $messages[$lang] ?? $messages['uz']
                 ], 404);
             }
 
 
-            $trip = $booking->trip;
+            $trip = Trip::where('id', $booking->trip_id)
+                ->lockForUpdate()
+                ->first();
 
             if ($trip->available_seats < 1) {
+                $messages = [
+                    'uz' => 'Bo‘sh joy yo‘q',
+                    'ru' => 'Нет свободных мест',
+                    'en' => 'No available seats',
+                ];
+                DB::rollBack();
                 return response()->json([
-                    'message' => 'Bo‘sh joy yo‘q',
-                    'status' => 'error'
+                    'status' => 'error',
+                    'message' => $messages[$lang] ?? $messages['uz']
                 ], 422);
             }
 
@@ -177,9 +196,15 @@ class BookingController extends Controller
 
 
             if ($userBalance->balance < $price) {
+                $messages = [
+                    'uz' => 'Balans yetarli emas',
+                    'ru' => 'Недостаточно средств',
+                    'en' => 'Insufficient balance',
+                ];
+                DB::rollBack();
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Balans yetarli emas'
+                    'message' => $messages[$lang] ?? $messages['uz']
                 ], 422);
             }
 
@@ -189,14 +214,17 @@ class BookingController extends Controller
                 'name' => $request->name,
                 'phone' => $request->phone,
             ]);
+            $trip->decrement('available_seats');
 
-            $trip->available_seats--;
-            $trip->save();
+            $booking->increment('seats_booked');
+            $booking->increment('total_price', $price);
 
-
-            $booking->seats_booked++;
-            $booking->total_price = $booking->total_price  + $price;
-            $booking->save();
+            // $trip->available_seats--;
+            // $trip->save();
+            // $booking->seats_booked++;
+            // $booking->increment('seats_booked');
+            // $booking->total_price = $booking->total_price  + $price;
+            // $booking->save();
 
 
             // Trip location names (ID emas, NAME qiymati bilan)
@@ -220,8 +248,11 @@ class BookingController extends Controller
                 'status' => 'success',
                 'reason' => $reasonForClient[$booking->user->authLanguage->language] ?? $reasonForClient['uz'],
             ]);
-            $userBalance->balance = $userBalance->balance - $price;
-            $userBalance->save();
+
+
+            $userBalance->decrement('balance', $price);
+            // $userBalance->balance = $userBalance->balance - $price;
+            // $userBalance->save();
 
             // 💰 Driver
             $serviceFee = ($price * (config('services.fees.service_fee_for_compliting_order') / 100));  //  5%
@@ -252,8 +283,10 @@ class BookingController extends Controller
                 'reason' => $reasonForDriver[$trip->driver->authLanguage->language] ?? $reasonForDriver['uz'],
             ]);
 
-            $driverBalance->balance = $driverBalance->balance + $driverIncome;
-            $driverBalance->save();
+            // $driverBalance->balance = $driverBalance->balance + $driverIncome;
+            // $driverBalance->save();
+            $driverBalance->increment('balance', $driverIncome);
+
 
             // 🏢 Company
             $company = CompanyBalance::lockForUpdate()->first();
@@ -278,9 +311,8 @@ class BookingController extends Controller
             $company->increment('total_income', $serviceFee);
 
 
-            if ($trip->available_seats  == 0) {
-                $trip->status = 'full';
-                $trip->save();
+            if ($trip->available_seats == 0) {
+                $trip->update(['status' => 'full']);
             }
 
             DB::commit();
