@@ -8,9 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class Review extends Model
 {
     protected $fillable = [
+        'trip_id',
         'reviewer_id',
         'reviewer_role',
-        'reviewed_id',
+        'reviewed_user_id',
         'reviewed_role',
         'rating',
         'comment',
@@ -23,6 +24,6 @@ class Review extends Model
 
     public function reviewed()
     {
-        return $this->belongsTo(User::class, 'reviewed_id');
+        return $this->belongsTo(User::class, 'reviewed_user_id');
     }
 }

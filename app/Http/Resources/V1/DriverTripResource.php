@@ -99,9 +99,9 @@ class DriverTripResource extends JsonResource
                             'id' => $passenger->id,
                             'name' => $passenger->name,
                             'phone' => $passenger->phone,
+                            'booking_status' => $passenger->status ?? 'active',
                             'passport_number' => $passenger->passport_number ?? null,
                             'birth_date' => $passenger->birth_date ?? null,
-                            // agar boshqa fieldlar bo‘lsa qo‘shing
                         ];
                     }),
                     // Agar bookingda boshqa relationlar bo‘lsa qo‘shish mumkin

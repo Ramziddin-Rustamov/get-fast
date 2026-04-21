@@ -69,9 +69,11 @@ Route::middleware('auth:api')->group(function () {
 
 
     Route::prefix('driver/expired-trips')->group(function () {
-        Route::get('/', [App\Http\Controllers\Api\V1\DriverExpiredTripsControllerApi::class, 'getExpeiredTrips']);
+        Route::get('/get-expired-trips/driver', [App\Http\Controllers\Api\V1\DriverExpiredTripsControllerApi::class, 'getExpeiredTrips']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\DriverExpiredTripsControllerApi::class, 'getExpiredTrip']);
     });
+
+    Route::apiResource('reviews', App\Http\Controllers\Api\V1\ReviewController::class);
 });
 
 

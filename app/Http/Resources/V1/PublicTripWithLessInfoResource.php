@@ -48,8 +48,8 @@ class PublicTripWithLessInfoResource extends JsonResource
             'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
            'driver' => $this->driver ? [
                 'id' => $this->driver->id,
-                'name' => $this->driver->first_name ?? null,
-                'name' => $this->driver->last_name ?? null,
+                'first_name' => $this->driver->first_name ?? null,
+                'last_name' => $this->driver->last_name ?? null,
                 'role' => $this->driver->role ?? null,
             ] : 'No driver data',
 
@@ -57,7 +57,7 @@ class PublicTripWithLessInfoResource extends JsonResource
                 'id' => $this->vehicle->id,
                 'model' => $this->vehicle->model ?? null,
                 // 'seats' => $this->vehicle->seats ?? null,
-                'car_number' => $this->vehicle->car_number ?? null,
+                'car_number' => '***', // Obscured
                 'color' => [
                     'id' => $this->vehicle->color->id,
                     'code' => $this->vehicle->color->code
