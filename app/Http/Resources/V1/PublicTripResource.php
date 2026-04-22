@@ -42,10 +42,11 @@ class PublicTripResource extends JsonResource
             'price_per_seat' => $this->price_per_seat,
             'total_seats' => $this->total_seats,
             'available_seats' => $this->available_seats,
-            'start_lat' => $this->startPoint->lat ?? null,
-            'start_long' => $this->startPoint->long ?? null,
-            'end_lat' => $this->endPoint->lat ?? null,
-            'end_long' => $this->endPoint->long ?? null,
+            // Obscured for privacy in public view
+            'start_lat' => null,
+            'start_long' => null,
+            'end_lat' => null,
+            'end_long' => null,
             'status' => $this->status,
             'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
             'updated_at' => $this->updated_at ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s') : null,
@@ -60,23 +61,14 @@ class PublicTripResource extends JsonResource
                 'id' => $this->vehicle->id,
                 'model' => $this->vehicle->model ?? null,
                 'seats' => $this->vehicle->seats ?? null,
-                'car_number' => $this->vehicle->car_number ?? null,
+                'car_number' => '***', // Obscured
                 'color' => [
                     'id' => $this->vehicle->color->id,
                 ] ?? null,
             ] : 'No vehicle data',
 
-            'starting_point' => $this->startPoint ? [
-                'id' => $this->startPoint->id,
-                'lat' => $this->startPoint->lat,
-                'long' => $this->startPoint->long,
-            ] : 'No starting point data',
-
-            'ending_point' => $this->endPoint ? [
-                'id' => $this->endPoint->id,
-                'lat' => $this->endPoint->lat,
-                'long' => $this->endPoint->long,
-            ] : 'No ending point data',
+            'starting_point' => null,
+            'ending_point' => null,
 
         ];
     }

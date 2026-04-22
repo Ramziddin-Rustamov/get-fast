@@ -91,7 +91,8 @@ class  ClientTripWithMoreInfoResource extends JsonResource
                     ],
                     'passengers' => $booking->passengers->map(function ($passenger) use ($booking) {
                         return [
-                            'booking_status' => $booking->status,
+                            'id' => $passenger->id,
+                            'booking_status' => $passenger->status ?? 'active',
                             'name' => $passenger->name,
                             'phone' => $passenger->phone,
                         ];

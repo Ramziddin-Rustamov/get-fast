@@ -338,9 +338,6 @@ class BookingController extends Controller
         try {
 
             $booking = Booking::with('trip')->where('user_id', auth()->id())->find($bookingId);
-            $trip = $booking->trip;
-            $price = $trip->price_per_seat;
-
 
             if (!$booking) {
                 return response()->json([
@@ -348,6 +345,9 @@ class BookingController extends Controller
                     'message' => 'Buyurtma topilmadi'
                 ], 404);
             }
+
+            $trip = $booking->trip;
+            $price = $trip->price_per_seat;
 
             $now = Carbon::now(); // Carbon obyekt
             $startTime = Carbon::parse($trip->start_time); // Carbon obyekt
@@ -383,8 +383,8 @@ class BookingController extends Controller
 
 
 
-            // ➕ Yo‘lovchi olib tashlash
-            $passenger->delete();
+            // ➕ Yo‘lovchi olib tashlash (Bekor qilish)
+            $passenger->update(['status' => 'cancelled']);
 
             // ➕ Seat qaytarish
             $trip->available_seats++;
@@ -417,11 +417,11 @@ class BookingController extends Controller
 
             $reasonForClient = [
                 'uz' => "Mavjud buyurtmangizdan bir yo‘lovchi olib tashlandi. Yo‘nalish:
-                 {$startQuarterName} dan {$endQuarterName} ga. Sizning balansingizga { $return } so‘m qaytarildi. Xizmat haqqi: {$serviceFee} so‘m",
+                 {$startQuarterName} dan {$endQuarterName} ga. Sizning balansingizga {$return} so‘m qaytarildi. Xizmat haqqi: {$serviceFee} so‘m",
                 'en' => "One passenger was removed from your existing booking. Route: from 
-                {$startQuarterName} to {$endQuarterName}. { ($return) } UZS was refunded to your balance. Service fee: { ($serviceFee) } UZS",
+                {$startQuarterName} to {$endQuarterName}. {$return} UZS was refunded to your balance. Service fee: {$serviceFee} UZS",
                 'ru' => "Один пассажир был удалён из вашего бронирования. Маршрут: от {$startQuarterName} до 
-                {$endQuarterName}. На ваш баланс возвращено { $return } сум. Сервисный сбор: { $serviceFee } сум",
+                {$endQuarterName}. На ваш баланс возвращено {$return} сум. Сервисный сбор: {$serviceFee} сум",
             ];
 
             BalanceTransaction::create([
