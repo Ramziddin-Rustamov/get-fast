@@ -109,6 +109,8 @@ class BookingController extends Controller
                 'passengers' => 'required|array|min:1',
                 'passengers.*.name' => 'required|string|max:255',
                 'passengers.*.phone' => 'required|string|max:20',
+                'passengers.*.longitude' => 'required',
+                'passengers.*.latitude' => 'required',
             ]);
 
             if ($validator->fails()) {
@@ -138,18 +140,20 @@ class BookingController extends Controller
     public function addPassengerToBooking(Request $request, $bookingId)
     {
 
-        DB::beginTransaction();
-
         try {
+            DB::beginTransaction();
             $lang = auth()->user()->authLanguage->language ?? 'uz';
             $request->validate([
                 'name' => 'required|string|max:255',
                 'phone' => 'required|string|max:20',
+                'longitude' => 'nullable|numeric',
+                'latitude' => 'nullable|numeric',
             ]);
 
-            $booking = Booking::with('trip')
-                ->where('user_id', auth()->id())->lockForUpdate()
-                ->find($bookingId);
+            $booking = Booking::where('user_id', auth()->id())
+                ->where('id', $bookingId)
+                ->lockForUpdate()
+                ->first();
 
 
 
@@ -166,10 +170,41 @@ class BookingController extends Controller
                 ], 404);
             }
 
+            if ($booking->status !== 'confirmed') {
+                DB::rollBack();
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Booking not active'
+                ], 422);
+            }
+
 
             $trip = Trip::where('id', $booking->trip_id)
                 ->lockForUpdate()
                 ->first();
+
+
+
+            if (!$trip) {
+                DB::rollBack();
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Trip not found'
+                ]);
+            }
+
+            if ($trip->status !== 'active') {
+                DB::rollBack();
+                $messages = [
+                    'uz' => 'Trip not active',
+                    'ru' => 'Поездка не активна',
+                    'en' => 'Trip not active',
+                ];
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$lang] ?? $messages['uz']
+                ], 422);
+            }
 
             if ($trip->available_seats < 1) {
                 $messages = [
@@ -213,18 +248,22 @@ class BookingController extends Controller
                 'booking_id' => $booking->id,
                 'name' => $request->name,
                 'phone' => $request->phone,
+                'longitude' => $request->longitude,
+                'latitude' => $request->latitude,
+                'status' => 'confirmed'
             ]);
+
+
+            if ($trip->available_seats < 1) {
+                throw new \Exception('No seats');
+            }
+
             $trip->decrement('available_seats');
 
             $booking->increment('seats_booked');
             $booking->increment('total_price', $price);
 
-            // $trip->available_seats--;
-            // $trip->save();
-            // $booking->seats_booked++;
-            // $booking->increment('seats_booked');
-            // $booking->total_price = $booking->total_price  + $price;
-            // $booking->save();
+
 
 
             // Trip location names (ID emas, NAME qiymati bilan)
@@ -236,23 +275,26 @@ class BookingController extends Controller
                 'en' => "You added another passenger to your existing booking. Route: from {$startQuarterName} to {$endQuarterName}. {$price} UZS was deducted from your balance and the payment was successfully processed.",
                 'ru' => "Вы добавили ещё одного пассажира к существующему бронированию. Маршрут: от {$startQuarterName} до {$endQuarterName}. С вашего баланса списано {$price} сум, оплата успешно выполнена.",
             ];
+
+
+
+            $before = $userBalance->balance;
+            $userBalance->decrement('balance', $price);
+            $userBalance->refresh();
+
             // 💰 Client
             BalanceTransaction::create([
                 'user_id' => auth()->id(),
                 'type' => 'debit',
                 'amount' => $price,
-                'balance_before' => $userBalance->balance,
-                'balance_after' => $userBalance->balance - $price,
+                'balance_before' => $before,
+                'balance_after' => $userBalance->balance,
                 'trip_id' => $trip->id,
                 'reference_id' => $booking->id,
                 'status' => 'success',
-                'reason' => $reasonForClient[$booking->user->authLanguage->language] ?? $reasonForClient['uz'],
+                'reason' => $reasonForClient[$lang] ?? $reasonForClient['uz'],
             ]);
 
-
-            $userBalance->decrement('balance', $price);
-            // $userBalance->balance = $userBalance->balance - $price;
-            // $userBalance->save();
 
             // 💰 Driver
             $serviceFee = ($price * (config('services.fees.service_fee_for_compliting_order') / 100));  //  5%
@@ -271,35 +313,49 @@ class BookingController extends Controller
                 'ru' => "К вашему существующему бронированию был добавлен новый пассажир, и оплата успешно выполнена. Маршрут: от {$startQuarterName} до {$endQuarterName}. На ваш баланс зачислено {$price} сум, удержана комиссия за сервис {$serviceFee} сум.",
             ];
 
+
+            $beforeDriver = $driverBalance->balance;
+            $driverBalance->increment('balance', $driverIncome);
+            $driverBalance->refresh();
+
+            $driverLang = $trip->driver->authLanguage->language ?? 'uz';
             BalanceTransaction::create([
                 'user_id' => $trip->driver_id,
                 'type' => 'credit',
                 'amount' => $driverIncome,
-                'balance_before' => $driverBalance->balance,
-                'balance_after' => $driverBalance->balance + $driverIncome,
+                'balance_before' => $beforeDriver,
+                'balance_after' => $driverBalance->balance,
                 'trip_id' => $trip->id,
                 'reference_id' => $booking->id,
                 'status' => 'success',
-                'reason' => $reasonForDriver[$trip->driver->authLanguage->language] ?? $reasonForDriver['uz'],
+                'reason' => $reasonForDriver[$driverLang] ?? $reasonForDriver['uz'],
             ]);
-
-            // $driverBalance->balance = $driverBalance->balance + $driverIncome;
-            // $driverBalance->save();
-            $driverBalance->increment('balance', $driverIncome);
 
 
             // 🏢 Company
-            $company = CompanyBalance::lockForUpdate()->first();
+            $$company = CompanyBalance::lockForUpdate()->first();
+
+            if (!$company) {
+                $company = CompanyBalance::create([
+                    'balance' => 0,
+                    'total_income' => 0
+                ]);
+            }
 
 
 
+            $companyBefore = $company->balance;
+
+            $company->increment('balance', $serviceFee);
+            $company->increment('total_income', $serviceFee);
+            $company->refresh();
 
             // Create Company Balance Transaction
             CompanyBalanceTransaction::create([
                 'company_balance_id' => $company->id,
                 'amount'             => $serviceFee,
-                'balance_before'     => $company->balance,
-                'balance_after'      => $company->balance + $serviceFee,
+                'balance_before'     => $companyBefore,
+                'balance_after'      => $company->balance,
                 'trip_id'            => $trip->id,
                 'type'               => 'income',
                 'reason'             => 'Yangi yo‘lovchi qo‘shildi va kampaniya hisobiga ' . $serviceFee . ' so`m tulov qilindi.' . ' ' . $startQuarterName . ' dan ' . $endQuarterName . ' ga borish uchun mijoz tulov qildi .',
@@ -307,19 +363,21 @@ class BookingController extends Controller
                 'currency'           => 'UZS',
             ]);
 
-            $company->increment('balance', $serviceFee);
-            $company->increment('total_income', $serviceFee);
 
-
-            if ($trip->available_seats == 0) {
+            if ($trip->available_seats <= 0) {
                 $trip->update(['status' => 'full']);
             }
 
             DB::commit();
+            $messages = [
+                'uz' => 'Yo‘lovchi qo‘shildi va to‘lov amalga oshirildi',
+                'ru' => 'Пассажир добавлен и оплата выполнена',
+                'en' => 'Passenger added and payment completed',
+            ];
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Passenger qo‘shildi, va tulov amalga oshirildi '
+                'message' => $messages[$booking->user->authLanguage->language] ?? $messages['uz'],
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -333,21 +391,32 @@ class BookingController extends Controller
 
     public function removePassengerFromBooking(Request $request, $bookingId, $passengerId)
     {
-        DB::beginTransaction();
+
 
         try {
+            DB::beginTransaction();
 
-            $booking = Booking::with('trip')->where('user_id', auth()->id())->find($bookingId);
-            $trip = $booking->trip;
+            $user = auth()->user();
+            $lang = $user->authLanguage->language ?? 'uz';
+
+
+            $booking = Booking::where('user_id', auth()->id())
+                ->where('id', $bookingId)
+                ->lockForUpdate()
+                ->first();
+            if (!$booking) {
+                throw new \Exception('Booking not found');
+            }
+
+            $trip = Trip::where('id', $booking->trip_id)
+                ->lockForUpdate()
+                ->first();
+            if (!$trip) {
+                throw new \Exception('Trip not found');
+            }
+
             $price = $trip->price_per_seat;
 
-
-            if (!$booking) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Buyurtma topilmadi'
-                ], 404);
-            }
 
             $now = Carbon::now(); // Carbon obyekt
             $startTime = Carbon::parse($trip->start_time); // Carbon obyekt
@@ -373,32 +442,41 @@ class BookingController extends Controller
 
 
 
-            $passenger = BookingPassengers::where('booking_id', $booking->id)->find($passengerId);
+            $passenger = BookingPassengers::where('id', $passengerId)
+                ->where('booking_id', $booking->id)
+                ->lockForUpdate()
+                ->first();
             if (!$passenger) {
                 return response()->json([
                     'status' => 'error',
                     'message' => 'Yo‘lovchi topilmadi'
                 ], 404);
             }
+            if ($passenger->status === 'cancelled') {
+                $messages = [
+                    'uz' => 'Allaqachon bekor qilingan yo‘lovchi',
+                    'en' => 'Passenger already cancelled',
+                    'ru' => 'Уже отменен пассажир',
+                ];
+                throw new \Exception($messages[$lang] ?? $messages['uz']);
+            }
+            $passenger->update(['status' => 'cancelled']);
 
-
-
-            // ➕ Yo‘lovchi olib tashlash
-            $passenger->delete();
 
             // ➕ Seat qaytarish
-            $trip->available_seats++;
-            if ($trip->available_seats > 0) {
-                $trip->status = 'active';
-            }
-            $trip->save();
+            $trip->increment('available_seats');
 
-            $booking->seats_booked--;
-            $booking->total_price = $booking->total_price - $price;
-            if ($booking->seats_booked == 0) {
-                $booking->status = 'cancelled';
+            if ($trip->available_seats > 0) {
+                $trip->update(['status' => 'active']);
             }
-            $booking->save();
+
+            $booking->decrement('seats_booked');
+            $booking->decrement('total_price', $price);
+
+            if ($booking->seats_booked <= 0) {
+                $booking->update(['status' => 'cancelled']);
+            }
+
 
             // Trip location names
             $startQuarterName = $trip->startQuarter?->name ?? '';
@@ -423,21 +501,25 @@ class BookingController extends Controller
                 'ru' => "Один пассажир был удалён из вашего бронирования. Маршрут: от {$startQuarterName} до 
                 {$endQuarterName}. На ваш баланс возвращено { $return } сум. Сервисный сбор: { $serviceFee } сум",
             ];
+            $clientBefore = $userBalance->balance;
+            $userBalance->balance = $clientBefore + $return;
+            $userBalance->save();
+
+            $clientAfter = $userBalance->balance;
+
 
             BalanceTransaction::create([
                 'user_id' => auth()->id(),
                 'type' => 'credit',
                 'amount' => $return,
-                'balance_before' => $userBalance->balance,
-                'balance_after' => $userBalance->balance + $return,
+                'balance_before' => $clientBefore,
+                'balance_after' => $clientAfter,
                 'trip_id' => $trip->id,
                 'reference_id' => $booking->id,
                 'status' => 'success',
-                'reason' => $reasonForClient[$booking->user->authLanguage->language] ?? $reasonForClient['uz'],
+                'reason' => $reasonForClient[$lang] ?? $reasonForClient['uz'],
             ]);
 
-            $userBalance->balance = $userBalance->balance + $return;
-            $userBalance->save();
 
 
 
@@ -461,6 +543,8 @@ class BookingController extends Controller
                 'ru' => "Из бронирования был удалён один пассажир.
                  Маршрут: от {$startQuarterName} до {$endQuarterName}. С вашего баланса списано {$driverLoss} сум и осталась комиссия {$driverCommission} сум",
             ];
+
+
 
             BalanceTransaction::create([
                 'user_id' => $trip->driver_id,
@@ -494,14 +578,22 @@ class BookingController extends Controller
             $driverBalance->save();
 
             // 🏢 Company (minus service fee)
-            $company = CompanyBalance::lockForUpdate()->first();
+            $company = CompanyBalance::lockForUpdate()->firstOrCreate([], [
+                'balance' => 0,
+                'total_income' => 0,
+            ]);
 
+
+            $companyBefore = $company->balance;
+            $company->decrement('balance', $driverCommission);
+            $company->decrement('total_income', $driverCommission);
+            $company->refresh();
 
             CompanyBalanceTransaction::create([
                 'company_balance_id' => $company->id,
                 'amount'             => $driverCommission, // 1%
-                'balance_before'     => $company->balance,
-                'balance_after'      => $company->balance - $driverCommission,
+                'balance_before'     => $companyBefore,
+                'balance_after'      => $company->balance,
                 'trip_id'            => $trip->id,
                 'type'               => 'outgoing',
                 'reason'             => 'Yo‘lovchi mavzjud buyurtmadan olib tashlandi. Xizmat haqining % qismi haydovchiga qaytarildi. ' . $startQuarterName . ' dan ' . $endQuarterName . ' ga.',
@@ -509,8 +601,6 @@ class BookingController extends Controller
                 'currency'           => 'UZS',
             ]);
 
-            $company->decrement('balance', $driverCommission);
-            $company->decrement('total_income', $driverCommission);
 
             DB::commit();
 
@@ -524,7 +614,7 @@ class BookingController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' =>  $messageToResponse[$booking->user->authLanguage->language] ?? $messageToResponse['uz'],
+                'message' => $messageToResponse[$lang] ?? $messageToResponse['uz'],
             ]);
         } catch (\Throwable $e) {
             DB::rollBack();

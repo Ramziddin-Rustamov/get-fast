@@ -73,6 +73,9 @@ class DriverTripRepository
     public function createTrip($request)
     {
         try {
+            DB::beginTransaction();
+            $authUser = auth()->user();
+            $authLang = $authUser->authLanguage->language ?? 'uz';
             $data = $request->validated();
 
             // Duplicate check
@@ -92,7 +95,7 @@ class DriverTripRepository
                     'en' => 'A trip with this information has already been submitted',
                 ];
 
-                $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+                $message = $messages[$authLang] ?? $messages['uz'];
 
                 return response()->json([
                     'status' => 'error',
@@ -101,7 +104,33 @@ class DriverTripRepository
                 ], 409);
             }
 
-            DB::beginTransaction();
+        
+            $conflictTrip = Trip::where('driver_id', auth()->id())
+                ->whereIn('status', ['pending', 'active'])
+                ->where(function ($query) use ($data) {
+
+                    $query->where('start_time', '<', $data['end_time'])
+                        ->where('end_time', '>', $data['start_time']);
+                })
+                ->first();
+
+            if ($conflictTrip) {
+
+                $message = [
+                    'uz' => 'Sizning bu vaqtda poezdka mavjud',
+                    'ru' => 'У вас уже есть поездка в этот период времени',
+                    'en' => 'You already have a trip at this time',
+                ];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message[$authLang] ?? $message['uz'],
+                    'data' => null
+                ], 409);
+            }
+
+
+
 
             // Create start and end points
             $startPoint = Point::create([
@@ -135,9 +164,14 @@ class DriverTripRepository
 
             DB::commit();
 
+            $messages = [
+                'uz' => 'Trip muvaffaqiyatli yaratildi',
+                'ru' => 'Поездка успешно создана',
+                'en' => 'Trip successfully created',
+            ];
             return response()->json([
                 'status' => 'success',
-                'message' => 'Trip successfully created',
+                'message' => $messages[$authLang] ?? $messages['uz'],
                 'data' => new DriverTripResource($trip)
             ], 201);
         } catch (\Throwable $e) {
@@ -149,7 +183,7 @@ class DriverTripRepository
                 'en' => 'Error occurred while creating the trip.',
             ];
 
-            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+            $message = $messages[$authLang] ?? $messages['uz'];
 
             return response()->json([
                 'status' => 'error',
@@ -166,23 +200,33 @@ class DriverTripRepository
 
 
             DB::beginTransaction();
-
-            $trip = Trip::where('driver_id', auth()->id())->find($id);
+            $authLang = auth()->user()->authLanguage->language ?? 'uz';
+            $trip = Trip::where('id', $id)->where('driver_id', auth()->id())->lockForUpdate()->first();
 
             if (!$trip) {
+                $messages = [
+                    'uz' => 'Safar topilmadi',
+                    'ru' => 'Поездка не найдена',
+                    'en' => 'Trip not found',
+                ];
                 return response()->json(
                     [
                         'status' => 'error',
-                        'message' => 'Trip not found'
+                        'message' => $messages[$authLang] ?? $messages['uz'],
                     ],
                     404
                 );
             }
 
             if ($trip->status === 'cancelled') {
+                $messages = [
+                    'uz' => 'Safar bekor qilindi',
+                    'ru' => 'Поездка была отменена',
+                    'en' => 'Trip has been cancelled',
+                ];
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Trip already cancelled'
+                    'message' => $messages[$authLang] ?? $messages['uz'],
                 ], 400);
             }
 
@@ -214,7 +258,12 @@ class DriverTripRepository
             $clientCompensationPercent = env('REFOUND_COMPENSATION_FOR_CLIENTS', 1); // 1 %
 
             $driver = $trip->driver;
-            $companyBalance = CompanyBalance::lockForUpdate()->firstOrFail();
+            $companyBalance = CompanyBalance::lockForUpdate()->first();
+            if(is_null($companyBalance)){
+                $companyBalance = CompanyBalance::create([
+                    'balance' => 0,
+                ]);
+            }
 
 
             foreach ($trip->bookings as $booking) {
@@ -249,7 +298,7 @@ class DriverTripRepository
                         Avval to‘langan foizlar sizga qaytarildi: $overallCompensation so‘m.
                         Yakunda sizdan ushlab qolinadigan umumiy summa: $driverDeductionOnDocs so‘m.
                     ",
-                
+
                     'ru' => "
                         Вы отменили поездку.
                         Сумма, которую вы должны были получить до отмены: $driverGotBeforeCancel сум.
@@ -262,7 +311,7 @@ class DriverTripRepository
                         Ранее удержанные проценты были возвращены вам: $overallCompensation сум.
                         Итоговая сумма удержаний с вас составляет: $driverDeductionOnDocs сум.
                     ",
-                
+
                     'en' => "
                         You have cancelled the trip.
                         The amount you were supposed to receive before cancellation: $driverGotBeforeCancel UZS.
@@ -276,7 +325,7 @@ class DriverTripRepository
                         The final amount deducted from you is: $driverDeductionOnDocs UZS.
                     ",
                 ];
-                
+
 
 
                 BalanceTransaction::create([
@@ -301,12 +350,12 @@ class DriverTripRepository
                 // (0 - 20000) = -20000
                 $resonCompensation = [
                     'uz' => "Siz safarni bekor qilganingiz uchun $companyFee so‘m kompaniya to‘lovi va $clientCompensation so‘m mijoz kompensatsiyasi sizning hisobingizdan ushlab qolindi.",
-                    
+
                     'ru' => "За отмену поездки с вашего счёта были удержаны $companyFee сум комиссии компании и $clientCompensation сум компенсации клиенту.",
-                    
+
                     'en' => "For cancelling the trip, $companyFee UZS company fee and $clientCompensation UZS client compensation have been deducted from your account.",
                 ];
-                
+
                 BalanceTransaction::create([
                     'user_id' => $driver->id,
                     'type' => 'debit',
@@ -584,7 +633,4 @@ class DriverTripRepository
             ]
         ], 200);
     }
-
-
-    
 }

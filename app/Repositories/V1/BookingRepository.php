@@ -64,10 +64,7 @@ class BookingRepository
                     'ru' => 'Поездка не найдена, повторите попытку',
                     'en' => 'Trip not found, try again',
                 ];
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $messages[$authLan] ?? $messages['uz']
-                ], 404);
+                throw new \Exception($messages[$authLan] ?? $messages['uz'], 404);
             }
 
             if ($trip->driver_id == auth()->user()->id) {
@@ -76,10 +73,7 @@ class BookingRepository
                     'ru' => 'Вы не можете забронировать свою поездку',
                     'en' => 'You cannot book your own trip',
                 ];
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $messages[$authLan] ?? $messages['uz']
-                ]);
+                throw new \Exception($messages[$authLan] ?? $messages['uz']);
             }
 
             $requestedSeats = count($data['passengers']);
@@ -92,7 +86,7 @@ class BookingRepository
                     'ru' => 'Недостаточно мест, повторите попытку',
                     'en' => 'Not enough seats available, try again',
                 ];
-                return response()->json(['status' => 'error', 'message' => $messages[$authLan] ?? $messages['uz']], 422);
+                throw new \Exception($messages[$authLan] ?? $messages['uz'], 422);
             }
 
             if ($trip->status == 'cancelled') {
@@ -101,7 +95,7 @@ class BookingRepository
                     'ru' => 'Поездка уже отменена',
                     'en' => 'Trip already is cancelled',
                 ];
-                return response()->json(['status' => 'error', 'message' => $messages[$authLan] ?? $messages['uz']]);
+                throw new \Exception($messages[$authLan] ?? $messages['uz']);
             }
 
 
@@ -124,15 +118,7 @@ class BookingRepository
 
 
 
-            // Trip available seats update
-            // $trip->available_seats -= $requestedSeats;
-            // if ($trip->available_seats <= 0) {
-            //     $trip->status = 'full';
-            // }
-            // $trip->save();
-
             $trip->decrement('available_seats', $requestedSeats);
-
             $trip->refresh();
 
             if ($trip->available_seats <= 0) {
@@ -151,10 +137,7 @@ class BookingRepository
                     'en' => 'Insufficient balance for booking',
                 ];
 
-                return response()->json([
-                    'status' => 'error',
-                    'message' => $messages[$authLan] ?? $messages['uz']
-                ], 422);
+                throw new \Exception($messages[$authLan] ?? $messages['uz'], 422);
             }
 
 
@@ -223,12 +206,6 @@ class BookingRepository
                     'en' => "You have a new order in the Qadam app. Total amount: $totalPrice UZS, your net income: $net_income UZS. Please do not withdraw the amount from your account until the order is completed. 
                 Check details in the app. Customer: {$booking->user->first_name} {$booking->user->last_name}, phone: {$booking->user->phone}, seats booked: $requestedSeats."
                 ];
-
-                $textSMSForDriver = $textSMSForDriver[$trip->driver->authLanguage->language] ?? $textSMSForDriver['uz'];
-                if ($trip->driver->phone) {
-                    // SMS jo'natish
-                    // $this->smsService->sendQueued($trip->driver->phone, $textSMSForDriver, 'send-sms-to-driver-about-new-booking');
-                }
             }
 
             if ($userBalance) {
@@ -272,12 +249,6 @@ class BookingRepository
                 Driver: {$trip->driver->first_name} {$trip->driver->last_name}, phone: {$trip->driver->phone}, seats booked: $requestedSeats. 
                 Before starting the trip, please contact your driver."
                 ];
-
-                $textSMSForClient = $textSMSForClient[$booking->user->authLanguage->language] ?? $textSMSForClient['uz'];
-                // SMS jo'natish
-                if ($booking->user->phone) {
-                    // $this->smsService->sendQueued($booking->user->phone, $textSMSForClient, 'send-sms-to-driver-about-new-booking');
-                }
             }
 
             if ($companyBalance) {
@@ -313,15 +284,35 @@ class BookingRepository
                     'booking_id' => $booking->id,
                     'name' => $passenger['name'],
                     'phone' => $passenger['phone'],
+                    'latitude' => $passenger['latitude'],
+                    'longitude' => $passenger['longitude'],
+                    'status' => 'confirmed',
                 ]);
             }
 
             DB::commit();
+            $clientLang = $booking->user->authLanguage->language ?? 'uz';
+            $textSMSForClient = $textSMSForClient[$clientLang] ?? $textSMSForClient['uz'];
+            // SMS jo'natish
+            if ($booking->user->phone) {
+                // $this->smsService->sendQueued($booking->user->phone, $textSMSForClient, 'send-sms-to-driver-about-new-booking');
+            }
+
+            $driverLang = $trip->driver->authLanguage->language ?? 'uz';
+            $textSMSForDriver = $textSMSForDriver[$driverLang] ?? $textSMSForDriver['uz'];
+            if ($trip->driver->phone) {
+                // SMS jo'natish
+                // $this->smsService->sendQueued($trip->driver->phone, $textSMSForDriver, 'send-sms-to-driver-about-new-booking');
+            }
 
             return response()->json(new BookingResource($booking), 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['status' => 'error', 'message' => 'Booking creation failed: ' . $e->getMessage()], 500);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 400);
         }
     }
 
@@ -357,7 +348,7 @@ class BookingRepository
             }
 
 
-            if (in_array($booking->status, ['cancelled', 'pending', 'completed']) || in_array($booking->trip->status, ['cancelled', 'pending', 'completed'])) {
+            if (in_array($booking->status, ['cancelled', 'completed']) || in_array($booking->trip?->status, ['cancelled', 'completed'])) {
 
                 $messages = [
                     'uz' => 'Bu bosqichda buyurtmani bekor qilib bo‘lmaydi. ( bkor qilingan, ushlab turilgan, yakunlangan)',
@@ -392,9 +383,7 @@ class BookingRepository
 
             $now = Carbon::now(); // Carbon obyekt
             $startTime = Carbon::parse($trip->start_time); // Carbon obyekt
-
             $startStr = $startTime->toDateTimeString();
-
             $hoursDiff = $now->diffInHours($startStr, false);
 
 
@@ -413,7 +402,7 @@ class BookingRepository
             }
 
 
-            $total = (float) $booking->total_price;
+            $total = (float) $booking->total_price; // OK, lekin DB decimal bo‘lishi shart
 
             // Cancelation fee foydalanuvchidan ushlab qolish
             $cancelationFee = round($total * config('services.fees.service_fee_for_canceling_order') / 100, 2); // 100000 * 0.5 = 5000
@@ -440,16 +429,6 @@ class BookingRepository
                 'en' => "User cancelled booking #{$booking->id}. Route: {$start} → {$end}. Refund: {$refundForClient} UZS, cancellation fee: {$cancelationFee} UZS.",
             ];
 
-            $textSMSMessageToClientAboutCancelation = [
-                'uz' => "Siz qadam ilovasida band qilgan safar bekor qildingiz. Yo‘nalish: {$start} → {$end}. Qaytarilgan summa: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS.",
-                'ru' => "Вы отменили поездку #{$booking->id}. Маршрут: {$start} → {$end}. Возврат: {$refundForClient} UZS, комиссия за отмену: {$cancelationFee} UZS.",
-                'en' => "You cancelled the trip #{$booking->id}. Route: {$start} → {$end}. Refund: {$refundForClient} UZS, cancellation fee: {$cancelationFee} UZS.",
-            ];
-            $textSMSMessageToClientAboutCancelation = $textSMSMessageToClientAboutCancelation[$authLan] ?? $textSMSMessageToClientAboutCancelation['uz'];
-
-            if ($user->phone) {
-                // $this->smsService->sendQueued($user->phone, $textSMSMessageToClientAboutCancelation, 'send-sms-to-client-about-order-cancelation');
-            }
 
             BalanceTransaction::create([
                 'user_id' => $user->id,
@@ -477,7 +456,13 @@ class BookingRepository
 
             $driverCommission = round($total * config('services.fees.service_fee_for_drivers_for_client_cancel_the_booking') / 100, 2); // 1 %  100000 * 0.01 = 1000
             $driverBalanceBefore = $driverBalance->balance;
-            $driverBalance->balance = ((($driverBalance->balance + $cancelationFee) - $total) + $driverCommission);
+            // $driverBalance->balance = ((($driverBalance->balance + $cancelationFee) - $total) + $driverCommission);
+            $newBalance = $driverBalance->balance;
+            $newBalance += $cancelationFee;
+            $newBalance -= $total;
+            $newBalance += $driverCommission;
+            $driverBalance->balance = $newBalance;
+
             $driverBalance->save();
 
             $withdrawFromDriver = round($total - $cancelationFee, 2);
@@ -491,6 +476,11 @@ class BookingRepository
                 'ru' => "Пользователь отменил бронирование #{$booking->id}. Маршрут: {$start} → {$end}. С водителя удержано: {$withdrawFromDriver} UZS (комиссия: {$driverCommission} UZS).",
                 'en' => "User cancelled booking #{$booking->id}. Route: {$start} → {$end}. Amount deducted from driver: {$withdrawFromDriver} UZS (fee: {$driverCommission} UZS).",
             ];
+            $textSMSMessageToClientAboutCancelation = [
+                'uz' => "Siz qadam ilovasida band qilgan safar bekor qildingiz. Yo‘nalish: {$start} → {$end}. Qaytarilgan summa: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS.",
+                'ru' => "Вы отменили поездку #{$booking->id}. Маршрут: {$start} → {$end}. Возврат: {$refundForClient} UZS, комиссия за отмену: {$cancelationFee} UZS.",
+                'en' => "You cancelled the trip #{$booking->id}. Route: {$start} → {$end}. Refund: {$refundForClient} UZS, cancellation fee: {$cancelationFee} UZS.",
+            ];
 
 
             $textSMSMessageToDriverAboutCancelation = [
@@ -498,11 +488,6 @@ class BookingRepository
                 'ru' => "Клиент {$booking->user->first_name} отменил забронированную поездку. Маршрут: {$start} → {$end}. Сумма, возвращённая с вас: {$withdrawFromDriver} UZS (вам дополнительно выплачено: {$driverCommission} UZS).",
                 'en' => "Customer {$booking->user->first_name} has cancelled the booked trip. Route: {$start} → {$end}. Amount withdrawn from you: {$withdrawFromDriver} UZS (additional payment made to you: {$driverCommission} UZS)."
             ];
-            $textSMSMessageToDriverAboutCancelation = $textSMSMessageToDriverAboutCancelation[$authLan] ?? $textSMSMessageToDriverAboutCancelation['uz'];
-
-            if ($trip->driver->phone) {
-                // $this->smsService->sendQueued($trip->driver->phone, $textSMSMessageToDriverAboutCancelation, 'send-sms-to-client-about-order-cancelation');
-            }
 
 
             BalanceTransaction::create([
@@ -519,9 +504,6 @@ class BookingRepository
             ]);
 
             // === TRIP SEAT ADJUSTMENT ===
-            // $trip->available_seats = $trip->available_seats + $booking->seats_booked;
-            // $trip->status = 'active';
-            // $trip->save();
 
             $trip->increment('available_seats', $booking->seats_booked);
             $trip->update(['status' => 'active']);
@@ -564,10 +546,21 @@ class BookingRepository
                 'booking_id'         => $booking->id,
                 'currency'           => 'UZS',
             ]);
-            $companyBalance->balance = $companyBalance->balance - $driverCommission;
-            $companyBalance->save();
-
+            $companyBalance->decrement('balance', $driverCommission);
             DB::commit();
+            $textSMSMessageToDriverAboutCancelation = $textSMSMessageToDriverAboutCancelation[$authLan] ?? $textSMSMessageToDriverAboutCancelation['uz'];
+
+            if ($trip->driver->phone) {
+                // $this->smsService->sendQueued($trip->driver->phone, $textSMSMessageToDriverAboutCancelation, 'send-sms-to-client-about-order-cancelation');
+            }
+
+
+            $textSMSMessageToClientAboutCancelation = $textSMSMessageToClientAboutCancelation[$authLan] ?? $textSMSMessageToClientAboutCancelation['uz'];
+
+            if ($user->phone) {
+                // $this->smsService->sendQueued($user->phone, $textSMSMessageToClientAboutCancelation, 'send-sms-to-client-about-order-cancelation');
+            }
+
 
             $messages = [
                 'uz' => 'Bron bekor qilindi. Mijozga pul qaytarildi, haydovchi kompensatsiya oldi.',

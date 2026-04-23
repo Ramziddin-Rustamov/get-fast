@@ -13,6 +13,9 @@ class BookingPassengers extends Model
         'booking_id',
         'name',
         'phone',
+        'status',
+        'latitude',
+        'longitude',
     ];
 
     public function booking()

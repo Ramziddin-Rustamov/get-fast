@@ -8,7 +8,8 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'https://yashil-yol.vercel.app'
+        'https://yashil-yol.vercel.app',
+        'https://ketamiz.com',
     ],
 
     'allowed_origins_patterns' => [],

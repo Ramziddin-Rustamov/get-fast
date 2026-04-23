@@ -10,6 +10,8 @@ class DriverTripResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+
+        $lang = auth()->user()->authLanguage->language ?? 'uz';
         $start_time = $this->start_time ? Carbon::parse($this->start_time) : null;
         $end_time = $this->end_time ? Carbon::parse($this->end_time) : null;
 
@@ -25,14 +27,44 @@ class DriverTripResource extends JsonResource
                 $duration->i  // Daqiqalar
             )
             : null;
+
+
+
+        $origin = $this->startPoint
+            ? $this->startPoint->lat . ',' . $this->startPoint->long
+            : null;
+
+        $destination = $this->endPoint
+            ? $this->endPoint->lat . ',' . $this->endPoint->long
+            : null;
+
+        $waypoints = $this->bookings->flatMap(function ($booking) {
+            return $booking->passengers
+                ->where('status', 'confirmed')
+                ->map(function ($passenger) {
+                    return $passenger->latitude . ',' . $passenger->longitude;
+                });
+        })->filter()->implode('|');
+
+        // final google maps url
+        $googleMapUrl = ($origin && $destination)
+            ? 'https://www.google.com/maps/dir/?api=1'
+            . '&origin=' . $origin
+            . '&destination=' . $destination
+            . ($waypoints ? '&waypoints=' . $waypoints : '')
+            : null;
+
+
+
         return [
             'id' => $this->id,
-            'from_region_id' => $this->start_region_id,
-            'to_region_id' => $this->end_region_id,
-            'from_district_id' => $this->start_district_id,
-            'to_district_id' => $this->end_district_id,
-            'from_quarter_id' => $this->start_quarter_id,
-            'to_quarter_id' => $this->end_quarter_id,
+            'google_map_url' => $googleMapUrl,
+            'start_region' => $this->startRegion->{'name_' . $lang} ?? null,
+            'end_region' => $this->endRegion->{'name_' . $lang} ?? null,
+            'start_district' => $this->startDistrict->{'name_' . $lang} ?? null,
+            'end_district' => $this->endDistrict->{'name_' . $lang} ?? null,
+            'start_quarter' => $this->startQuarter->name ?? null,
+            'end_quarter' => $this->endQuarter->name ?? null,
             'start_time' => $this->start_time,
             'end_time' => $this->end_time,
             'duration' => $duration_formatted, // Davomiylik (soatlar va daqiqalarda)
@@ -99,13 +131,11 @@ class DriverTripResource extends JsonResource
                             'id' => $passenger->id,
                             'name' => $passenger->name,
                             'phone' => $passenger->phone,
-                            'passport_number' => $passenger->passport_number ?? null,
-                            'birth_date' => $passenger->birth_date ?? null,
-                            // agar boshqa fieldlar bo‘lsa qo‘shing
+                            'longitude' => $passenger->longitude,
+                            'latitude' => $passenger->latitude,
+                            'status' => $passenger->status
                         ];
-                    }),
-                    // Agar bookingda boshqa relationlar bo‘lsa qo‘shish mumkin
-                    'other_fields' => $booking->other_field ?? null,
+                    })
                 ];
             }),
         ];

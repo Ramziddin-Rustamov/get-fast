@@ -47,10 +47,14 @@ class BookingResource extends JsonResource
             'passengers' => $this->passengers && $this->passengers->isNotEmpty()
                 ? $this->passengers->map(function ($passenger) {
                     return [
-                        'id' => $passenger->id,
-                        'name' => $passenger->name,
-                        'phone' => $passenger->phone,
-                        'booking_status' => $this->status
+                        'id' => $passenger->id ?? null,
+                        'name' => $passenger->name  ?? null,
+                        'phone' => $passenger->phone ?? null, 
+                        'longitude' => $passenger->longitude    ?? null,
+                        'latitude' => $passenger->latitude    ?? null,
+                        'status' => $passenger->status ?? null,
+                        'passenger_status' => $passenger->status ?? null,
+                        'booking_status' => $this->status ?? null,
                     ];
                 })
                 : null,
