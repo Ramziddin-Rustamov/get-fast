@@ -337,7 +337,7 @@ class PaymentController extends Controller
             $trx = new BalanceTransaction();
             $trx->user_id = $user->id;
             $trx->type = 'credit';
-            $trx->amount =  $user->balance->balance + $payment->amount;
+            $trx->amount =   $payment->amount;
             $trx->balance_before = $user->balance->balance;
             $trx->balance_after = $user->balance->balance + $payment->amount;
             $trx->trip_id = null;
