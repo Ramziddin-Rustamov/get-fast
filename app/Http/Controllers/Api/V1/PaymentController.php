@@ -182,7 +182,7 @@ class PaymentController extends Controller
                     $trx = new BalanceTransaction();
                     $trx->user_id = $user->id;
                     $trx->type = 'credit';
-                    $trx->amount =  $user->balance->balance + $payment->amount;
+                    $trx->amount =  $payment->amount;
                     $trx->balance_before = $user->balance->balance;
                     $trx->balance_after = $user->balance->balance + $payment->amount;
                     $trx->trip_id = null;
@@ -193,7 +193,7 @@ class PaymentController extends Controller
                         'en' => 'Balance filled manually by user and confirmed without SMS'
                     ];
 
-                    $trx->reason = $reasons[auth()->user()->authLanguage->language] ?? $messages['uz'];
+                    $trx->reason = $reasons[auth()->user()->authLanguage->language] ?? $reasons['uz'];
                     $trx->reference_id = null;
                     $trx->save();
 
