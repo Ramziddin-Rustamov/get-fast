@@ -16,6 +16,7 @@ class BookingResource extends JsonResource
     public function toArray(Request $request): array
     {
 
+        $lang = auth()->user()->authLanguage->language ?? 'uz';
         return [
             'booking_id' => $this->id,
             'seats_booked' => $this->seats_booked,
@@ -25,13 +26,18 @@ class BookingResource extends JsonResource
             'trip' => [
                 'id' => $this->trip->id,
 
-                'start_region_id' => $this->trip->start_region_id,
-                'end_region_id' => $this->trip->end_region_id,
-                'start_district_id' => $this->trip->start_district_id,
-                'end_district_id' => $this->trip->end_district_id,
-                'start_quarter_id' => $this->trip->start_quarter_id,
-                'end_quarter_id' => $this->trip->end_quarter_id,
-
+                // 'start_region_id' => $this->trip->start_region_id,
+                // 'end_region_id' => $this->trip->end_region_id,
+                // 'start_district_id' => $this->trip->start_district_id,
+                // 'end_district_id' => $this->trip->end_district_id,
+                // 'start_quarter_id' => $this->trip->start_quarter_id,
+                // 'end_quarter_id' => $this->trip->end_quarter_id,
+                'start_region' => $this->trip->startRegion->{'name_' . $lang} ?? null,
+                'end_region' => $this->trip->endRegion->{'name_' . $lang} ?? null,
+                'start_district' => $this->trip->startDistrict->{'name_' . $lang} ?? null,
+                'end_district' => $this->trip->endDistrict->{'name_' . $lang} ?? null,
+                'start_quarter' => $this->trip->startQuarter->name ?? null,
+                'end_quarter' => $this->trip->endQuarter->name ?? null,
 
                 'start_time' => $this->trip->start_time,
                 'end_time' => $this->trip->end_time,
@@ -49,7 +55,7 @@ class BookingResource extends JsonResource
                     return [
                         'id' => $passenger->id ?? null,
                         'name' => $passenger->name  ?? null,
-                        'phone' => $passenger->phone ?? null, 
+                        'phone' => $passenger->phone ?? null,
                         'longitude' => $passenger->longitude    ?? null,
                         'latitude' => $passenger->latitude    ?? null,
                         'status' => $passenger->status ?? null,
