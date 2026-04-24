@@ -101,7 +101,6 @@ class BookingController extends Controller
     public function bookTrip(Request $request)
     {
 
-
         try {
 
             $validator = Validator::make($request->all(), [

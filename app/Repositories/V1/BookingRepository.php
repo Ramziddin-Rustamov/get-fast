@@ -73,7 +73,7 @@ class BookingRepository
                     'ru' => 'Вы не можете забронировать свою поездку',
                     'en' => 'You cannot book your own trip',
                 ];
-                throw new \Exception($messages[$authLan] ?? $messages['uz']);
+                throw new \Exception($messages[$authLan] ?? $messages['uz'] , 422);
             }
 
             $requestedSeats = count($data['passengers']);
@@ -95,7 +95,7 @@ class BookingRepository
                     'ru' => 'Поездка уже отменена',
                     'en' => 'Trip already is cancelled',
                 ];
-                throw new \Exception($messages[$authLan] ?? $messages['uz']);
+                throw new \Exception($messages[$authLan] ?? $messages['uz'], 422);
             }
 
 
@@ -312,7 +312,7 @@ class BookingRepository
             return response()->json([
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $e->getCode() ?: 400);
+            ], 400);
         }
     }
 

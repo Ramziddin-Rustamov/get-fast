@@ -497,6 +497,7 @@ class APIAuthController extends Controller
             DB::beginTransaction();
 
             $user = Auth::user();
+            $lang = auth()->user()->authLanguage->language ?? 'uz';
             $user->driving_licence_number = $request->driving_license_number;
             $user->driving_licence_expiry = $request->driving_license_expiration_date;
             $user->birth_date = $request->birthday;
@@ -512,7 +513,7 @@ class APIAuthController extends Controller
                 'en' => "Data saved successfully, proceed to the next step.",
             ];
 
-            $message = $messages[auth()->user()->authLanguage->language ?? 'uz'];
+            $message = $messages[$lang];
 
             return response()->json([
                 'status' => 'success',
