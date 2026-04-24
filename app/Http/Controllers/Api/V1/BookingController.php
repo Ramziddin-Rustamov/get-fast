@@ -254,7 +254,7 @@ class BookingController extends Controller
 
 
             if ($trip->available_seats < 1) {
-                throw new \Exception('No seats');
+                throw new \Exception('No seats', 422);
             }
 
             $trip->decrement('available_seats');
@@ -332,7 +332,7 @@ class BookingController extends Controller
 
 
             // 🏢 Company
-            $$company = CompanyBalance::lockForUpdate()->first();
+            $company = CompanyBalance::lockForUpdate()->first();
 
             if (!$company) {
                 $company = CompanyBalance::create([
