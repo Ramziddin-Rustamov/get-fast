@@ -75,6 +75,12 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
+                                    <a class="dropdown-item  {{ request()->routeIs('admin.withdraw.index') ? 'active bg-success rounded' : '' }}"
+                                       href="{{ route('admin.withdraw.index') }}">
+                                        {{ __('Withdraws') }}
+                                    </a>
+                                </li>
+                                <li class="nav-item">
                                     <a class="dropdown-item  {{ request()->routeIs('company.dashboard') ? 'active bg-success rounded' : '' }}"
                                        href="{{ route('company.dashboard') }}">
                                         {{ __('Company Dashboard') }}

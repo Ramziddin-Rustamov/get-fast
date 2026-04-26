@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\SupportMessageController;
+use App\Http\Controllers\Admin\WithdrawRequestController;
 use App\Http\Controllers\WelcomeController;
 
 
@@ -22,6 +23,13 @@ Route::post('logout', [AuthController::class, 'logout'])->name('auth.logout.post
 
 Route::middleware(['can:admin', 'auth'])->group(function () {
 
+
+
+  
+    // admin
+    Route::get('/get-all/withdraw', [WithdrawRequestController::class, 'indexForAdmin'])->name('admin.withdraw.index');
+    Route::post('/withdraw/{id}/approve', [WithdrawRequestController::class, 'approve'])->name('admin.withdraw.approve');
+    Route::post('/withdraw/{id}/reject', [WithdrawRequestController::class, 'reject'])->name('admin.withdraw.reject');
 
     // Admin routes
     Route::prefix('support')->group(function () {

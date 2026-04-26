@@ -128,6 +128,45 @@ class PublicTripController extends Controller
     }
 
 
+    public function getTripByRegionToRegion(Request $request)
+    {
+        $userLang = $this->getUserLang();
+
+        $startRegionId = $request->input('start_region_id');
+        $endRegionId = $request->input('end_region_id');
+
+        $trips = Trip::where(function ($query) use ($startRegionId, $endRegionId) {
+            // borish
+            $query->where('start_region_id', $startRegionId)
+                ->where('end_region_id', $endRegionId);
+        })
+            ->orWhere(function ($query) use ($startRegionId, $endRegionId) {
+                // kelish
+                $query->where('start_region_id', $endRegionId)
+                    ->where('end_region_id', $startRegionId);
+            })
+            ->whereIn('status', ['active', 'full'])
+            ->paginate(20);
+
+        $messages = [
+            'uz' => 'Safarlar muvaffaqiyatli olindi',
+            'ru' => 'Поездки успешно получены',
+            'en' => 'Trips fetched successfully',
+        ];
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $messages[$userLang] ?? $messages['uz'],
+            'data' => PublicTripResource::collection($trips),
+            'meta' => [
+                'current_page' => $trips->currentPage(),
+                'last_page' => $trips->lastPage(),
+                'per_page' => $trips->perPage(),
+                'total' => $trips->total(),
+            ]
+        ], 200);
+    }
+
     public function getAllTripsForPublic()
     {
         $userLang = $this->getUserLang();

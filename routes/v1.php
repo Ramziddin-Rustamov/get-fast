@@ -4,7 +4,7 @@ use App\Http\Controllers\Api\V1\APIAuthController;
 use App\Http\Controllers\Api\V1\CardController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\SupportMessageController;
-
+use App\Http\Controllers\Api\V1\WithdrawRequestController;
 
 // Route::post('login', [AuthController::class, 'login']);
 // Route::post('register', [AuthController::class, 'register']);
@@ -21,6 +21,19 @@ use App\Http\Controllers\Api\V1\SupportMessageController;
 // });
 
 Route::middleware('auth:api')->group(function () {
+
+
+
+
+    Route::post('/withdraw', [WithdrawRequestController::class, 'store']);
+    Route::get('/withdraw', [WithdrawRequestController::class, 'index']);
+
+
+
+
+
+
+
     Route::prefix('vehicles')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'index']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'show']);
@@ -75,19 +88,20 @@ Route::middleware('auth:api')->group(function () {
 });
 
 
-    Route::prefix('public/trips')->group(function () {
-        // for public view
-        Route::get('/', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripsWithLessInfo']);
-        Route::get('/search/available-trips', [App\Http\Controllers\Api\V1\PublicTripController::class, 'search']);
-        Route::get('/view', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getAllTripsForPublic']);
-        Route::get('/view/{id}', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripByIdForPublic']);
-    });
+Route::prefix('public/trips')->group(function () {
+    // for public view
+    Route::get('/', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripsWithLessInfo']);
+    Route::get('/search/available-trips', [App\Http\Controllers\Api\V1\PublicTripController::class, 'search']);
+    Route::post('/search/trip-by-region-to-region', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripByRegionToRegion']);
+    Route::get('/view', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getAllTripsForPublic']);
+    Route::get('/view/{id}', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripByIdForPublic']);
+});
 
-    Route::get('regions', [App\Http\Controllers\Api\V1\RegionController::class, 'index']);
-    Route::get('districts', [App\Http\Controllers\Api\V1\DistrictsController::class, 'index']);
-    Route::get('/districts/region/{id}', [App\Http\Controllers\Api\V1\DistrictsController::class, 'getRegion']);
-    Route::get('quarters', [App\Http\Controllers\Api\V1\QuarterController::class, 'index']);
-    Route::get('quarters/districts/{id}', [App\Http\Controllers\Api\V1\QuarterController::class, 'getVillagesByDistrict']);
+Route::get('regions', [App\Http\Controllers\Api\V1\RegionController::class, 'index']);
+Route::get('districts', [App\Http\Controllers\Api\V1\DistrictsController::class, 'index']);
+Route::get('/districts/region/{id}', [App\Http\Controllers\Api\V1\DistrictsController::class, 'getRegion']);
+Route::get('quarters', [App\Http\Controllers\Api\V1\QuarterController::class, 'index']);
+Route::get('quarters/districts/{id}', [App\Http\Controllers\Api\V1\QuarterController::class, 'getVillagesByDistrict']);
 
 Route::prefix('auth')->group(function () {
 
