@@ -79,25 +79,31 @@ class  ClientTripWithMoreInfoResource extends JsonResource
                 'lat' => $this->endPoint->lat,
                 'long' => $this->endPoint->long,
             ] : 'No ending point data',
-            'bookings' => $this->bookings->map(function ($booking) {
-                return [
-                    'booked_by_user' => [
-                        'id' => $booking->user->id,
-                        'first_name' => $booking->user->first_name,
-                        'last_name' => $booking->user->last_name,
-                        'phone' => $booking->user->phone,
-                        'email' => $booking->user->email,
-                        'booking_status' => $booking->status,
-                    ],
-                    'passengers' => $booking->passengers->map(function ($passenger) use ($booking) {
-                        return [
+            'bookings' => $this->bookings
+                ->where('user_id', auth()->user()->id)
+                ->values()
+                ->map(function ($booking) {
+                    return [
+                        'booked_by_user' => [
+                            'id' => $booking->user->id,
+                            'first_name' => $booking->user->first_name,
+                            'last_name' => $booking->user->last_name,
+                            'phone' => $booking->user->phone,
+                            'email' => $booking->user->email,
                             'booking_status' => $booking->status,
-                            'name' => $passenger->name,
-                            'phone' => $passenger->phone,
-                        ];
-                    }),
-                ];
-            }),
+                        ],
+
+                        'passengers' => $booking->passengers->map(function ($passenger) use ($booking) {
+                            return [
+                                'booking_status' => $booking->status,
+                                'name' => $passenger->name,
+                                'phone' => $passenger->phone,
+                                'longitude' => $passenger->longitude,
+                                'latitude' => $passenger->latitude,
+                            ];
+                        }),
+                    ];
+                }),
         ];
     }
 }

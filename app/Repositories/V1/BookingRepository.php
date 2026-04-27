@@ -21,6 +21,11 @@ class BookingRepository
 
     protected SmsService $smsService;
 
+    public function getAuthLanguage()
+    {
+        return auth()->user()->authLanguage->language ?? 'uz';
+    }
+
     public function __construct(SmsService $smsService)
     {
         $this->smsService = $smsService;
@@ -37,11 +42,31 @@ class BookingRepository
 
     public function getBookingById($id)
     {
+
+        $lang = $this->getAuthLanguage();
         $booking = Booking::with('passengers', 'trip.vehicle', 'trip')->where('user_id', auth()->user()->id)->find($id);
 
+
+        $mesages = [
+            'uz' => 'Buyurtma topilmadi',
+            'en' => 'Booking not found',
+            'ru' => 'Бронирование не найдено',
+        ];
+        if (is_null($booking)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $mesages[$lang] ?? $mesages['uz'],
+            ]);
+        }
+
+        $message = [
+            'uz' => 'Buyurtma muvaffaqiyatli olindi',
+            'en' => 'Booking fetched successfully',
+            'ru' => 'Бронирование успешно получено',
+        ];
         return [
             'status' => 'success',
-            'message' => 'Booking fetched successfully',
+            'message' => $message[$lang] ?? $message['uz'],
             'data' => new BookingResource($booking)
         ];
     }
@@ -73,7 +98,7 @@ class BookingRepository
                     'ru' => 'Вы не можете забронировать свою поездку',
                     'en' => 'You cannot book your own trip',
                 ];
-                throw new \Exception($messages[$authLan] ?? $messages['uz'] , 422);
+                throw new \Exception($messages[$authLan] ?? $messages['uz'], 422);
             }
 
             $requestedSeats = count($data['passengers']);

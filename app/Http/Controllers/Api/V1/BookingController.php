@@ -404,14 +404,14 @@ class BookingController extends Controller
                 ->lockForUpdate()
                 ->first();
             if (!$booking) {
-                throw new \Exception('Booking not found');
+                throw new \Exception('Booking not found', 404);
             }
 
             $trip = Trip::where('id', $booking->trip_id)
                 ->lockForUpdate()
                 ->first();
             if (!$trip) {
-                throw new \Exception('Trip not found');
+                throw new \Exception('Trip not found', 404);
             }
 
             $price = $trip->price_per_seat;

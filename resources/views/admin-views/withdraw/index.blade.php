@@ -27,7 +27,8 @@
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>User</th>
+                            <th>User </th>
+                            <th>Balance</th>
                             <th>Role</th>
                             <th>Amount</th>
                             <th>Card</th>
@@ -47,6 +48,10 @@
                                 </td>
 
                                 <td>
+                                    <strong>{{ $w->user->balance->balance }}</strong><br>
+                                </td>
+
+                                <td>
                                     <span class="badge bg-secondary text-uppercase">
                                         {{ $w->role }}
                                     </span>
@@ -57,7 +62,7 @@
                                 </td>
 
                                 <td>
-                                    <code>{{ $w->card_number }}</code><br>
+                                    <code>{{ $w->card?->number }}</code>
                                     <small>{{ $w->card_holder }}</small>
                                 </td>
 

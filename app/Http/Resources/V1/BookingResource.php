@@ -17,6 +17,24 @@ class BookingResource extends JsonResource
     {
 
         $lang = auth()->user()->authLanguage->language ?? 'uz';
+
+        $origin = $this->trip->startPoint
+            ? $this->trip->startPoint->lat . ',' . $this->trip->startPoint->long
+            : null;
+
+        $destination = $this->trip->endPoint
+            ? $this->trip->endPoint->lat . ',' . $this->trip->endPoint->long
+            : null;
+
+        $googleMapUrl = ($origin && $destination)
+            ? 'https://www.google.com/maps/dir/?api=1'
+            . '&origin=' . urlencode($origin)
+            . '&destination=' . urlencode($destination)
+            : null;
+
+
+
+
         return [
             'booking_id' => $this->id,
             'seats_booked' => $this->seats_booked,
@@ -25,13 +43,6 @@ class BookingResource extends JsonResource
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
             'trip' => [
                 'id' => $this->trip->id,
-
-                // 'start_region_id' => $this->trip->start_region_id,
-                // 'end_region_id' => $this->trip->end_region_id,
-                // 'start_district_id' => $this->trip->start_district_id,
-                // 'end_district_id' => $this->trip->end_district_id,
-                // 'start_quarter_id' => $this->trip->start_quarter_id,
-                // 'end_quarter_id' => $this->trip->end_quarter_id,
                 'start_region' => $this->trip->startRegion->{'name_' . $lang} ?? null,
                 'end_region' => $this->trip->endRegion->{'name_' . $lang} ?? null,
                 'start_district' => $this->trip->startDistrict->{'name_' . $lang} ?? null,
@@ -47,7 +58,17 @@ class BookingResource extends JsonResource
                 'from_latitude' => $this->trip->startPoint->lat,
                 'from_longitude' => $this->trip->startPoint->long,
                 'to_latitude' => $this->trip->endPoint->lat,
-                'to_longitude' => $this->trip->endPoint->long
+                'to_longitude' => $this->trip->endPoint->long,
+                'google_map_url' => $googleMapUrl,
+            ],
+
+            'booked_by' => [
+                'id' => $this->user->id,
+                'first_name' => $this->user->first_name,
+                'last_name' => $this->user->last_name,
+                'email' => $this->user->email,
+                'role' => $this->user->role,
+                'phone' => $this->user->phone
             ],
 
             'passengers' => $this->passengers && $this->passengers->isNotEmpty()

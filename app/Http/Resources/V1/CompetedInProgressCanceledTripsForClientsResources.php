@@ -10,6 +10,25 @@ class CompetedInProgressCanceledTripsForClientsResources extends JsonResource
 {
     public function toArray(Request $request): array
     {
+
+
+        $origin = $this->startPoint
+            ? $this->startPoint->lat . ',' . $this->startPoint->long
+            : null;
+
+        $destination = $this->endPoint
+            ? $this->endPoint->lat . ',' . $this->endPoint->long
+            : null;
+
+        $googleMapUrl = ($origin && $destination)
+            ? 'https://www.google.com/maps/dir/?api=1'
+            . '&origin=' . urlencode($origin)
+            . '&destination=' . urlencode($destination)
+            : null;
+
+
+
+
         $start_time = $this->start_time ? Carbon::parse($this->start_time) : null;
         $end_time = $this->end_time ? Carbon::parse($this->end_time) : null;
 
@@ -43,6 +62,7 @@ class CompetedInProgressCanceledTripsForClientsResources extends JsonResource
             'price_per_seat' => $this->price_per_seat,
             'total_seats' => $this->total_seats,
             'available_seats' => $this->available_seats,
+            'google_map_url' => $googleMapUrl,
             'start_lat' => $this->startPoint->lat,
             'start_long' => $this->startPoint->long,
             'end_lat' => $this->endPoint->lat,
@@ -52,28 +72,36 @@ class CompetedInProgressCanceledTripsForClientsResources extends JsonResource
             'updated_at' => $this->updated_at ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s') : null,
             'driver' => $this->driver ? [
                 'id' => $this->driver->id,
-                'name' => $this->driver->name ?? null,
+                'first_name' => $this->driver->first_name ?? null,
+                'last_name' => $this->driver->last_name ?? null,
+                'phone' => $this->driver->phone ?? null,
                 'role' => $this->driver->role ?? null,
             ] : 'No driver data',
-            'bookings' => $this->bookings->map(function ($booking) {
-                return [
-                    'booked_by_user' => [
-                        'id' => $booking->user->id,
-                        'first_name' => $booking->user->first_name,
-                        'last_name' => $booking->user->last_name,
-                        'phone' => $booking->user->phone,
-                        'email' => $booking->user->email,
-                        'booking_status' => $booking->status,
-                    ],
-                    'passengers' => $booking->passengers->map(function ($passenger) use ($booking) {
-                        return [
+            'bookings' => $this->bookings->where('user_id', auth()->user()->id)
+                ->values()->map(function ($booking) {
+                    return [
+                        'booked_by_user' => [
+                            'id' => $booking->user->id,
+                            'first_name' => $booking->user->first_name,
+                            'last_name' => $booking->user->last_name,
+                            'phone' => $booking->user->phone,
+                            'email' => $booking->user->email,
                             'booking_status' => $booking->status,
-                            'name' => $passenger->name,
-                            'phone' => $passenger->phone,
-                        ];
-                    }),
-                ];
-            }),
+                        ],
+                        'passengers' => $booking->passengers
+                            ->where('booking_id', $booking->id)
+                            ->values()
+                            ->map(function ($passenger) use ($booking) {
+                                return [
+                                    'booking_status' => $booking->status,
+                                    'name' => $passenger->name,
+                                    'phone' => $passenger->phone,
+                                    'longaitude' => $passenger->longitude,
+                                    'latitude' => $passenger->latitude
+                                ];
+                            }),
+                    ];
+                }),
 
             'vehicle' => $this->vehicle ? [
                 'id' => $this->vehicle->id,
@@ -82,24 +110,9 @@ class CompetedInProgressCanceledTripsForClientsResources extends JsonResource
                 'car_number' => $this->vehicle->car_number ?? null,
                 'color' => [
                     'id' => $this->vehicle->color->id,
-                    'title_uz' => $this->vehicle->color->title_uz,
-                    'title_ru' => $this->vehicle->color->title_ru,
-                    'title_en' => $this->vehicle->color->title_en,
                     'code' => $this->vehicle->color->code
                 ] ?? null,
             ] : 'No vehicle data',
-
-            'starting_point' => $this->startPoint ? [
-                'id' => $this->startPoint->id,
-                'lat' => $this->startPoint->lat,
-                'long' => $this->startPoint->long,
-            ] : 'No starting point data',
-
-            'ending_point' => $this->endPoint ? [
-                'id' => $this->endPoint->id,
-                'lat' => $this->endPoint->lat,
-                'long' => $this->endPoint->long,
-            ] : 'No ending point data',
 
         ];
     }
