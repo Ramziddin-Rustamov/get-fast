@@ -10,6 +10,7 @@ return [
     'allowed_origins' => [
         'https://yashil-yol.vercel.app',
         'https://ketamiz.com',
+        'https://0d01-91-196-77-111.ngrok-free.app',
     ],
 
     'allowed_origins_patterns' => [],
@@ -23,8 +24,3 @@ return [
     'supports_credentials' => true,
 
 ];
-
-
-
-
-?>
