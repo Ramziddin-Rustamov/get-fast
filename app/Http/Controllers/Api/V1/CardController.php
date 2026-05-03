@@ -59,8 +59,6 @@ class CardController extends Controller
         ];
 
         $message = $messages[auth()->user()->authLanguage->language] ?? $messages['uz'];
-
-
         // $masked = substr($request->number, 0, 6) . '******' . substr($request->number, -4);
         $response = HamkorbankService::addCard($request);
 

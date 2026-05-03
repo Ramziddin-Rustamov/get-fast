@@ -10,12 +10,12 @@ return [
     'allowed_origins' => [
         'https://yashil-yol.vercel.app',
         'https://ketamiz.com',
-        'https://0d01-91-196-77-111.ngrok-free.app',
+        'https://a8b6-91-196-77-111.ngrok-free.app'
     ],
 
-    'allowed_origins_patterns' => [
-        '*.ngrok-free.app',
-    ],
+   'allowed_origins_patterns' => [
+    '#^https:\/\/.*\.ngrok-free\.app$#',
+],
 
     'allowed_headers' => ['*'],
 

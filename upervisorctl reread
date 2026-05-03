@@ -1,0 +1,17 @@
+[0;1;32m●[0m supervisor.service - Supervisor process control system for UNIX
+     Loaded: loaded (]8;;file://srv1458194/usr/lib/systemd/system/supervisor.service/usr/lib/systemd/system/supervisor.service]8;;; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;32mactive (running)[0m since Mon 2026-04-20 21:43:32 UTC; 10s ago
+       Docs: ]8;;http://supervisord.orghttp://supervisord.org]8;;
+   Main PID: 38797 (supervisord)
+      Tasks: 1 (limit: 4652)
+     Memory: 19.1M (peak: 19.3M)
+        CPU: 189ms
+     CGroup: /system.slice/supervisor.service
+             └─[0;38;5;245m38797 /usr/bin/python3 /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf[0m
+
+Apr 20 21:43:32 srv1458194 systemd[1]: Started supervisor.service - Supervisor process control system for UNIX.
+Apr 20 21:43:32 srv1458194 supervisord[38797]: 2026-04-20 21:43:32,549 CRIT Supervisor is running as root.  Privileges were not dropped because no user is specified in the config file.  If you intend to run as root, you can set user=root in the config file to avoid this message.
+Apr 20 21:43:32 srv1458194 supervisord[38797]: 2026-04-20 21:43:32,551 WARN No file matches via include "/etc/supervisor/conf.d/*.conf"
+Apr 20 21:43:32 srv1458194 supervisord[38797]: 2026-04-20 21:43:32,559 INFO RPC interface 'supervisor' initialized
+Apr 20 21:43:32 srv1458194 supervisord[38797]: 2026-04-20 21:43:32,559 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+Apr 20 21:43:32 srv1458194 supervisord[38797]: 2026-04-20 21:43:32,559 INFO supervisord started with pid 38797

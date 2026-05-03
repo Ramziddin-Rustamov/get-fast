@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Cache;
 class HamkorbankService
 {
 
@@ -19,32 +19,94 @@ class HamkorbankService
         return rtrim(config('services.hamkorbank.url'), '/');
     }
 
+
     public static function getToken()
     {
-        $url = 'https://test-openapi.hamkorbank.uz/token';
+    return Cache::remember('hamkorbank_access_token', 3500, function () {
+
         $key = config('services.hamkorbank.key');
         $secret = config('services.hamkorbank.secret');
 
-
-
         $response = Http::withBasicAuth($key, $secret)
-            ->asForm()
-            ->post($url, [
-                'grant_type' => 'client_credentials'
+            ->asJson()
+            ->withHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ])
+            ->withOptions([
+                'cert' => config('services.bank_certificate.cert'),
+                'ssl_key' => config('services.bank_certificate.key'),
+                'curl' => [
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                    CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+                    CURLOPT_FRESH_CONNECT => true,
+                    CURLOPT_FORBID_REUSE => true,
+                ],
+            ])
+            ->post('https://open-api.hamkorbank.uz/token', [
+                'grant_type' => 'client_credentials',
             ]);
 
-
-     
-        if ($response->failed()) {
+        if (!$response->successful()) {
             PaymentLog::create([
                 'request' => 'token_request',
                 'response' => $response->body(),
             ]);
+
             return null;
         }
-       
 
-        return $response->json()['access_token'] ?? null;
+        return $response->json('access_token');
+    });
+    }   
+
+
+
+    /** ✅ 2. Karta qo‘shish */
+    //###################### --- DONE -------- #############################
+
+    public static function addCard(Request $request)
+    {
+        $token = self::getToken();
+        if (!$token) {
+            return [
+                'status' => false,
+                'error'  => 'Token olinmadi',
+            ];
+        }
+    
+        $payload = [
+            'jsonrpc' => '2.0',
+            'method'  => 'card.create',
+            'params'  => [[
+                'number' => $request->input('number'),
+                'expiry' => $request->input('expiry'),
+                'phone'  => $request->input('phone'),
+            ]],
+            'id' => (string) Str::uuid(),
+        ];
+    
+        $response = Http::withToken($token)
+            ->asJson()
+            ->withHeaders([
+                'Content-Type' => 'application/json'
+            ])
+            ->withOptions([
+                'cert' => config('services.bank_certificate.cert'),
+                'ssl_key' => config('services.bank_certificate.key'),
+                'curl' => [
+                        CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+                    ],
+            ])
+            ->post(self::baseUrl(), $payload);
+    
+        PaymentLog::create([
+            'request'  => json_encode($payload),
+            'response' => $response->body(),
+            'user_id'  => Auth::id(),
+        ]);
+    
+        return $response->json();
     }
 
 
@@ -80,67 +142,6 @@ class HamkorbankService
         ]);
     }
 
-    /** ✅ 2. Karta qo‘shish */
-    //###################### --- DONE -------- #############################
-
-    public static function addCard(Request $request)
-    {
-        // Token olish
-        $token = self::getToken();
-
-        if (!$token) {
-            return [
-                'status' => false,
-                'error'  => 'Token olinmadi',
-            ];
-        }
-       
-
-        // JSON-RPC payload
-        $payload = [
-            'jsonrpc' => '2.0',
-            'method'  => 'card.create',
-            'params'  => [
-                [
-                    'number' => $request->input('number'),
-                    'expiry' => $request->input('expiry'),
-                    'phone'  => $request->input('phone'),
-                ]
-            ],
-            'id' => (string) Str::uuid(),
-        ];
-
-        // Bank API ga so‘rov yuborish
-        $response = Http::withToken($token)
-            ->withHeaders(['Content-Type' => 'application/json'])
-            ->withOptions([
-                'cert' => base_path(config('services.bank_certificate.cert')),  // .crt fayl
-                'ssl_key' => base_path(config('services.bank_certificate.key')), // .key fayl
-                'curl' => [
-                    CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
-                ],
-            ])
-            ->post(self::baseUrl(), $payload);
-
-        // So‘rov va javobni logga yozish
-        PaymentLog::create([
-            'request'  => json_encode($payload, JSON_UNESCAPED_UNICODE),
-            'user_id'  => Auth::id(),
-            'response' => $response->body(),
-        ]);
-
-        // Agar so‘rov muvaffaqiyatsiz bo‘lsa
-        if ($response->failed()) {
-            return [
-                'status' => 'error',
-                'data'   => $response->json(),
-            ];
-        }
-
-        // Muvaffaqiyatli javobni qaytarish
-        return $response->json();
-    }
-
     /** ✅ 3. Karta verify qilish (SMS kodi bilan) */
     //DONE ###################### --- DONE -------- #############################
     public static function verifyCard($request)
@@ -164,11 +165,11 @@ class HamkorbankService
             $response = \Illuminate\Support\Facades\Http::withToken($token)
                 ->withHeaders(['Content-Type' => 'application/json; charset=utf-8'])
                 ->withOptions([
-                    'cert' => base_path(config('services.bank_certificate.cert')),  // .crt fayl
-                    'ssl_key' => base_path(config('services.bank_certificate.key')), // .key fayl
+                    'cert' => config('services.bank_certificate.cert'),
+                    'ssl_key' => config('services.bank_certificate.key'),
                     'curl' => [
-                        CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
-                    ],
+                            CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+                        ],
                 ])
                 ->post(self::baseUrl(), $payload);
 
@@ -280,11 +281,11 @@ class HamkorbankService
                     'Content-Type' => 'application/json; charset=utf-8'
                 ])
                 ->withOptions([
-                    'cert' => base_path(config('services.bank_certificate.cert')),   // .crt
-                    'ssl_key' => base_path(config('services.bank_certificate.key')), // .key
+                    'cert' => config('services.bank_certificate.cert'),
+                    'ssl_key' => config('services.bank_certificate.key'),
                     'curl' => [
-                        CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
-                    ],
+                            CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+                        ],
                 ])
                 ->post(self::baseUrl(), $payload);
 
@@ -349,11 +350,11 @@ class HamkorbankService
                 'Content-Type' => 'application/json; charset=utf-8'
             ])
             ->withOptions([
-                'cert' => base_path(config('services.bank_certificate.cert')),   // certificate (.crt yoki .pem)
-                'ssl_key' => base_path(config('services.bank_certificate.key')), // private key (.key)
+                'cert' => config('services.bank_certificate.cert'),
+                'ssl_key' => config('services.bank_certificate.key'),
                 'curl' => [
-                    CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
-                ],
+                        CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+                    ],
             ])
             ->post(self::baseUrl(), $payload);
 
@@ -399,11 +400,11 @@ class HamkorbankService
                     'Content-Type' => 'application/json'
                 ])
                 ->withOptions([
-                    'cert' => base_path(config('services.bank_certificate.cert')),   // .crt yoki .pem
-                    'ssl_key' => base_path(config('services.bank_certificate.key')), // .key
+                    'cert' => config('services.bank_certificate.cert'),
+                    'ssl_key' => config('services.bank_certificate.key'),
                     'curl' => [
-                        CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
-                    ],
+                            CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+                        ],
                 ])
                 ->post(self::baseUrl(), $payload);
 
@@ -446,9 +447,9 @@ class HamkorbankService
             $response = Http::withToken($token)
                 ->asJson() // MUHIM: JSON sifatida yuboradi
                 ->withOptions([
-                    'cert' => base_path(config('services.bank_certificate.cert')),
-                    'ssl_key' => base_path(config('services.bank_certificate.key')),
-                    'curl' => [
+                    'cert' => config('services.bank_certificate.cert'),
+                'ssl_key' => config('services.bank_certificate.key'),
+                'curl' => [
                         CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
                     ],
                 ])
@@ -494,9 +495,9 @@ class HamkorbankService
             $response = Http::withToken($token)
                 ->asJson() // JSON formatda yuboradi (MUHIM)
                 ->withOptions([
-                    'cert' => base_path(config('services.bank_certificate.cert')),
-                    'ssl_key' => base_path(config('services.bank_certificate.key')),
-                    'curl' => [
+                    'cert' => config('services.bank_certificate.cert'),
+                'ssl_key' => config('services.bank_certificate.key'),
+                'curl' => [
                         CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
                     ],
                 ])
@@ -535,11 +536,11 @@ class HamkorbankService
         $response = Http::withToken($token)
             ->asJson() // 🔥 MUHIM
             ->withOptions([
-                'cert' => base_path(config('services.bank_certificate.cert')),
-                'ssl_key' => base_path(config('services.bank_certificate.key')),
+                'cert' => config('services.bank_certificate.cert'),
+                'ssl_key' => config('services.bank_certificate.key'),
                 'curl' => [
-                    CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
-                ],
+                        CURLOPT_SSLVERSION => CURL_SSLVERSION_TLSv1_2,
+                    ],
             ])
             ->post(self::baseUrl(), $payload);
 
