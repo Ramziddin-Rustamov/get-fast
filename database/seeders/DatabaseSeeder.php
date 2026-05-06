@@ -15,30 +15,5 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // User::factory(10)->create();
-
-        User::firstOrCreate(
-            [
-                'phone' => '+998997196871',
-            ],
-            [
-                'first_name'  => 'Ramziddin',
-                'last_name'   => 'Rustamov',
-                'father_name' => 'utkir ugli',
-                'email'       => 'rustamovvramziddin@gmail.com',
-                'password'    => Hash::make('xujamovutkir'),
-                'role'        => 'admin',
-                'is_verified' => 1,
-                'verification_code' => "123321",
-                'driving_licence_number' => null,
-                'driving_licence_expiry' => null,
-                'birth_date' => null,
-                'driving_verification_status' => 'none',
-                'region_id' => null,
-                'district_id' => null,
-                'quarter_id' => null,
-                'home' => null,
-                'image' => null,
-            ]
-        );
     }
 }
