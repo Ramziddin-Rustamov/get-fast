@@ -54,7 +54,7 @@ class APIAuthController extends Controller
             // Step 2: Tasdiqlash kodi generatsiya qilish
             $code = rand(100000, 999999); // 6 xonali kod
             // SMS uchun xabar
-            $text = "Qadam ilovasida ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+            $text = "ketamiz.com ilovasida ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
 
 
             // Step 3: Foydalanuvchini vaqtincha yaratish (is_verified = false)
@@ -78,7 +78,7 @@ class APIAuthController extends Controller
             // smsni navbatga yuborish
 
             // SMS uchun xabar ishladi
-            // $this->smsService->sendQueued($user->phone, $text, 'register');
+            $this->smsService->sendQueued($user->phone, $text, 'register');
 
             $messages = [
                 'uz' => 'Tasdiqlash kodi telefoningizga yuborildi',
@@ -222,7 +222,7 @@ class APIAuthController extends Controller
             $user->save();
 
             DB::commit();
-            $text = "Qadam ilovasida ro'yhatdan o'tish uchun qayta yuborilgan tasdiqlash kodi: $code";
+            $text = "ketamiz ilovasida ro'yhatdan o'tish uchun qayta yuborilgan tasdiqlash kodi: $code";
             // smsni navbatga yuborish
             $this->smsService->sendQueued($user->phone, $text, 'register');
             $messages = [
@@ -349,16 +349,16 @@ class APIAuthController extends Controller
             $user->verification_code = $code;
             $user->save();
             $messages = [
-                'uz' => "Qadam ilovasida parolni tiklash uchun tasdiqlash kodingiz: {$code}",
-                'ru' => "Код подтверждения для восстановления пароля в приложении Qadam: {$code}",
-                'en' => "Your password reset code for the Qadam app is: {$code}",
+                'uz' => "ketamiz.com ilovasida parolni tiklash uchun tasdiqlash kodingiz: {$code}",
+                'ru' => "Код подтверждения для восстановления пароля в приложении ketamiz.com: {$code}",
+                'en' => "Your password reset code for the ketamiz.com app is: {$code}",
             ];
 
 
-            $text = $messages[$language];
+            $text = $messages[$language] ?? $messages['uz'];
 
             // SMS yuborish (Queue yoki to‘g‘ridan-to‘g‘ri) ishladi. 
-            // $this->smsService->sendQueued($user->phone, $text, 'password_reset');
+            $this->smsService->sendQueued($user->phone, $text, 'password_reset');
             // SMS yuborish joyi (integratsiya qilasiz)
 
             DB::commit();
@@ -914,7 +914,7 @@ class APIAuthController extends Controller
     {
         $code = '654321';
 
-        $text = "Qadam ilovasida ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
+        $text = "ketamiz.com ilovasida ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
         $this->smsService->sendQueued($request->phone, $text, 'register');
 
         return response()->json([
@@ -953,6 +953,10 @@ class APIAuthController extends Controller
         //         'message' => $e->getMessage()
         //     ], 500);
         // }
+                //  return  config('services.sms.url', env('SMS_API_URL'));
+        //     // return config('services.sms.face_name', env('SMS_API_FACE_NAME'));
+            //  return config('services.sms.username', env('SMS_API_USERNAME'));
+            // return config('services.sms.password', env('SMS_API_PASSWORD'));
 
         // $response = Http::withBasicAuth(
         //     config('services.sms.username'),
@@ -971,5 +975,7 @@ class APIAuthController extends Controller
         //         ]
         //     ]
         // ]);
+
+        // return $response()->json();
     }
 }

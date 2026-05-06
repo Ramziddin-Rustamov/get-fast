@@ -317,7 +317,11 @@
     </div>
 </div>
 
-
+<div class="d-flex justify-content-end mt-2">
+    <a href="{{ route('drivers.trips', $driver->id) }}" class="btn btn-sm btn-outline-primary">
+        View Trips →
+    </a>
+</div>
 
 
 
@@ -605,7 +609,7 @@
 </div>
 
 
-<script>
+   <script>
     document.addEventListener('click', function(e) {
         if (e.target.matches('.doc-preview') || e.target.matches('.vehicle-preview')) {
             document.getElementById('modalImage').src = e.target.dataset.img;

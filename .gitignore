@@ -27,3 +27,4 @@ yarn-error.log
 storage/certificate/*.crt
 storage/certificate/*.keystorage/certificate/
 storage/certificate/production/
+storage/certificate/*

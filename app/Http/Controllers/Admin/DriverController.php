@@ -116,9 +116,9 @@ class DriverController extends Controller
         ]);
 
         $message = [
-            'uz' => 'Qadam ilovasi adminlaridan xabar: ' . $request->message,
-            'ru' => 'Сообщение от администраторов приложения Qadam: ' . $request->message,
-            'en' => 'Message from Qadam app administrators: ' . $request->message,
+            'uz' => 'ketamiz.com ilovasi adminlaridan xabar: ' . $request->message,
+            'ru' => 'Сообщение от администраторов приложения ketamiz.com: ' . $request->message,
+            'en' => 'Message from ketamiz.com app administrators: ' . $request->message,
         ];
 
 
@@ -361,7 +361,7 @@ class DriverController extends Controller
 
 
             // smsni navbatga yuborish
-            // $this->smsService->sendQueued($driver->phone, $refundMessage[$driverLanguage ?? 'uz'], 'refund-driver-by-admins');
+            $this->smsService->sendQueued($driver->phone, $refundMessage[$driverLanguage ?? 'uz'], 'refund-driver-by-admins');
 
             $messages = [
                 'uz' => 'Pul muvaffaqiyatli qaytarildi',
@@ -579,5 +579,16 @@ class DriverController extends Controller
             DB::rollBack();
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    public function trips($driverId)
+    {
+        $driver = User::with([
+            'driverTrips.startQuarter.district',
+            'driverTrips.endQuarter.district',
+            'driverTrips.bookings.user'
+        ])->findOrFail($driverId);
+
+        return view('driver.trips', compact('driver'));
     }
 }

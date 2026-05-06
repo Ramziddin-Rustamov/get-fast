@@ -36,7 +36,10 @@ class BookingRepository
         try {
             return Booking::where('user_id', auth()->user()->id)->with('trip', 'trip.vehicle')->paginate(20);
         } catch (\Exception $e) {
-            return response()->json($this->errorResponse[auth()->user()->authLanguage->language ?? 'uz'], 404);
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 404);
         }
     }
 
@@ -224,11 +227,11 @@ class BookingRepository
 
 
                 $textSMSForDriver = [
-                    'uz' => "Qadam ilovasida siz yangi buyurtma oldingiz. Umumiy summa: $totalPrice UZS, sizga tushadigan summa: $net_income UZS. Iltimos, buyurtmani bajarib bo'lgungizcha hisobingizdagi summani yechmang. 
+                    'uz' => "ketamiz.com ilovasida siz yangi buyurtma oldingiz. Umumiy summa: $totalPrice UZS, sizga tushadigan summa: $net_income UZS. Iltimos, buyurtmani bajarib bo'lgungizcha hisobingizdagi summani yechmang. 
                 Ilovadan batafsil tekshiring. Mijoz: {$booking->user->first_name} {$booking->user->last_name}, telefon raqami: {$booking->user->phone}, band qilingan joylar: $requestedSeats ta.",
-                    'ru' => "В приложении Qadam у вас новый заказ. Общая сумма: $totalPrice UZS, вам поступит: $net_income UZS. Пожалуйста, не снимайте деньги с вашего счета, пока заказ не будет выполнен. 
+                    'ru' => "В приложении ketamiz.com у вас новый заказ. Общая сумма: $totalPrice UZS, вам поступит: $net_income UZS. Пожалуйста, не снимайте деньги с вашего счета, пока заказ не будет выполнен. 
                 Подробности можно проверить в приложении. Клиент: {$booking->user->first_name} {$booking->user->last_name}, телефон: {$booking->user->phone}, забронированные места: $requestedSeats.",
-                    'en' => "You have a new order in the Qadam app. Total amount: $totalPrice UZS, your net income: $net_income UZS. Please do not withdraw the amount from your account until the order is completed. 
+                    'en' => "You have a new order in the ketamiz.com app. Total amount: $totalPrice UZS, your net income: $net_income UZS. Please do not withdraw the amount from your account until the order is completed. 
                 Check details in the app. Customer: {$booking->user->first_name} {$booking->user->last_name}, phone: {$booking->user->phone}, seats booked: $requestedSeats."
                 ];
             }
@@ -262,15 +265,15 @@ class BookingRepository
                 $userBalance->save();
 
                 $textSMSForClient = [
-                    'uz' => "Qadam ilovasida siz yangi buyurtma qildingiz. Umumiy summa: $totalPrice UZS to‘landi. 
+                    'uz' => "ketamiz.com ilovasida siz yangi buyurtma qildingiz. Umumiy summa: $totalPrice UZS to‘landi. 
                 Haydovchi: {$trip->driver->first_name} {$trip->driver->last_name}, telefon raqami: {$trip->driver->phone}, band qilingan joylar: $requestedSeats ta. 
                 Sayohatni boshlashdan oldin, iltimos haydovchingiz bilan bog‘laning.",
 
-                    'ru' => "В приложении Qadam вы сделали новый заказ. Общая сумма: $totalPrice UZS оплачена. 
+                    'ru' => "В приложении ketamiz.com вы сделали новый заказ. Общая сумма: $totalPrice UZS оплачена. 
                 Водитель: {$trip->driver->first_name} {$trip->driver->last_name}, телефон: {$trip->driver->phone}, забронированные места: $requestedSeats. 
                 Перед началом поездки, пожалуйста, свяжитесь с вашим водителем.",
 
-                    'en' => "You have made a new booking in the Qadam app. Total amount: $totalPrice UZS has been paid. 
+                    'en' => "You have made a new booking in the ketamiz.com app. Total amount: $totalPrice UZS has been paid. 
                 Driver: {$trip->driver->first_name} {$trip->driver->last_name}, phone: {$trip->driver->phone}, seats booked: $requestedSeats. 
                 Before starting the trip, please contact your driver."
                 ];
@@ -320,14 +323,14 @@ class BookingRepository
             $textSMSForClient = $textSMSForClient[$clientLang] ?? $textSMSForClient['uz'];
             // SMS jo'natish
             if ($booking->user->phone) {
-                // $this->smsService->sendQueued($booking->user->phone, $textSMSForClient, 'send-sms-to-driver-about-new-booking');
+                $this->smsService->sendQueued($booking->user->phone, $textSMSForClient, 'send-sms-to-client-about-new-booking');
             }
 
             $driverLang = $trip->driver->authLanguage->language ?? 'uz';
             $textSMSForDriver = $textSMSForDriver[$driverLang] ?? $textSMSForDriver['uz'];
             if ($trip->driver->phone) {
                 // SMS jo'natish
-                // $this->smsService->sendQueued($trip->driver->phone, $textSMSForDriver, 'send-sms-to-driver-about-new-booking');
+                $this->smsService->sendQueued($trip->driver->phone, $textSMSForDriver, 'send-sms-to-driver-about-new-booking');
             }
 
             return response()->json(new BookingResource($booking), 201);
@@ -502,9 +505,9 @@ class BookingRepository
                 'en' => "User cancelled booking #{$booking->id}. Route: {$start} → {$end}. Amount deducted from driver: {$withdrawFromDriver} UZS (fee: {$driverCommission} UZS).",
             ];
             $textSMSMessageToClientAboutCancelation = [
-                'uz' => "Siz qadam ilovasida band qilgan safar bekor qildingiz. Yo‘nalish: {$start} → {$end}. Qaytarilgan summa: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS.",
-                'ru' => "Вы отменили поездку #{$booking->id}. Маршрут: {$start} → {$end}. Возврат: {$refundForClient} UZS, комиссия за отмену: {$cancelationFee} UZS.",
-                'en' => "You cancelled the trip #{$booking->id}. Route: {$start} → {$end}. Refund: {$refundForClient} UZS, cancellation fee: {$cancelationFee} UZS.",
+                'uz' => "Siz ketamiz.com ilovasida band qilgan safar bekor qildingiz. Yo‘nalish: {$start}  {$end}. Qaytarilgan summa: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS.",
+                'ru' => "Вы отменили поездку #{$booking->id}. Маршрут: {$start}  {$end}. Возврат: {$refundForClient} UZS, комиссия за отмену: {$cancelationFee} UZS.",
+                'en' => "You cancelled the trip #{$booking->id}. Route: {$start}  {$end}. Refund: {$refundForClient} UZS, cancellation fee: {$cancelationFee} UZS.",
             ];
 
 
@@ -576,14 +579,14 @@ class BookingRepository
             $textSMSMessageToDriverAboutCancelation = $textSMSMessageToDriverAboutCancelation[$authLan] ?? $textSMSMessageToDriverAboutCancelation['uz'];
 
             if ($trip->driver->phone) {
-                // $this->smsService->sendQueued($trip->driver->phone, $textSMSMessageToDriverAboutCancelation, 'send-sms-to-client-about-order-cancelation');
+                $this->smsService->sendQueued($trip->driver->phone, $textSMSMessageToDriverAboutCancelation, 'send-sms-to-driver-about-order-cancelation');
             }
 
 
             $textSMSMessageToClientAboutCancelation = $textSMSMessageToClientAboutCancelation[$authLan] ?? $textSMSMessageToClientAboutCancelation['uz'];
 
             if ($user->phone) {
-                // $this->smsService->sendQueued($user->phone, $textSMSMessageToClientAboutCancelation, 'send-sms-to-client-about-order-cancelation');
+                $this->smsService->sendQueued($user->phone, $textSMSMessageToClientAboutCancelation, 'send-sms-to-client-about-order-cancelation');
             }
 
 

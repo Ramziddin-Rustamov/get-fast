@@ -65,7 +65,8 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
     // Vehicle – hamma rasmlarni o'chirish
     Route::delete('/vehicle/{vehicleId}/images', [DriverController::class, 'deleteAllVehicleImages'])
         ->name('vehicle.images.deleteAll');
-
+    Route::get('/drivers/{id}/trips', [DriverController::class, 'trips'])
+        ->name('drivers.trips');
 
 
     // CLIENTS
