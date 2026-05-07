@@ -10,7 +10,7 @@ return [
     'allowed_origins' => [
         'https://yashil-yol.vercel.app',
         'https://ketamiz.com',
-        'https://www.ketamiz.com/',
+        'https://www.ketamiz.com',
         'https://a8b6-91-196-77-111.ngrok-free.app'
     ],
 
