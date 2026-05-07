@@ -125,10 +125,12 @@ class DriverController extends Controller
         $driver = User::where('role', 'driver')->find($driverId);
         $phone = $driver->phone;
 
-        $this->smsService->sendQueued($phone, $message[auth()->user()->authLanguage->language] ?? $message['uz'], 'message-to-driver');
+        $this->smsService->sendQueued($phone, $message[$driver->authLanguage->language] ?? $message['uz'], 'message-to-driver');
 
 
-        return redirect()->back()->with('success', 'Xabar muvaffaqiyatli yuborildi ' . $phone . ': ' . $message);
+        return redirect()->back()->with('success',
+        'Xabar muvaffaqiyatli yuborildi ' . ($phone ?? '') . ': ' . $request->message
+    );
     }
 
 
@@ -139,7 +141,22 @@ class DriverController extends Controller
         ]);
 
         $driver = User::where('role', 'driver')->where('id', $id)->first();
-        $driver->driving_verification_status = $request->status;
+
+        if ($request->status == 'none' || $request->status == 'rejected' || $request->status == 'blocked') {
+            $driver->role = 'client';
+            $driver->driving_verification_status = $request->status;
+        }
+
+        if ($request->status == 'approved') {
+            $driver->role = 'driver';
+            $driver->driving_verification_status = $request->status;
+        }
+
+        if ($request->status == 'pending') {
+            $driver->role = 'driver';
+            $driver->driving_verification_status = $request->status;
+        }
+
         $driver->save();
 
         $statusTranslations = [
@@ -180,7 +197,7 @@ class DriverController extends Controller
 
 
         // sms logic here
-        $this->smsService->sendQueued($driver->phone, $message[$driver->authLanguage->language] ?? $message['uz'], 'message-to-driver-about-driver-status' . $statusTranslations[$status]['uz']);
+        // $this->smsService->sendQueued($driver->phone, $message[$driver->authLanguage->language] ?? $message['uz'], 'message-to-driver-about-driver-status' . $statusTranslations[$status]['uz']);
 
 
         return redirect()->back()->with('success', 'Driver status muvaffaqiyatli yangilandi! ' . $statusTranslations[$status]['uz'] . ', va bu haqida foydalanuvchiga xabar yuborildi.');

@@ -11,6 +11,7 @@ class DriverTripResource extends JsonResource
     public function toArray(Request $request): array
     {
 
+
         $lang = auth()->user()->authLanguage->language ?? 'uz';
         $start_time = $this->start_time ? Carbon::parse($this->start_time) : null;
         $end_time = $this->end_time ? Carbon::parse($this->end_time) : null;

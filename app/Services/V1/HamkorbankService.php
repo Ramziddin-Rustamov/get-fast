@@ -22,6 +22,7 @@ class HamkorbankService
 
     public static function getToken()
     {
+
     return Cache::remember('hamkorbank_access_token', 3500, function () {
 
         $key = config('services.hamkorbank.key');

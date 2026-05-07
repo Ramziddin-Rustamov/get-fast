@@ -84,6 +84,12 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
     Route::post('clients/{driver}/transfer', [ClientController::class, 'refund'])
         ->name('clients.transfer');
 
+        Route::post('clients/{client}/update-status', [ClientController::class, 'updateStatus'])
+        ->name('client.updateStatus');
+
+        Route::get('clients/{client}/mark-as-verified', [ClientController::class, 'markAsVerified'])
+        ->name('client.markAsVerified');
+
     // ADMINS
     Route::get('admins', [AdminController::class, 'index'])->name('admins.index');
     Route::get('admins/create', [AdminController::class, 'create'])->name('admins.create');

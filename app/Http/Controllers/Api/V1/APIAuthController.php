@@ -133,7 +133,7 @@ class APIAuthController extends Controller
                     'user_id' => $user->id,
                     'language' => 'uz'
                 ]);
-
+                $token = Auth::guard('api')->login($user);
                 DB::commit();
                 $messages = [
                     'uz' => "Telefon raqami tasdiqlandi. Foydalanuvchi ro'yxatdan o'tdi.",
@@ -145,8 +145,12 @@ class APIAuthController extends Controller
 
                 return response()->json([
                     'status' => 'success',
-                    'message' => $message,
-                    'go' => 'login page',
+                    'message' => $messages[$language],
+                    'user' => $user,
+                    'authorisation' => [
+                        'token' => $token,
+                        'type' => 'bearer',
+                    ]
                 ]);
             } else {
 

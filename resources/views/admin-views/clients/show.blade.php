@@ -490,6 +490,46 @@
 </div>
 
 
+{{-- Make him/hir driver --}}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap">
+            <h5 class="card-title mb-2"> Make driver (approved bo'lsa client driverga o'zgaradi ) </h5>
+
+            <form action="{{ route('client.updateStatus', $client->id) }}" method="POST" class="d-flex align-items-center gap-2 mb-2">
+                @csrf
+
+                <select name="status" class="form-select form-select-sm">
+                    <option value="none" {{ $client->driving_verification_status == 'none' ? 'selected' : '' }}>None</option>
+                    <option value="pending" {{ $client->driving_verification_status == 'pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="approved" {{ $client->driving_verification_status == 'approved' ? 'selected' : '' }}>Approved</option>
+                    <option value="rejected" {{ $client->driving_verification_status == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                    <option value="blocked" {{ $client->driving_verification_status == 'blocked' ? 'selected' : '' }}>Blocked</option>
+                </select>
+
+                <button type="submit" class="btn btn-sm btn-success">
+                    <i class="fas fa-check"></i> Saqlash
+                </button>
+            </form>
+
+            <div>
+                <strong>Joriy status:</strong>
+                @php
+                    $statusColor = match($client->driving_verification_status) {
+                        'none' => 'bg-secondary',
+                        'pending' => 'bg-warning text-dark',
+                        'approved' => 'bg-success',
+                        'rejected' => 'bg-danger',
+                        'blocked' => 'bg-dark',
+                        default => 'bg-secondary'
+                    };
+                @endphp
+                <span class="badge {{ $statusColor }} px-3 py-2 rounded-pill">
+                    {{ ucfirst($client->driving_verification_status) }}
+                </span>
+            </div>
+        </div>
+    </div>
+
 
     {{-- Send SMS --}}
     <div class="card mb-4 shadow-sm">
@@ -509,6 +549,18 @@
             </form>
         </div>
     </div>
+<!-- mark as verified -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <a href="{{ route('client.markAsVerified', $client->id) }}" 
+           class="btn btn-success"
+           onclick="return confirm('Tasdiqlamoqchimisiz?')">
+            ✅ Verify qilish
+        </a>
+    </div>
+</div>
+
+
 
 </div>
 

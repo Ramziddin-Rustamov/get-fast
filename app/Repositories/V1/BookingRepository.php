@@ -542,6 +542,10 @@ class BookingRepository
                 'status' => 'cancelled'
             ]);
 
+            BookingPassengers::where('booking_id', $booking->id)->update([
+                'status' => 'cancelled'
+            ]);
+
             $companyBalance = CompanyBalance::lockForUpdate()->firstOrFail();
 
             // Company got amount

@@ -424,4 +424,112 @@ class ClientController extends Controller
             return redirect()->back()->with('error', $e->getMessage());
         }
     }
+
+
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:none,pending,approved,rejected,blocked',
+        ]);
+
+        $client = User::where('role', 'client')->where('id', $id)->first();
+       
+        if ($request->status == 'approved') {
+            $client->role = 'driver';
+            $client->driving_verification_status = $request->status;
+        }
+
+        if($request->status == 'none')
+        {
+            $client->role = 'client';
+            $client->driving_verification_status = $request->status;
+        }
+
+        $client->save();
+
+        $statusTranslations = [
+            'none' => [
+                'uz' => 'yo‘q',
+                'ru' => 'нет',
+                'en' => 'none',
+            ],
+            'pending' => [
+                'uz' => 'kutilmoqda',
+                'ru' => 'в ожидании',
+                'en' => 'pending',
+            ],
+            'approved' => [
+                'uz' => 'tasdiqlandi',
+                'ru' => 'одобрено',
+                'en' => 'approved',
+            ],
+            'rejected' => [
+                'uz' => 'rad etildi',
+                'ru' => 'отклонено',
+                'en' => 'rejected',
+            ],
+            'blocked' => [
+                'uz' => 'bloklandi',
+                'ru' => 'заблокировано',
+                'en' => 'blocked',
+            ],
+        ];
+
+        $status = $request->status;
+
+        $message = [
+            'uz' => 'Sizning haydovchi statusingiz muvaffaqiyatli yangilandi: ' . $statusTranslations[$status]['uz'],
+            'ru' => 'Ваш статус водителя успешно обновлён: ' . $statusTranslations[$status]['ru'],
+            'en' => 'Your driver status has been successfully updated: ' . $statusTranslations[$status]['en'],
+        ];
+
+
+        // sms logic here
+        // $this->smsService->sendQueued($driver->phone, $message[$driver->authLanguage->language] ?? $message['uz'], 'message-to-driver-about-driver-status' . $statusTranslations[$status]['uz']);
+
+
+        return redirect()->back()->with('success', 'client  status muvaffaqiyatli yangilandi! ' . $statusTranslations[$status]['uz'] . ', va bu haqida foydalanuvchiga xabar yuborildi.');
+    }
+
+    public function markAsVerified($id)
+    {
+        $client = User::where('id', $id)
+            ->where('role', 'client')
+            ->where('is_verified', 0)
+            ->first();
+    
+        if (!$client) {
+            return redirect()->back()->with('error', 'Foydalanuvchi topilmadi yoki allaqachon tasdiqlangan');
+        }
+    
+        // verify qilish
+        $client->is_verified = 1;
+        $client->save();
+    
+        // message
+        $message = [
+            'uz' => 'Sizning profilingiz tasdiqlandi ✅',
+            'ru' => 'Ваш профиль подтверждён ✅',
+            'en' => 'Your profile has been verified ✅',
+        ];
+    
+        $lang = optional($client->authLanguage)->language ?? 'uz';
+    
+        // SMS (agar ishlatsang)
+        // $this->smsService->sendQueued(
+        //     $client->phone,
+        //     $message[$lang],
+        //     'user-verified'
+        // );
+    
+        return redirect()->back()->with(
+            'success',
+            'Foydalanuvchi muvaffaqiyatli tasdiqlandi '
+        );
+    }
+
+    public function deleteUser($id)
+    {
+        
+    }
 }
