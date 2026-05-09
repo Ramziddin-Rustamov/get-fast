@@ -44,12 +44,7 @@ class APIAuthController extends Controller
                 'password' => 'required|string|min:6|confirmed', // confirmation uchun `password_confirmation` kerak
             ]);
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => 'error',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
+            $validator->validate();
 
             // Step 2: Tasdiqlash kodi generatsiya qilish
             $code = rand(100000, 999999); // 6 xonali kod
@@ -505,8 +500,6 @@ class APIAuthController extends Controller
             $user->driving_licence_number = $request->driving_license_number;
             $user->driving_licence_expiry = $request->driving_license_expiration_date;
             $user->birth_date = $request->birthday;
-            $user->role = 'driver';
-            $user->driving_verification_status = 'pending';
             $user->save();
 
 
@@ -535,10 +528,11 @@ class APIAuthController extends Controller
 
     public function uploadVehicleImages(Request $request)
     {
-        DB::beginTransaction();
+
 
         try {
 
+            DB::beginTransaction();
             $request->validate([
                 'vehicle_id' => 'required|exists:vehicles,id',
                 'tech_passport_front' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
@@ -547,6 +541,16 @@ class APIAuthController extends Controller
                 'car_images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
             ]);
             $vehicleId = $request->vehicle_id;
+
+            $vehicle = Vehicle::find($vehicleId);
+
+            if (!$vehicle) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Vehicle not found.'
+                ]);
+            }
+            $driver = User::where('id', $vehicle->user_id)->first();
 
             // ✅ CAR IMAGES: avval eski rasm va fayllarni o‘chirish
             if ($request->hasFile('car_images')) {
@@ -609,6 +613,11 @@ class APIAuthController extends Controller
                     'type' => 'tech_passport',
                     'side' => 'back',
                 ]);
+            }
+            if ($driver->role != 'driver') {
+                $driver->role = 'driver';
+                $driver->driving_verification_status = 'pending';
+                $driver->save();
             }
 
             DB::commit();
@@ -957,10 +966,10 @@ class APIAuthController extends Controller
         //         'message' => $e->getMessage()
         //     ], 500);
         // }
-                //  return  config('services.sms.url', env('SMS_API_URL'));
+        //  return  config('services.sms.url', env('SMS_API_URL'));
         //     // return config('services.sms.face_name', env('SMS_API_FACE_NAME'));
-            //  return config('services.sms.username', env('SMS_API_USERNAME'));
-            // return config('services.sms.password', env('SMS_API_PASSWORD'));
+        //  return config('services.sms.username', env('SMS_API_USERNAME'));
+        // return config('services.sms.password', env('SMS_API_PASSWORD'));
 
         // $response = Http::withBasicAuth(
         //     config('services.sms.username'),
