@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\APIAuthController;
+use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\CardController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\SupportMessageController;
@@ -65,13 +66,17 @@ Route::middleware('auth:api')->group(function () {
 
 
     Route::prefix('client/booking')->group(function () {
-        Route::get('/', [App\Http\Controllers\Api\V1\BookingController::class, 'index']);
-        Route::put('/update/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'update']);
-        Route::get('/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'show']);
-        Route::post('/', [App\Http\Controllers\Api\V1\BookingController::class, 'bookTrip']);
-        Route::delete('/cancel/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'cancelBooking']);
-        Route::post('/{id}/add-passenger', [App\Http\Controllers\Api\V1\BookingController::class, 'addPassengerToBooking']);
-        Route::post('/{bookingId}/remove-passenger/{passengerId}', [App\Http\Controllers\Api\V1\BookingController::class, 'removePassengerFromBooking']);
+        Route::get('/', [BookingController::class, 'index']);
+        Route::put('/update/{id}', [BookingController::class, 'update']);
+        Route::get('/{id}', [BookingController::class, 'show']);
+        Route::post('/', [BookingController::class, 'bookTrip']);
+        Route::delete('/cancel/{id}', [BookingController::class, 'cancelBooking']);
+        Route::post('/{id}/add-passenger', [BookingController::class, 'addPassengerToBooking']);
+        Route::post('/{bookingId}/remove-passenger/{passengerId}', [BookingController::class, 'removePassengerFromBooking']);
+        Route::put(
+            '/{booking}/passengers/{passenger}/address',
+            [BookingController::class, 'updatePassengerAddress']
+        );
     });
 
     Route::prefix('/user/balance-transactions')->group(function () {

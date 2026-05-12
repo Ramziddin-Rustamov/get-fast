@@ -404,14 +404,24 @@ class BookingController extends Controller
                 ->lockForUpdate()
                 ->first();
             if (!$booking) {
-                throw new \Exception('Booking not found', 404);
+                $message = [
+                    'uz' => 'Buyurtma topilmadi',
+                    'ru' => 'Заказ не найден',
+                    'en' => 'Booking not found',
+                ];
+                throw new \Exception($message[$lang], 404);
             }
 
             $trip = Trip::where('id', $booking->trip_id)
                 ->lockForUpdate()
                 ->first();
             if (!$trip) {
-                throw new \Exception('Trip not found', 404);
+                $message = [
+                    'uz' => 'Trip topilmadi',
+                    'ru' => 'Поездка не найдена',
+                    'en' => 'Trip not found',
+                ];
+                throw new \Exception($message[$lang], 404);
             }
 
             $price = $trip->price_per_seat;
@@ -619,6 +629,105 @@ class BookingController extends Controller
             DB::rollBack();
             return response()->json([
                 'error' => 'Internal Server Error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function updatePassengerAddress(Request $request, $bookingId, $passengerId)
+    {
+
+        try {
+
+            DB::beginTransaction();
+
+            $lang = auth()->user()->authLanguage->language ?? 'uz';
+
+            $request->validate([
+                'longitude' => 'required|numeric',
+                'latitude'  => 'required|numeric',
+            ]);
+
+            $booking = Booking::where('id', $bookingId)
+                ->where('user_id', auth()->id())
+                ->lockForUpdate()
+                ->first();
+
+            if (!$booking) {
+
+                DB::rollBack();
+
+                $messages = [
+                    'uz' => 'Buyurtma topilmadi',
+                    'ru' => 'Бронирование не найдено',
+                    'en' => 'Booking not found',
+                ];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$lang]
+                ], 404);
+            }
+
+            $passenger = BookingPassengers::where('id', $passengerId)
+                ->where('booking_id', $booking->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$passenger) {
+
+                DB::rollBack();
+
+                $messages = [
+                    'uz' => 'Yo‘lovchi topilmadi',
+                    'ru' => 'Пассажир не найден',
+                    'en' => 'Passenger not found',
+                ];
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$lang] ?? $messages['uz']
+                ], 404);
+            }
+
+            if ($passenger->status === 'cancelled') {
+
+                DB::rollBack();
+                $messages = [
+                    'uz' => 'Yo‘lovchi to‘xtatildi',
+                    'ru' => 'Пассажир отменён',
+                    'en' => 'Passenger cancelled',
+                ];
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$lang] ?? $messages['uz']
+                ], 422);
+            }
+
+            $passenger->update([
+                'longitude' => $request->longitude,
+                'latitude'  => $request->latitude,
+            ]);
+
+            DB::commit();
+
+            $messages = [
+                'uz' => 'Yo‘lovchi manzili yangilandi',
+                'ru' => 'Адрес пассажира обновлён',
+                'en' => 'Passenger address updated',
+            ];
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $messages[$lang] ?? $messages['uz'],
+                'passenger' => $passenger
+            ]);
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'status' => 'error',
                 'message' => $e->getMessage()
             ], 500);
         }
