@@ -39,41 +39,79 @@ class APIAuthController extends Controller
             DB::beginTransaction();
             // Step 1: Validatsiya
             $validator = Validator::make($request->all(), [
-                'phone' => 'required|string|unique:users,phone',
-                'email' => 'required|string|unique:users,email',
+                'phone' => 'required|string',
+                'email' => 'required|string',
                 'password' => 'required|string|min:6|confirmed', // confirmation uchun `password_confirmation` kerak
             ]);
 
             $validator->validate();
 
+
+            // Telefon yoki email bo‘yicha user qidiramiz
+            $existingUser = User::where('phone', $request->phone)
+                ->orWhere('email', $request->email)
+                ->first();
+
+            // Agar verified bo‘lsa qayta registratsiya qilolmaydi
+            if ($existingUser && $existingUser->is_verified) {
+                $language = $existingUser->authLanguage->language;
+
+
+                $message = [
+                    'uz' => 'Bu foydalanuvchi allaqachon mavjud va tasdiqlangan, login qiling',
+                    'ru' => 'Этот пользователь уже существует и  подтвержден вход',
+                    'en' => 'This user already exists and is  verified ,please login',
+                ];
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Bu foydalanuvchi allaqachon mavjud'
+                ], 400);
+            }
             // Step 2: Tasdiqlash kodi generatsiya qilish
             $code = rand(100000, 999999); // 6 xonali kod
             // SMS uchun xabar
             $text = "ketamiz.com ilovasida ro'yhatdan o'tish uchun tasdiqlash kodi: $code";
 
 
-            // Step 3: Foydalanuvchini vaqtincha yaratish (is_verified = false)
-            $user = \App\Models\User::create([
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
-                'father_name' => $request->father_name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'password' => Hash::make($request->password),
-                'verification_code' => $code,
-                'is_verified' => false,
-            ]);
+            if ($existingUser) {
+
+                // Unverified user bo‘lsa update qilamiz
+                $existingUser->update([
+                    'first_name' => $request->first_name,
+                    'last_name' => $request->last_name,
+                    'father_name' => $request->father_name,
+                    'email' => $request->email,
+                    'phone' => $request->phone,
+                    'password' => Hash::make($request->password),
+                    'verification_code' => $code,
+                ]);
+
+                $user = $existingUser;
+            } else {
+                $user = User::create([
+                    'first_name' => $request->first_name,
+                    'last_name' => $request->last_name,
+                    'father_name' => $request->father_name,
+                    'email' => $request->email,
+                    'phone' => $request->phone,
+                    'password' => Hash::make($request->password),
+                    'verification_code' => $code,
+                    'is_verified' => false,
+                ]);
+            }
+
+
 
             UserLanguage::updateOrCreate([
                 'user_id' => $user->id,
                 'language' => 'uz'
             ]);
-            DB::commit();
+
 
             // smsni navbatga yuborish
 
             // SMS uchun xabar ishladi
-            $this->smsService->sendQueued($user->phone, $text, 'register');
+          $this->smsService->sendQueued($user->phone, $text, 'register');
 
             $messages = [
                 'uz' => 'Tasdiqlash kodi telefoningizga yuborildi',
@@ -81,9 +119,10 @@ class APIAuthController extends Controller
                 'en' => 'Verification code sent to your phone',
             ];
 
+
             // Agar til mavjud bo‘lmasa, "en" ga tushadi
             $message = $messages[$language] ?? $messages['uz'];
-
+            DB::commit();
             return response()->json([
                 'status' => 'success',
                 'message' => $message,
