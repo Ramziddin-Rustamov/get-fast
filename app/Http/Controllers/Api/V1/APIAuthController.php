@@ -111,7 +111,7 @@ class APIAuthController extends Controller
             // smsni navbatga yuborish
 
             // SMS uchun xabar ishladi
-          $this->smsService->sendQueued($user->phone, $text, 'register');
+
 
             $messages = [
                 'uz' => 'Tasdiqlash kodi telefoningizga yuborildi',
@@ -123,6 +123,7 @@ class APIAuthController extends Controller
             // Agar til mavjud bo‘lmasa, "en" ga tushadi
             $message = $messages[$language] ?? $messages['uz'];
             DB::commit();
+            $this->smsService->sendQueued($user->phone, $text, 'register');
             return response()->json([
                 'status' => 'success',
                 'message' => $message,

@@ -12,7 +12,7 @@ use App\Http\Controllers\Admin\WithdrawRequestController;
 use App\Http\Controllers\WelcomeController;
 
 
-Route::get('/', [WelcomeController::class, 'index']);
+Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
 
@@ -68,6 +68,9 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
     Route::get('/drivers/{id}/trips', [DriverController::class, 'trips'])
         ->name('drivers.trips');
 
+        Route::delete('drivers/{driver}/delete-driver', [DriverController::class, 'deleteDriver'])
+        ->name('drivers.delete');
+
 
     // CLIENTS
     Route::get('clients', [ClientController::class, 'index'])->name('clients.index');
@@ -89,6 +92,10 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
 
         Route::get('clients/{client}/mark-as-verified', [ClientController::class, 'markAsVerified'])
         ->name('client.markAsVerified');
+
+
+        Route::delete('clients/{client}/delete-user', [ClientController::class, 'deleteClient'])
+        ->name('client.deleteClient');
 
     // ADMINS
     Route::get('admins', [AdminController::class, 'index'])->name('admins.index');

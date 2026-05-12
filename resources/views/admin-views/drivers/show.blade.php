@@ -76,7 +76,7 @@
                     <div class="mb-3">
                         <label for="amount" class="form-label">Amount</label>
                         <input type="number" name="amount" id="amount" class="form-control" min="1000" 
-                               max="{{ $driver->balance->sum('balance') }}" placeholder="Enter amount">
+                               max="{{ $driver->balance?->sum('balance') }}" placeholder="Enter amount">
                     </div>
 
                     <div class="mb-3">
@@ -188,7 +188,7 @@
     <div class="card-body d-flex justify-content-between align-items-center">
         <div>
             <h5 class="card-title">💰 Balance</h5>
-            <p class="fs-4">So'm {{ number_format($driver->balance->balance, 2, '.', ' ') ?? '0' }}</p>
+            <p class="fs-4">So'm {{ number_format($driver->balance?->balance ?? 0, 2, '.', ' ') ?? '0' }}</p>
         </div>
 
                  {{-- Transfer to card --}}
@@ -591,7 +591,7 @@
         {{-- Message Driver --}}
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <h5 class="card-title">✉ Send SMS to Driver <span class="text-dark text-underline"> Driver language : {{$driver->authLanguage->language}}</span> </h5>
+            <h5 class="card-title">✉ Send SMS to Driver <span class="text-dark text-underline"> Driver language : {{$driver->authLanguage?->language}}</span> </h5>
 
             <form action="{{ route('drivers.sendSms', $driver->id) }}" method="POST">
                 @csrf
@@ -605,6 +605,20 @@
             </form>
         </div>
     </div>
+
+
+{{-- delete user --}}
+<form action="{{ route('drivers.delete', $driver->id) }}" 
+    method="POST"
+    onsubmit="return confirm('Foydalanuvchini o‘chirmoqchimisiz?')">
+
+  @csrf
+  @method('DELETE')
+
+  <button type="submit" class="btn btn-danger">
+      🗑 Delete Driver
+  </button>
+</form>
 
 </div>
 

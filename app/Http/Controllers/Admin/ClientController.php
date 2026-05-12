@@ -433,14 +433,13 @@ class ClientController extends Controller
         ]);
 
         $client = User::where('role', 'client')->where('id', $id)->first();
-       
+
         if ($request->status == 'approved') {
             $client->role = 'driver';
             $client->driving_verification_status = $request->status;
         }
 
-        if($request->status == 'none')
-        {
+        if ($request->status == 'none') {
             $client->role = 'client';
             $client->driving_verification_status = $request->status;
         }
@@ -497,39 +496,46 @@ class ClientController extends Controller
             ->where('role', 'client')
             ->where('is_verified', 0)
             ->first();
-    
+
         if (!$client) {
             return redirect()->back()->with('error', 'Foydalanuvchi topilmadi yoki allaqachon tasdiqlangan');
         }
-    
+
         // verify qilish
         $client->is_verified = 1;
         $client->save();
-    
+
         // message
         $message = [
             'uz' => 'Sizning profilingiz tasdiqlandi ✅',
             'ru' => 'Ваш профиль подтверждён ✅',
             'en' => 'Your profile has been verified ✅',
         ];
-    
+
         $lang = optional($client->authLanguage)->language ?? 'uz';
-    
+
         // SMS (agar ishlatsang)
         // $this->smsService->sendQueued(
         //     $client->phone,
         //     $message[$lang],
         //     'user-verified'
         // );
-    
+
         return redirect()->back()->with(
             'success',
             'Foydalanuvchi muvaffaqiyatli tasdiqlandi '
         );
     }
 
-    public function deleteUser($id)
+    public function deleteClient($id)
     {
-        
+        $userClientOrDriver = User::where('id', $id)->where('role', 'client')->first();
+
+        if ($userClientOrDriver) {
+            $userClientOrDriver->delete();
+            return redirect()->route('welcome')->with('success', 'Foydalanuvchi muvaffaqiyatli o‘chirildi!');
+        }
+
+        return redirect()->route('welcome')->with('error', 'Foydalanuvchi topilmadi!');
     }
 }

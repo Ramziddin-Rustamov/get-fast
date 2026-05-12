@@ -101,11 +101,7 @@ class DriverController extends Controller
         ));
     }
 
-    public function destroy(User $driver)
-    {
-        $driver->delete();
-        return redirect()->route('drivers.index')->with('success', 'Driver deleted successfully!');
-    }
+ 
 
 
 
@@ -607,5 +603,17 @@ class DriverController extends Controller
         ])->findOrFail($driverId);
 
         return view('driver.trips', compact('driver'));
+    }
+
+    public function deleteDriver($id)
+    {
+        $userClientOrDriver = User::where('id', $id)->where('role', 'driver')->first();
+
+        if ($userClientOrDriver) {
+            $userClientOrDriver->delete();
+            return redirect()->route('welcome')->with('success', 'Foydalanuvchi muvaffaqiyatli o‘chirildi!');
+
+        }
+        return redirect()->route('welcome')->with('success', 'Foydalanuvchi muvaffaqiyatli o‘chirildi!');
     }
 }

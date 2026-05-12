@@ -534,7 +534,7 @@
     {{-- Send SMS --}}
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
-            <h5 class="card-title">✉ Mijozni telefon raqamiga SMS yuborish . Mijoz tili : <span class="fw-bold badge bg-success" >{{ $client->authLanguage->language }}</span></h5>
+            <h5 class="card-title">✉ Mijozni telefon raqamiga SMS yuborish . Mijoz tili : <span class="fw-bold badge bg-success" >{{ $client->authLanguage?->language ?? null }}</span></h5>
 
             <form action="{{ route('clients.sendSms', $client->id) }}" method="POST">
                 @csrf
@@ -549,6 +549,11 @@
             </form>
         </div>
     </div>
+
+
+
+
+
 <!-- mark as verified -->
 <div class="card mb-4 shadow-sm">
     <div class="card-body">
@@ -560,6 +565,18 @@
     </div>
 </div>
 
+{{-- delete user --}}
+<form action="{{ route('client.deleteClient', $client->id) }}" 
+    method="POST"
+    onsubmit="return confirm('Foydalanuvchini o‘chirmoqchimisiz?')">
+
+  @csrf
+  @method('DELETE')
+
+  <button type="submit" class="btn btn-danger">
+      🗑 Delete User
+  </button>
+</form>
 
 
 </div>
