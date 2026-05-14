@@ -39,8 +39,10 @@ class APIAuthController extends Controller
             DB::beginTransaction();
             // Step 1: Validatsiya
             $validator = Validator::make($request->all(), [
-                'phone' => 'required|string',
-                'email' => 'required|string',
+                'phone' => 'required|string|unique:users,phone',
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'nullable|string|max:255',
+                'email' => 'required|string|unique:users,email',
                 'password' => 'required|string|min:6|confirmed', // confirmation uchun `password_confirmation` kerak
             ]);
 
