@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\V1\BookingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use App\Traits\ApiResponseTrait;
 use App\Http\Resources\V1\BookingResource;
 use App\Models\BalanceTransaction;
 use App\Models\UserBalance;

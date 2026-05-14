@@ -107,6 +107,18 @@ class APIAuthController extends Controller
                 'language' => 'uz'
             ]);
 
+            $userBalance = UserBalance::lockForUpdate()
+                ->firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['balance' => 0.00]
+                );
+
+
+            UserLanguage::updateOrCreate([
+                'user_id' => $user->id,
+                'language' => 'uz'
+            ]);
+
 
             // smsni navbatga yuborish
 
