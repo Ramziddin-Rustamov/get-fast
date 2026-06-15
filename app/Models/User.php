@@ -17,12 +17,13 @@ use App\Models\V1\UserImage;
 use App\Models\V1\UserLanguage;
 use App\Models\V1\Vehicle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
 class User  extends Authenticatable implements JWTSubject
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
     protected $table = 'users';
     public $timestamps = true;
     protected $fillable = [

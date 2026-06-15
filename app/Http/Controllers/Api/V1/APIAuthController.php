@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Services\V1\SmsService;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -899,6 +900,82 @@ class APIAuthController extends Controller
 
 
 
+    /**
+     * Foydalanuvchi profil rasmini yuklash / yangilash.
+     *
+     * Eski profil rasmi (user_images.type = 'profile') storage va bazadan
+     * o'chiriladi, yangisi saqlanadi va users.image ustuni ham yangilanadi.
+     */
+    public function uploadProfileImage(Request $request)
+    {
+        $language = auth()->user()->authLanguage->language ?? 'uz';
+
+        try {
+            DB::beginTransaction();
+
+            $request->validate([
+                'image' => 'required|image|mimes:jpeg,png,jpg|max:5120', // 5MB
+            ]);
+
+            $user = Auth::guard('api')->user();
+            $userId = $user->id;
+
+            // Eski profil rasmini topish va o'chirish
+            $oldImage = UserImage::where('user_id', $userId)
+                ->where('type', 'profile')
+                ->first();
+
+            if ($oldImage) {
+                if (Storage::disk('public')->exists($oldImage->image_path)) {
+                    Storage::disk('public')->delete($oldImage->image_path);
+                }
+                $oldImage->delete();
+            }
+
+            // Yangi rasmni saqlash
+            $path = $request->file('image')->store("users/profile/{$userId}", 'public');
+
+            // user_images jadvaliga yozish
+            UserImage::create([
+                'user_id' => $userId,
+                'image_path' => $path,
+                'type' => 'profile',
+                'side' => 'front',
+            ]);
+
+            // users.image ustunini ham yangilash
+            $user->update(['image' => $path]);
+
+            DB::commit();
+
+            $messages = [
+                'uz' => 'Profil rasmi muvaffaqiyatli yuklandi.',
+                'ru' => 'Фото профиля успешно загружено.',
+                'en' => 'Profile image uploaded successfully.',
+            ];
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $messages[$language],
+                'image' => asset(Storage::url($path)),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            $messages = [
+                'uz' => 'Profil rasmini yuklashda xatolik yuz berdi. Xato: ',
+                'ru' => 'Ошибка при загрузке фото профиля. Ошибка: ',
+                'en' => 'An error occurred while uploading the profile image. Error: ',
+            ];
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $messages[$language] . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
     public function me()
     {
         try {
@@ -907,7 +984,10 @@ class APIAuthController extends Controller
             $image = UserImage::where('user_id', $user->id)->where('type', 'profile')->first();
             $passport = UserImage::where('user_id', $user->id)->where('type', 'passport')->first();
             $drivingLicence = UserImage::where('user_id', $user->id)->where('type', 'driving_licence')->first();
-            $image = $user->profileImage;
+            $image = UserImage::where('user_id', $user->id)
+                ->where('type', 'profile')
+                ->first();
+
             return response()->json([
                 'status' => 'success',
                 'user' => [
@@ -921,7 +1001,9 @@ class APIAuthController extends Controller
                     'birth_date' => $user->birth_date,
                     'driving_verification_status' => $user->driving_verification_status,
                     'created_at' => $user->created_at,
-                    'image' => $image ? asset($image->image_path) : null,
+                    'image' => $image
+                        ? asset(Storage::url($image->image_path))
+                        : null,
                     'balance' => $user->myBalance ? [
                         'balance' => $user->myBalance->balance,
                         'after_tax' => $user->myBalance->after_tax,
@@ -1047,75 +1129,127 @@ class APIAuthController extends Controller
         // return $response()->json();
     }
 
+    /**
+     * Foydalanuvchi o'z hisobini o'chiradi (App Store talabi: "Delete Account").
+     *
+     * Filterlar:
+     *  1. Balansda qarzdorlik bo'lmasligi kerak (balance < 0 bo'lsa o'chirib bo'lmaydi).
+     *  2. Faol (pending / confirmed / accepted) buyurtmalar bo'lmasligi kerak.
+     *
+     * Tekshiruvlardan o'tsa: rasm fayllari o'chiriladi, ma'lumotlar
+     * anonimlashtiriladi, JWT token bekor qilinadi va user o'chiriladi.
+     */
     public function deleteAccount()
     {
+        $language = auth()->user()->authLanguage->language ?? 'uz';
+
         try {
+            $user = Auth::guard('api')->user();
 
-            $user = auth()->user();
+            if (!$user) {
+                $messages = [
+                    'uz' => 'Foydalanuvchi topilmadi.',
+                    'ru' => 'Пользователь не найден.',
+                    'en' => 'User not found.',
+                ];
 
-            DB::transaction(function () use ($user) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$language],
+                ], 404);
+            }
 
-                $balance = UserBalance::where('user_id', $user->id)->first();
+            // FILTER 1: qarzdorlik tekshiruvi
+            $balance = UserBalance::where('user_id', $user->id)->first();
 
-                if ($balance) {
+            if ($balance && $balance->balance < 0) {
+                $messages = [
+                    'uz' => 'Hisobingizda qarzdorlik mavjud. Avval qarzni to‘lang.',
+                    'ru' => 'На вашем счёте есть задолженность. Сначала погасите долг.',
+                    'en' => 'Your account has an outstanding debt. Please pay it off first.',
+                ];
 
-                    if ($balance->balance < 0) {
-                        throw new \Exception(
-                            __('Hisobingizda qarzdorlik mavjud. Avval qarzni to‘lang.')
-                        );
-                    }
-                }
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$language],
+                ], 422);
+            }
 
-                $activeBookingExists = Booking::query()
-                    ->where(function ($query) use ($user) {
-                        $query->where('user_id', $user->id)
-                            ->orWhere('driver_id', $user->id);
-                    })
-                    ->whereIn('status', [
-                        'pending',
-                        'confirmed',
-                        'accepted',
-                    ])
-                    ->exists();
+            $bookings = Booking::where('user_id', $user->id)->whereIn('status', ['pending', 'confirmed'])->get();
 
-                if ($activeBookingExists) {
-                    throw new \Exception(
-                        __('Sizda faol buyurtmalar mavjud.')
-                    );
-                }
+            if(count($bookings) > 0){
+                $messages = [
+                    'uz' => 'Sizda faol buyurtmalar mavjud. Avval ularni yakunlang.',
+                    'ru' => 'У вас есть активные заказы. Сначала завершите их.',
+                    'en' => 'You have active bookings. Please complete them first.',
+                ];
 
-                // Sanctum tokenlar
-                $user->tokens()->delete();
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$language],
+                ], 422);
+            }
 
-                // User ma'lumotlarini anonimlashtirish
-                $user->update([
-                    'first_name' => 'Deleted',
-                    'last_name' => 'User',
-                    'father_name' => null,
-                    'email' => 'deleted_' . $user->id . '_' . time() . '@deleted.local',
-                    'phone' => null,
-                    'password' => bcrypt('12345678'),
-                    'image' => null,
-                    'remember_token' => null,
-                    
-                ]);
+            
 
-                // Soft Delete
-                $user->delete();
-            });
+            DB::beginTransaction();
+
+
+            if ($profileImage = $user->profileImage()->first()) {
+                Storage::disk('public')->delete($profileImage->image_path);
+                $profileImage->delete();
+            }
+
+            if ($passportImage = $user->passportImage()->first()) {
+                Storage::disk('public')->delete($passportImage->image_path);
+                $passportImage->delete();
+            }
+
+            $uniqueSuffix = $user->id . '_' . time();
+            $user->update([
+                'first_name' => 'Deleted',
+                'last_name' => 'User',
+                'father_name' => null,
+                'email' => 'deleted_' . $uniqueSuffix . '@deleted.local',
+                'phone' => 'deleted_' . $uniqueSuffix,
+                'password' => bcrypt(Str::random(32)),
+                'image' => null,
+                'is_verified' => false,
+                'verification_code' => null,
+                'remember_token' => null,
+            ]);
+
+            // Soft delete — qator saqlanadi, deleted_at o'rnatiladi
+            $user->delete();
+
+            DB::commit();
+
+            // Joriy JWT tokenni bekor qilish
+            Auth::guard('api')->logout();
+
+            $messages = [
+                'uz' => 'Hisobingiz muvaffaqiyatli o‘chirildi.',
+                'ru' => 'Ваш аккаунт успешно удалён.',
+                'en' => 'Your account has been deleted successfully.',
+            ];
 
             return response()->json([
-                'success' => true,
-                'message' => __('Account muvaffaqiyatli o‘chirildi.')
+                'status' => 'success',
+                'message' => $messages[$language],
             ]);
         } catch (\Throwable $e) {
+            DB::rollBack();
 
-            report($e);
+            $messages = [
+                'uz' => 'Hisobni o‘chirishda xatolik yuz berdi. Xato: ',
+                'ru' => 'Произошла ошибка при удалении аккаунта. Ошибка: ',
+                'en' => 'An error occurred while deleting the account. Error: ',
+            ];
 
             return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 422);
+                'status' => 'error',
+                'message' => $messages[$language] . $e->getMessage(),
+            ], 500);
         }
     }
 }
