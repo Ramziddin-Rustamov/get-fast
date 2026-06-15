@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\UserBalance;
+use App\Models\V1\Booking;
 use App\Models\V1\UserImage;
 use App\Models\V1\Vehicle;
 use App\Models\V1\VehicleImages;
@@ -1044,5 +1045,77 @@ class APIAuthController extends Controller
         // ]);
 
         // return $response()->json();
+    }
+
+    public function deleteAccount()
+    {
+        try {
+
+            $user = auth()->user();
+
+            DB::transaction(function () use ($user) {
+
+                $balance = UserBalance::where('user_id', $user->id)->first();
+
+                if ($balance) {
+
+                    if ($balance->balance < 0) {
+                        throw new \Exception(
+                            __('Hisobingizda qarzdorlik mavjud. Avval qarzni to‘lang.')
+                        );
+                    }
+                }
+
+                $activeBookingExists = Booking::query()
+                    ->where(function ($query) use ($user) {
+                        $query->where('user_id', $user->id)
+                            ->orWhere('driver_id', $user->id);
+                    })
+                    ->whereIn('status', [
+                        'pending',
+                        'confirmed',
+                        'accepted',
+                    ])
+                    ->exists();
+
+                if ($activeBookingExists) {
+                    throw new \Exception(
+                        __('Sizda faol buyurtmalar mavjud.')
+                    );
+                }
+
+                // Sanctum tokenlar
+                $user->tokens()->delete();
+
+                // User ma'lumotlarini anonimlashtirish
+                $user->update([
+                    'first_name' => 'Deleted',
+                    'last_name' => 'User',
+                    'father_name' => null,
+                    'email' => 'deleted_' . $user->id . '_' . time() . '@deleted.local',
+                    'phone' => null,
+                    'password' => bcrypt('12345678'),
+                    'image' => null,
+                    'remember_token' => null,
+                    
+                ]);
+
+                // Soft Delete
+                $user->delete();
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => __('Account muvaffaqiyatli o‘chirildi.')
+            ]);
+        } catch (\Throwable $e) {
+
+            report($e);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
     }
 }
