@@ -71,7 +71,15 @@ class WelcomeController extends Controller
     // === COMPANY TRANSACTIONS PAGE ===
     public function companyTransactions()
     {
-        $transactions = CompanyBalanceTransaction::latest()->paginate(20);
+        $transactions = CompanyBalanceTransaction::with([
+                'booking.user',
+                'trip.startQuarter', 'trip.endQuarter',
+                'trip.startDistrict', 'trip.endDistrict',
+                'trip.startRegion', 'trip.endRegion',
+                'trip.startPoint', 'trip.endPoint',
+            ])
+            ->latest()
+            ->paginate(20);
 
         return view('admin-views.company.transactions', compact('transactions'));
     }

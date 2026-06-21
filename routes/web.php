@@ -75,6 +75,14 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
         ->name('vehicle.images.deleteAll');
     Route::get('/drivers/{id}/trips', [DriverController::class, 'trips'])
         ->name('drivers.trips');
+    Route::get('/drivers/{id}/documents', [DriverController::class, 'documents'])
+        ->name('drivers.documents');
+    Route::get('/drivers/{id}/vehicles', [DriverController::class, 'vehiclesPage'])
+        ->name('drivers.vehicles');
+    Route::get('/drivers/{id}/transactions', [DriverController::class, 'transactions'])
+        ->name('drivers.transactions');
+    Route::post('/drivers/booking/{bookingId}/passenger/{passengerId}/cancel', [DriverController::class, 'cancelPassenger'])
+        ->name('drivers.passenger.cancel');
 
         Route::delete('drivers/{driver}/delete-driver', [DriverController::class, 'deleteDriver'])
         ->name('drivers.delete');
@@ -114,14 +122,9 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
     Route::put('admins/{admin}', [AdminController::class, 'update'])->name('admins.update');
     Route::delete('admins/{admin}', [AdminController::class, 'destroy'])->name('admins.destroy');
 
-    // ORDERS
+    // ORDERS (read-only)
     Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
-    Route::get('orders/create', [OrderController::class, 'create'])->name('orders.create');
-    Route::post('orders', [OrderController::class, 'store'])->name('orders.store');
     Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
-    Route::get('orders/{order}/edit', [OrderController::class, 'edit'])->name('orders.edit');
-    Route::put('orders/{order}', [OrderController::class, 'update'])->name('orders.update');
-    Route::delete('orders/{order}', [OrderController::class, 'destroy'])->name('orders.destroy');
 
 
     Route::get('/company/dashboard', [WelcomeController::class, 'companyDashboard'])->name('company.dashboard');

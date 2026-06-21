@@ -13,11 +13,15 @@ use App\Models\V1\Card;
 use App\Models\V1\CompanyBalance;
 use App\Models\V1\CompanyBalanceTransaction;
 use App\Models\V1\VehicleImages;
+use App\Models\V1\Booking;
+use App\Models\V1\Trip;
+use App\Models\V1\BookingPassengers;
 use App\Services\V1\HamkorbankService;
 use App\Services\V1\SmsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class DriverController extends Controller
 {
@@ -599,10 +603,178 @@ class DriverController extends Controller
         $driver = User::with([
             'driverTrips.startQuarter.district',
             'driverTrips.endQuarter.district',
-            'driverTrips.bookings.user'
+            'driverTrips.bookings.user',
+            'driverTrips.bookings.passengers',
         ])->findOrFail($driverId);
 
-        return view('driver.trips', compact('driver'));
+        return view('admin-views.drivers.trips', compact('driver'));
+    }
+
+    public function documents($driverId)
+    {
+        $driver = User::with('images')->findOrFail($driverId);
+        $driverImages = $driver->images;
+
+        return view('admin-views.drivers.documents', compact('driver', 'driverImages'));
+    }
+
+    public function vehiclesPage($driverId)
+    {
+        $driver = User::findOrFail($driverId);
+
+        $vehicles = $driver->vehicles()->with('color')->orderBy('id', 'desc')->paginate(6);
+        $vehicleImages = VehicleImages::whereIn('vehicle_id', $vehicles->pluck('id'))->get();
+
+        return view('admin-views.drivers.vehicles', compact('driver', 'vehicles', 'vehicleImages'));
+    }
+
+    public function transactions($driverId)
+    {
+        $driver = User::findOrFail($driverId);
+
+        $balanceTransactions = $driver->balanceTransactions()
+            ->with([
+                'trip.startQuarter', 'trip.endQuarter',
+                'trip.startDistrict', 'trip.endDistrict',
+                'trip.startRegion', 'trip.endRegion',
+                'trip.startPoint', 'trip.endPoint',
+            ])
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return view('admin-views.drivers.transactions', compact('driver', 'balanceTransactions'));
+    }
+
+    /**
+     * Admin tomonidan bitta yo'lovchini (passenger) bekor qilish.
+     * Pul clientga qaytariladi (xizmat haqqi ushlab qolinadi),
+     * haydovchidan yechib olinadi, hammasi balance_transactions ga yoziladi.
+     * Reason har bir foydalanuvchining tilida yoziladi.
+     */
+    public function cancelPassenger($bookingId, $passengerId)
+    {
+        try {
+            DB::beginTransaction();
+
+            $booking = Booking::where('id', $bookingId)->lockForUpdate()->first();
+            if (!$booking) {
+                DB::rollBack();
+                return back()->with('error', 'Buyurtma topilmadi');
+            }
+
+            $trip = Trip::where('id', $booking->trip_id)->lockForUpdate()->first();
+            if (!$trip) {
+                DB::rollBack();
+                return back()->with('error', 'Trip topilmadi');
+            }
+
+            $passenger = BookingPassengers::where('id', $passengerId)
+                ->where('booking_id', $booking->id)
+                ->lockForUpdate()
+                ->first();
+            if (!$passenger) {
+                DB::rollBack();
+                return back()->with('error', 'Yo‘lovchi topilmadi');
+            }
+            if ($passenger->status === 'cancelled') {
+                DB::rollBack();
+                return back()->with('error', 'Bu yo‘lovchi allaqachon bekor qilingan');
+            }
+
+            $price = $trip->price_per_seat;
+
+            // Yo'lovchini bekor qilish va o'rinlarni qaytarish
+            $passenger->update(['status' => 'cancelled']);
+
+            $trip->increment('available_seats');
+            if ($trip->available_seats > 0) {
+                $trip->update(['status' => 'active']);
+            }
+
+            $booking->decrement('seats_booked');
+            $booking->decrement('total_price', $price);
+            if ($booking->seats_booked <= 0) {
+                $booking->update(['status' => 'cancelled']);
+            }
+
+            $startQuarterName = $trip->startQuarter?->name ?? '';
+            $endQuarterName   = $trip->endQuarter?->name ?? '';
+
+            $serviceFeePercent = config('services.fees.service_fee_for_compliting_order');
+            if (!$serviceFeePercent) {
+                $serviceFeePercent = 5;
+            }
+            $serviceFee = ($price * ($serviceFeePercent / 100));
+            $return     = ($price - $serviceFee);
+
+            // 💰 CLIENT refund (xizmat haqqi ushlab qolinadi)
+            $client     = $booking->user;
+            $clientLang = $client?->authLanguage?->language ?? 'uz';
+
+            $clientBalance = UserBalance::where('user_id', $booking->user_id)
+                ->lockForUpdate()
+                ->firstOrCreate(['user_id' => $booking->user_id], ['balance' => 0]);
+
+            $reasonForClient = [
+                'uz' => "Admin tomonidan buyurtmangizdan bir yo‘lovchi bekor qilindi. Yo‘nalish: {$startQuarterName} dan {$endQuarterName} ga. Balansingizga {$return} so‘m qaytarildi. Xizmat haqqi: {$serviceFee} so‘m ushlab qolindi.",
+                'en' => "An administrator cancelled one passenger from your booking. Route: from {$startQuarterName} to {$endQuarterName}. {$return} UZS was refunded to your balance. Service fee withheld: {$serviceFee} UZS.",
+                'ru' => "Администратор отменил одного пассажира из вашего бронирования. Маршрут: от {$startQuarterName} до {$endQuarterName}. На ваш баланс возвращено {$return} сум. Удержан сервисный сбор: {$serviceFee} сум.",
+            ];
+
+            $clientBefore = $clientBalance->balance;
+            $clientBalance->balance = $clientBefore + $return;
+            $clientBalance->save();
+
+            BalanceTransaction::create([
+                'user_id'        => $booking->user_id,
+                'type'           => 'credit',
+                'amount'         => $return,
+                'balance_before' => $clientBefore,
+                'balance_after'  => $clientBalance->balance,
+                'trip_id'        => $trip->id,
+                'reference_id'   => $booking->id,
+                'status'         => 'success',
+                'reason'         => $reasonForClient[$clientLang] ?? $reasonForClient['uz'],
+            ]);
+
+            // 💰 DRIVER (yechib olinadi)
+            $driverLoss = $price - $serviceFee;
+            $driverLang = $trip->driver?->authLanguage?->language ?? 'uz';
+
+            $driverBalance = UserBalance::where('user_id', $trip->driver_id)
+                ->lockForUpdate()
+                ->firstOrCreate(['user_id' => $trip->driver_id], ['balance' => 0]);
+
+            $reasonForDriver = [
+                'uz' => "Admin tomonidan buyurtmadan bir yo‘lovchi bekor qilindi. Yo‘nalish: {$startQuarterName} dan {$endQuarterName} ga. Balansingizdan {$driverLoss} so‘m yechib olindi.",
+                'en' => "An administrator cancelled one passenger from the booking. Route: from {$startQuarterName} to {$endQuarterName}. {$driverLoss} UZS was deducted from your balance.",
+                'ru' => "Администратор отменил одного пассажира из бронирования. Маршрут: от {$startQuarterName} до {$endQuarterName}. С вашего баланса списано {$driverLoss} сум.",
+            ];
+
+            $driverBefore = $driverBalance->balance;
+            $driverBalance->balance = $driverBefore - $driverLoss;
+            $driverBalance->save();
+
+            BalanceTransaction::create([
+                'user_id'        => $trip->driver_id,
+                'type'           => 'debit',
+                'amount'         => $driverLoss,
+                'balance_before' => $driverBefore,
+                'balance_after'  => $driverBalance->balance,
+                'trip_id'        => $trip->id,
+                'reference_id'   => $booking->id,
+                'status'         => 'success',
+                'reason'         => $reasonForDriver[$driverLang] ?? $reasonForDriver['uz'],
+                'created_at'     => Carbon::now()->addMinutes(1),
+            ]);
+
+            DB::commit();
+
+            return back()->with('success', "Yo‘lovchi bekor qilindi. Clientga {$return} so‘m qaytarildi, haydovchidan {$driverLoss} so‘m yechib olindi (xizmat haqqi: {$serviceFee} so‘m).");
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->with('error', 'Xatolik: ' . $e->getMessage());
+        }
     }
 
     public function deleteDriver($id)

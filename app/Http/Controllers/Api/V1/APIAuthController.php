@@ -44,7 +44,6 @@ class APIAuthController extends Controller
                 'phone' => 'required|string|unique:users,phone',
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'nullable|string|max:255',
-                'email' => 'required|string|unique:users,email',
                 'password' => 'required|string|min:6|confirmed', // confirmation uchun `password_confirmation` kerak
             ]);
 
@@ -53,7 +52,6 @@ class APIAuthController extends Controller
 
             // Telefon yoki email bo‘yicha user qidiramiz
             $existingUser = User::where('phone', $request->phone)
-                ->orWhere('email', $request->email)
                 ->first();
 
             // Agar verified bo‘lsa qayta registratsiya qilolmaydi
@@ -68,7 +66,7 @@ class APIAuthController extends Controller
                 ];
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Bu foydalanuvchi allaqachon mavjud'
+                    'message' => 'Bu foydalanuvchi allaqachon mavjud !'
                 ], 400);
             }
             // Step 2: Tasdiqlash kodi generatsiya qilish
@@ -556,6 +554,7 @@ class APIAuthController extends Controller
             $user->driving_licence_number = $request->driving_license_number;
             $user->driving_licence_expiry = $request->driving_license_expiration_date;
             $user->birth_date = $request->birthday;
+            $user->role = 'driver';
             $user->save();
 
 
@@ -899,13 +898,6 @@ class APIAuthController extends Controller
     }
 
 
-
-    /**
-     * Foydalanuvchi profil rasmini yuklash / yangilash.
-     *
-     * Eski profil rasmi (user_images.type = 'profile') storage va bazadan
-     * o'chiriladi, yangisi saqlanadi va users.image ustuni ham yangilanadi.
-     */
     public function uploadProfileImage(Request $request)
     {
         $language = auth()->user()->authLanguage->language ?? 'uz';
@@ -1129,16 +1121,6 @@ class APIAuthController extends Controller
         // return $response()->json();
     }
 
-    /**
-     * Foydalanuvchi o'z hisobini o'chiradi (App Store talabi: "Delete Account").
-     *
-     * Filterlar:
-     *  1. Balansda qarzdorlik bo'lmasligi kerak (balance < 0 bo'lsa o'chirib bo'lmaydi).
-     *  2. Faol (pending / confirmed / accepted) buyurtmalar bo'lmasligi kerak.
-     *
-     * Tekshiruvlardan o'tsa: rasm fayllari o'chiriladi, ma'lumotlar
-     * anonimlashtiriladi, JWT token bekor qilinadi va user o'chiriladi.
-     */
     public function deleteAccount()
     {
         $language = auth()->user()->authLanguage->language ?? 'uz';
@@ -1177,7 +1159,7 @@ class APIAuthController extends Controller
 
             $bookings = Booking::where('user_id', $user->id)->whereIn('status', ['pending', 'confirmed'])->get();
 
-            if(count($bookings) > 0){
+            if (count($bookings) > 0) {
                 $messages = [
                     'uz' => 'Sizda faol buyurtmalar mavjud. Avval ularni yakunlang.',
                     'ru' => 'У вас есть активные заказы. Сначала завершите их.',
@@ -1190,7 +1172,7 @@ class APIAuthController extends Controller
                 ], 422);
             }
 
-            
+
 
             DB::beginTransaction();
 

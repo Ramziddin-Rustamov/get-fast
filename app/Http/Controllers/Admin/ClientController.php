@@ -39,7 +39,7 @@ class ClientController extends Controller
         $status = $request->status;
 
         $clients = Client::where('role', 'client')
-            ->with(['balance', 'bookings'])
+            ->with(['balance', 'bookings', 'region', 'district', 'quarter'])
             ->when($search, function ($q) use ($search) {
                 $q->where('first_name', 'like', "%$search%")
                     ->orWhere('last_name', 'like', "%$search%")
@@ -82,7 +82,6 @@ class ClientController extends Controller
             'password'   => Hash::make($request->password),
             'role'       => 'client',
             'is_verified' => true,
-            'verification_status' => 'approved',
         ]);
 
         return redirect()->route('clients.index')->with('success', 'Client muvaffaqiyatli qo‘shildi!');
@@ -130,7 +129,9 @@ class ClientController extends Controller
             return redirect()->route('clients.index')->with('error', 'Client topilmadi!');
         }
 
-        return view('admin-views.clients.edit', compact('client'));
+        $regions = \App\Models\V1\Region::orderBy('name_uz')->get();
+
+        return view('admin-views.clients.edit', compact('client', 'regions'));
     }
 
     /**
@@ -144,15 +145,29 @@ class ClientController extends Controller
         }
 
         $request->validate([
-            'first_name' => 'required|string',
-            'last_name'  => 'nullable|string',
-            'phone'      => 'required|unique:users,phone,' . $client->id,
+            'first_name'  => 'required|string',
+            'last_name'   => 'nullable|string',
+            'father_name' => 'nullable|string',
+            'email'       => 'nullable|email|unique:users,email,' . $client->id,
+            'phone'       => 'required|unique:users,phone,' . $client->id,
+            'home'        => 'nullable|string',
+            'region_id'   => 'nullable',
+            'district_id' => 'nullable',
+            'quarter_id'  => 'nullable',
+            'is_verified' => 'nullable|boolean',
         ]);
 
         $client->update([
-            'first_name' => $request->first_name,
-            'last_name'  => $request->last_name,
-            'phone'      => $request->phone,
+            'first_name'  => $request->first_name,
+            'last_name'   => $request->last_name,
+            'father_name' => $request->father_name,
+            'email'       => $request->email,
+            'phone'       => $request->phone,
+            'home'        => $request->home,
+            'region_id'   => $request->region_id,
+            'district_id' => $request->district_id,
+            'quarter_id'  => $request->quarter_id,
+            'is_verified' => $request->boolean('is_verified'),
         ]);
 
         return redirect()->route('clients.show', $client->id)->with('success', 'Client yangilandi!');
@@ -191,7 +206,15 @@ class ClientController extends Controller
     public function balance($client)
     {
         $client = Client::where('role', 'client')->with('balance')->findOrFail($client);
-        $balanceTransactions = $client->balanceTransactions()->orderBy('created_at', 'desc')->paginate(10);
+        $balanceTransactions = $client->balanceTransactions()
+            ->with([
+                'trip.startQuarter', 'trip.endQuarter',
+                'trip.startDistrict', 'trip.endDistrict',
+                'trip.startRegion', 'trip.endRegion',
+                'trip.startPoint', 'trip.endPoint',
+            ])
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
         return view('admin-views.clients.balance', compact('client', 'balanceTransactions'));
     }
