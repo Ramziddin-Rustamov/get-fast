@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/*
+  Qadam admin — design tokens (modern refresh of the ketamiz teal -> sky brand).
+  Tailwind v4 reads these @theme variables and generates utilities
+  (e.g. bg-brand-500, text-ink, rounded-card, shadow-card).
+*/
+@theme {
+  /* Brand teal/green (primary) */
+  --color-brand-50: #ecfdf6;
+  --color-brand-100: #d1faea;
+  --color-brand-200: #a7f3d6;
+  --color-brand-300: #6ee7bd;
+  --color-brand-400: #34d39e;
+  --color-brand-500: #16d39a;
+  --color-brand-600: #0fae80;
+  --color-brand-700: #0c8a67;
+  --color-brand-800: #0e6d53;
+  --color-brand-900: #0d5946;
+
+  /* Secondary sky/blue */
+  --color-sky-accent: #0ea5e9;
+
+  /* Ink / surfaces */
+  --color-ink: #0b1324;
+  --color-ink-soft: #334155;
+  --color-muted: #64748b;
+  --color-line: #e6ebf2;
+  --color-canvas: #f4f7fb;
+  --color-surface: #ffffff;
+
+  /* Status accents */
+  --color-success: #16a34a;
+  --color-info: #2563eb;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+  --color-cyan-accent: #0891b2;
+
+  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-sora), var(--font-nunito), ui-sans-serif, sans-serif;
+
+  --radius-card: 1rem;
+  --shadow-card: 0 18px 40px -28px rgba(11, 19, 36, 0.45);
+  --shadow-pop: 0 24px 60px -24px rgba(11, 19, 36, 0.45);
+}
+
+:root {
+  --gradient-brand: linear-gradient(135deg, #16d39a 0%, #0ea5e9 100%);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Display headings use the Sora face */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.brand-gradient {
+  background: var(--gradient-brand);
+}
+.brand-text-gradient {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Thin, modern scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+@keyframes qadam-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: qadam-fade-in 0.18s ease-out;
+}
+
+@keyframes qadam-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: qadam-spin 0.7s linear infinite;
+}
