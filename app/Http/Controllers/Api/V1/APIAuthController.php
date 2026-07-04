@@ -995,7 +995,7 @@ class APIAuthController extends Controller
                     'created_at' => $user->created_at,
                     'image' => $image
                         ? asset(Storage::url($image->image_path))
-                        : null,
+                        : asset('image/default.jpg'),
                     'balance' => $user->myBalance ? [
                         'balance' => $user->myBalance->balance,
                         'after_tax' => $user->myBalance->after_tax,

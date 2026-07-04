@@ -204,6 +204,20 @@ class BookingController extends Controller
                 ], 422);
             }
 
+            // Safar boshlangan bo'lsa, yangi yo'lovchi qo'shib bo'lmaydi
+            if (Carbon::now()->greaterThanOrEqualTo(Carbon::parse($trip->start_time))) {
+                DB::rollBack();
+                $messages = [
+                    'uz' => 'Safar boshlangani uchun yangi yo‘lovchi qo‘shib bo‘lmaydi.',
+                    'ru' => 'Поездка уже началась, добавить нового пассажира нельзя.',
+                    'en' => 'The trip has already started, you cannot add a new passenger.',
+                ];
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$lang] ?? $messages['uz']
+                ], 422);
+            }
+
             if ($trip->available_seats < 1) {
                 $messages = [
                     'uz' => 'Bo‘sh joy yo‘q',
@@ -435,9 +449,9 @@ class BookingController extends Controller
             // 2 soatdan kam qolgan bo'lsa bekor qilish mumkin emas
             if ($hoursDiff < 2) {
                 $cancelTooLate = [
-                    'uz' => 'Safar boshlanishiga 2 soatdan kam vaqt qolgani uchun bekor qilish mumkin emas.',
-                    'en' => 'Cancellation is not allowed because less than 2 hours remain before the trip starts.',
-                    'ru' => 'Отмена невозможна, так как до начала поездки осталось менее 2 часов.',
+                    'uz' => 'Safar boshlanishiga 2 soatdan kam vaqt qolgani uchun bekor qilish mumkin emas, agar bekor qilmoqchi bo`lsangiz admin bilan bog`laning ',
+                    'en' => 'Cancellation is not allowed because less than 2 hours remain before the trip starts, if you want to cancel it please contact with support ',
+                    'ru' => 'Отмена невозможна, так как до начала поездки осталось менее 2 часов, если вы хотите отменить, пожалуйста, свяжитесь с поддержкой',
                 ];
 
                 return response()->json([

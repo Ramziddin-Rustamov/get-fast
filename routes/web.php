@@ -23,6 +23,11 @@ Route::get('lang/{locale}', function (string $locale) {
     return redirect()->back();
 })->name('lang.switch');
 
+// Huquqiy hujjatlar (ochiq) — Terms & Conditions va Privacy Policy (uz/ru/en)
+Route::get('terms', [App\Http\Controllers\LegalController::class, 'terms'])->name('legal.terms');
+Route::get('privacy', [App\Http\Controllers\LegalController::class, 'privacy'])->name('legal.privacy');
+Route::get('qoidalar', [App\Http\Controllers\LegalController::class, 'rules'])->name('legal.rules');
+
 
 Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('login', [AuthController::class, 'login'])->name('auth.login');
@@ -77,12 +82,18 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
         ->name('drivers.trips');
     Route::get('/drivers/{id}/documents', [DriverController::class, 'documents'])
         ->name('drivers.documents');
+    Route::get('/drivers/{id}/documents/download', [DriverController::class, 'downloadDocuments'])
+        ->name('drivers.documents.download');
     Route::get('/drivers/{id}/vehicles', [DriverController::class, 'vehiclesPage'])
         ->name('drivers.vehicles');
+    Route::get('/vehicle/{vehicleId}/images/download', [DriverController::class, 'downloadVehicleImages'])
+        ->name('vehicle.images.download');
     Route::get('/drivers/{id}/transactions', [DriverController::class, 'transactions'])
         ->name('drivers.transactions');
     Route::post('/drivers/booking/{bookingId}/passenger/{passengerId}/cancel', [DriverController::class, 'cancelPassenger'])
         ->name('drivers.passenger.cancel');
+    Route::post('/drivers/trip/{tripId}/cancel', [DriverController::class, 'cancelTrip'])
+        ->name('drivers.trip.cancel');
 
         Route::delete('drivers/{driver}/delete-driver', [DriverController::class, 'deleteDriver'])
         ->name('drivers.delete');

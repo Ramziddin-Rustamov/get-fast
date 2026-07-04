@@ -20,6 +20,7 @@ use App\Services\V1\HamkorbankService;
 use App\Services\V1\SmsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -618,6 +619,107 @@ class DriverController extends Controller
         return view('admin-views.drivers.documents', compact('driver', 'driverImages'));
     }
 
+    /**
+     * Haydovchi hujjatlarini ZIP qilib yuklab olish.
+     * ZIP ichida "Ism Familiya Telefon" nomli papka, unda tegishli rasmlar.
+     */
+    public function downloadDocuments($driverId)
+    {
+        $driver = User::with('images')->findOrFail($driverId);
+        $images = $driver->images;
+
+        if ($images->isEmpty()) {
+            return back()->with('error', 'Yuklab olish uchun hujjatlar mavjud emas.');
+        }
+
+        // Papka nomi: Ism Familiya Telefon (xavfsiz belgilar)
+        $folderName = trim("{$driver->first_name} {$driver->last_name} {$driver->phone}");
+        $folderName = preg_replace('/[^\p{L}\p{N}_\-\+ ]/u', '', $folderName);
+        $folderName = trim($folderName) ?: ('driver_' . $driver->id);
+
+        $tmpPath = storage_path('app/' . $folderName . '_' . time() . '.zip');
+
+        $zip = new \ZipArchive();
+        if ($zip->open($tmpPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            return back()->with('error', 'ZIP fayl yaratib bo‘lmadi.');
+        }
+
+        $counts = [];
+        foreach ($images as $img) {
+            $absolute = Storage::disk('public')->path($img->image_path);
+            if (!is_file($absolute)) {
+                continue;
+            }
+
+            $ext = pathinfo($absolute, PATHINFO_EXTENSION) ?: 'jpg';
+            $label = str_replace('_', '-', $img->type) . ($img->side ? '_' . $img->side : '');
+
+            // Bir xil nomdagi fayllar uchun raqam qo'shish
+            $counts[$label] = ($counts[$label] ?? 0) + 1;
+            $suffix = $counts[$label] > 1 ? '_' . $counts[$label] : '';
+
+            $zip->addFile($absolute, $folderName . '/' . $label . $suffix . '.' . $ext);
+        }
+        $zip->close();
+
+        if (!is_file($tmpPath) || filesize($tmpPath) === 0) {
+            @unlink($tmpPath);
+            return back()->with('error', 'Hujjat fayllari topilmadi.');
+        }
+
+        return response()->download($tmpPath, $folderName . '.zip')->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Moshina rasmlarini ZIP qilib yuklab olish.
+     * ZIP ichida "Ism Familiya Telefon - Model Raqami" nomli papka, unda rasmlar.
+     */
+    public function downloadVehicleImages($vehicleId)
+    {
+        $vehicle = Vehicle::with(['images', 'user'])->findOrFail($vehicleId);
+        $images = $vehicle->images;
+
+        if ($images->isEmpty()) {
+            return back()->with('error', 'Yuklab olish uchun moshina rasmlari mavjud emas.');
+        }
+
+        $driver = $vehicle->user;
+        $folderName = trim("{$driver?->first_name} {$driver?->last_name} {$driver?->phone} - {$vehicle->model} {$vehicle->car_number}");
+        $folderName = preg_replace('/[^\p{L}\p{N}_\-\+ ]/u', '', $folderName);
+        $folderName = trim($folderName) ?: ('vehicle_' . $vehicle->id);
+
+        $tmpPath = storage_path('app/' . $folderName . '_' . time() . '.zip');
+
+        $zip = new \ZipArchive();
+        if ($zip->open($tmpPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            return back()->with('error', 'ZIP fayl yaratib bo‘lmadi.');
+        }
+
+        $counts = [];
+        foreach ($images as $img) {
+            $absolute = Storage::disk('public')->path($img->image_path);
+            if (!is_file($absolute)) {
+                continue;
+            }
+
+            $ext = pathinfo($absolute, PATHINFO_EXTENSION) ?: 'jpg';
+            $label = str_replace('_', '-', $img->type) . ($img->side ? '_' . $img->side : '');
+
+            $counts[$label] = ($counts[$label] ?? 0) + 1;
+            $suffix = $counts[$label] > 1 ? '_' . $counts[$label] : '';
+
+            $zip->addFile($absolute, $folderName . '/' . $label . $suffix . '.' . $ext);
+        }
+        $zip->close();
+
+        if (!is_file($tmpPath) || filesize($tmpPath) === 0) {
+            @unlink($tmpPath);
+            return back()->with('error', 'Moshina rasm fayllari topilmadi.');
+        }
+
+        return response()->download($tmpPath, $folderName . '.zip')->deleteFileAfterSend(true);
+    }
+
     public function vehiclesPage($driverId)
     {
         $driver = User::findOrFail($driverId);
@@ -771,6 +873,226 @@ class DriverController extends Controller
             DB::commit();
 
             return back()->with('success', "Yo‘lovchi bekor qilindi. Clientga {$return} so‘m qaytarildi, haydovchidan {$driverLoss} so‘m yechib olindi (xizmat haqqi: {$serviceFee} so‘m).");
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->with('error', 'Xatolik: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Admin tomonidan haydovchi safarini bekor qilish.
+     * Mantiq DriverTripRepository::cancel bilan bir xil — haydovchidan xizmat haqqi (soliq) ushlab qolinadi,
+     * mijozlarga to'liq summa + kompensatsiya qaytariladi, hammasi balance_transactions ga yoziladi.
+     * Faqat yondashuv: "Admin tomonidan bekor qilindi".
+     */
+    public function cancelTrip($tripId)
+    {
+        try {
+            DB::beginTransaction();
+
+            $trip = Trip::where('id', $tripId)->lockForUpdate()->first();
+            if (!$trip) {
+                DB::rollBack();
+                return back()->with('error', 'Safar topilmadi');
+            }
+            if ($trip->status === 'cancelled') {
+                DB::rollBack();
+                return back()->with('error', 'Safar allaqachon bekor qilingan');
+            }
+
+            // Vaqt tekshiruvi: hozirgi vaqt safar boshlanish va tugash vaqti oralig'ida bo'lishi kerak
+            $now   = Carbon::now();
+            $start = Carbon::parse($trip->start_time);
+            $end   = Carbon::parse($trip->end_time);
+            if ($now->lt($start) || $now->gt($end)) {
+                DB::rollBack();
+                return back()->with('error', "Safarni faqat boshlanish va tugash vaqti oralig‘ida bekor qilish mumkin. Safar vaqti: {$start->format('d.m.Y H:i')} — {$end->format('d.m.Y H:i')}.");
+            }
+
+            // Safarni bekor qilish va arxivga yozish
+            $trip->update(['status' => 'cancelled', 'expired_at' => now()]);
+
+            DB::table('expired_trips')->insert([
+                'driver_id'        => $trip->driver_id,
+                'vehicle_id'       => $trip->vehicle_id,
+                'start_point_id'   => $trip->start_point_id,
+                'end_point_id'     => $trip->end_point_id,
+                'start_quarter_id' => $trip->start_quarter_id,
+                'end_quarter_id'   => $trip->end_quarter_id,
+                'start_time'       => $trip->start_time,
+                'end_time'         => $trip->end_time,
+                'price_per_seat'   => $trip->price_per_seat,
+                'total_seats'      => $trip->total_seats,
+                'available_seats'  => $trip->available_seats,
+                'status'           => 'cancelled',
+                'expired_at'       => now(),
+                'created_at'       => now(),
+                'updated_at'       => now(),
+            ]);
+
+            // Foizlar
+            $companyPercent            = (float) env('SERVICE_FEE_FOR_DRIVERS_TO_CANCEL_TRIP', 4); // 4%
+            $clientCompensationPercent = (float) env('REFOUND_COMPENSATION_FOR_CLIENTS', 1);       // 1%
+
+            $driver = $trip->driver;
+            $driverLang = $driver?->authLanguage?->language ?? 'uz';
+
+            $companyBalance = CompanyBalance::lockForUpdate()->first();
+            if (!$companyBalance) {
+                $companyBalance = CompanyBalance::create(['balance' => 0]);
+            }
+
+            $driverBalance = UserBalance::where('user_id', $driver->id)
+                ->lockForUpdate()
+                ->firstOrCreate(['user_id' => $driver->id], ['balance' => 0]);
+
+            $startName = $trip->startQuarter->name ?? '';
+            $endName   = $trip->endQuarter->name ?? '';
+
+            foreach ($trip->bookings as $booking) {
+                if ($booking->status === 'cancelled') {
+                    continue;
+                }
+
+                $client = $booking->user;
+                if (!$client) {
+                    continue;
+                }
+                $clientLang = $client->authLanguage?->language ?? 'uz';
+                $clientBalance = UserBalance::where('user_id', $client->id)
+                    ->lockForUpdate()
+                    ->firstOrCreate(['user_id' => $client->id], ['balance' => 0]);
+
+                $totalPrice          = $booking->total_price;
+                $clientCompensation  = $totalPrice * ($clientCompensationPercent / 100);
+                $companyFee          = $totalPrice * ($companyPercent / 100);
+                $overallCompensation = $clientCompensation + $companyFee;
+                $driverDeductionOnDocs = $totalPrice + $clientCompensation + $companyFee;
+                $driverGotBeforeCancel = $totalPrice - ($companyFee + $clientCompensation);
+
+                // --- HAYDOVCHI: 1-debit (asosiy daromad teskari) ---
+                $driverBefore = $driverBalance->balance;
+                $driverAfter  = ($driverBefore + $companyFee + $clientCompensation) - $totalPrice;
+                $amount       = $totalPrice - ($companyFee + $clientCompensation);
+
+                $reasonDriver = [
+                    'uz' => "Sizning safaringiz administrator tomonidan bekor qilindi. Bekor qilinishidan oldin olishingiz kerak bo‘lgan summa: {$driverGotBeforeCancel} so‘m. Umumiy tushum: {$totalPrice} so‘m edi. Mijozga sizning hisobingizdan {$clientCompensation} so‘m kompensatsiya berildi. Bekor qilingani uchun kompaniya {$companyFee} so‘m ushlab qoldi. Yakunda sizdan ushlab qolinadigan umumiy summa: {$driverDeductionOnDocs} so‘m.",
+                    'ru' => "Ваша поездка была отменена администратором. Сумма до отмены: {$driverGotBeforeCancel} сум. Общий доход: {$totalPrice} сум. Клиенту с вашего счёта выплачена компенсация {$clientCompensation} сум. За отмену удержана комиссия компании: {$companyFee} сум. Итоговая сумма удержания: {$driverDeductionOnDocs} сум.",
+                    'en' => "Your trip was cancelled by an administrator. Amount before cancellation: {$driverGotBeforeCancel} UZS. Total revenue: {$totalPrice} UZS. A compensation of {$clientCompensation} UZS was paid to the client from your balance. A company fee of {$companyFee} UZS was withheld. Total deducted: {$driverDeductionOnDocs} UZS.",
+                ];
+
+                BalanceTransaction::create([
+                    'user_id'        => $driver->id,
+                    'type'           => 'debit',
+                    'amount'         => $amount,
+                    'balance_before' => $driverBefore,
+                    'balance_after'  => $driverAfter,
+                    'trip_id'        => $trip->id,
+                    'reference_id'   => $booking->id,
+                    'status'         => 'success',
+                    'reason'         => $reasonDriver[$driverLang] ?? $reasonDriver['uz'],
+                    'created_at'     => now(),
+                    'updated_at'     => now(),
+                ]);
+                $driverBalance->update(['balance' => $driverAfter]);
+
+                // --- HAYDOVCHI: 2-debit (kompaniya haqqi + kompensatsiya) ---
+                $driverBefore = $driverBalance->balance;
+                $driverAfter  = $driverBefore - $overallCompensation;
+
+                $reasonCompensation = [
+                    'uz' => "Safar admin tomonidan bekor qilingani uchun {$companyFee} so‘m kompaniya to‘lovi va {$clientCompensation} so‘m mijoz kompensatsiyasi hisobingizdan ushlab qolindi.",
+                    'ru' => "За отмену поездки администратором с вашего счёта удержаны {$companyFee} сум комиссии компании и {$clientCompensation} сум компенсации клиенту.",
+                    'en' => "Due to the admin cancellation, {$companyFee} UZS company fee and {$clientCompensation} UZS client compensation were deducted from your account.",
+                ];
+
+                BalanceTransaction::create([
+                    'user_id'        => $driver->id,
+                    'type'           => 'debit',
+                    'amount'         => $overallCompensation,
+                    'balance_before' => $driverBefore,
+                    'balance_after'  => $driverAfter,
+                    'trip_id'        => $trip->id,
+                    'reference_id'   => $booking->id,
+                    'status'         => 'success',
+                    'reason'         => $reasonCompensation[$driverLang] ?? $reasonCompensation['uz'],
+                    'created_at'     => now()->addMinutes(1),
+                    'updated_at'     => now()->addMinutes(1),
+                ]);
+                $driverBalance->update(['balance' => $driverAfter]);
+
+                // --- KOMPANIYA: chiqim (haydovchidan olingan foizlarni qaytarish bosqichi) ---
+                $companyBefore = $companyBalance->balance;
+                $companyAfter  = $companyBefore - ($companyFee + $clientCompensation);
+
+                CompanyBalanceTransaction::create([
+                    'company_balance_id' => $companyBalance->id,
+                    'amount'             => ($companyFee + $clientCompensation),
+                    'balance_before'     => $companyBefore,
+                    'balance_after'      => $companyAfter,
+                    'trip_id'            => $trip->id,
+                    'booking_id'         => $booking->id,
+                    'type'               => 'outgoing',
+                    'status'             => 'success',
+                    'reason'             => "Admin {$driver->first_name} ({$driver->phone}) safarini ({$startName} → {$endName}) bekor qildi. Kompaniya oldin olgan {$overallCompensation} so‘m qaytarildi.",
+                    'currency'           => 'UZS',
+                    'created_at'         => now(),
+                    'updated_at'         => now(),
+                ]);
+                $companyBalance->update(['balance' => $companyAfter]);
+
+                // --- MIJOZ: to'liq summa + kompensatsiya qaytariladi ---
+                $refundToClient = $totalPrice + $clientCompensation;
+                $clientBefore   = $clientBalance->balance;
+                $clientAfter    = $clientBefore + $refundToClient;
+
+                $reasonClient = [
+                    'uz' => "Safaringiz administrator tomonidan bekor qilindi. Sizga to‘liq summa ({$totalPrice} so‘m) va kompensatsiya ({$clientCompensation} so‘m) qaytarildi.",
+                    'ru' => "Ваша поездка была отменена администратором. Вам возвращена полная сумма ({$totalPrice} сум) и компенсация ({$clientCompensation} сум).",
+                    'en' => "Your trip was cancelled by an administrator. The full amount ({$totalPrice} UZS) and compensation ({$clientCompensation} UZS) have been refunded.",
+                ];
+
+                BalanceTransaction::create([
+                    'user_id'        => $client->id,
+                    'type'           => 'credit',
+                    'amount'         => $refundToClient,
+                    'balance_before' => $clientBefore,
+                    'balance_after'  => $clientAfter,
+                    'trip_id'        => $trip->id,
+                    'reference_id'   => $booking->id,
+                    'status'         => 'success',
+                    'reason'         => $reasonClient[$clientLang] ?? $reasonClient['uz'],
+                ]);
+                $clientBalance->update(['balance' => $clientAfter]);
+
+                // --- KOMPANIYA: kirim (ushlab qolingan xizmat haqqi) ---
+                $companyBefore = $companyBalance->balance;
+                $companyAfter  = $companyBefore + $companyFee;
+
+                CompanyBalanceTransaction::create([
+                    'company_balance_id' => $companyBalance->id,
+                    'amount'             => $companyFee,
+                    'balance_before'     => $companyBefore,
+                    'balance_after'      => $companyAfter,
+                    'trip_id'            => $trip->id,
+                    'booking_id'         => $booking->id,
+                    'type'               => 'income',
+                    'status'             => 'success',
+                    'reason'             => "Admin {$driver->first_name} ({$driver->phone}) safarini ({$startName} → {$endName}) bekor qildi. Kompaniyaga {$companyFee} so‘m xizmat haqqi qaytdi.",
+                    'currency'           => 'UZS',
+                    'created_at'         => now()->addMinutes(1),
+                    'updated_at'         => now()->addMinutes(1),
+                ]);
+                $companyBalance->update(['balance' => $companyAfter]);
+
+                // Booking va yo'lovchilarni bekor qilish
+                BookingPassengers::where('booking_id', $booking->id)->update(['status' => 'cancelled']);
+                $booking->update(['status' => 'cancelled']);
+            }
+
+            DB::commit();
+
+            return back()->with('success', 'Safar admin tomonidan bekor qilindi. Mijozlarga to‘liq summa va kompensatsiya qaytarildi, haydovchidan xizmat haqqi ushlab qolindi.');
         } catch (\Throwable $e) {
             DB::rollBack();
             return back()->with('error', 'Xatolik: ' . $e->getMessage());

@@ -101,9 +101,21 @@
                     </div>
                 </div>
 
-                <span class="badge {{ $trip->status === 'cancelled' ? 'bg-danger' : 'bg-success' }} px-3 py-2 rounded-pill">
-                    {{ ucfirst($trip->status) }}
-                </span>
+                <div class="text-end">
+                    <span class="badge {{ $trip->status === 'cancelled' ? 'bg-danger' : 'bg-success' }} px-3 py-2 rounded-pill">
+                        {{ ucfirst($trip->status) }}
+                    </span>
+
+                    @if($trip->status !== 'cancelled' && $trip->status !== 'completed')
+                        <form action="{{ route('drivers.trip.cancel', $trip->id) }}" method="POST" class="mt-2"
+                              onsubmit="return confirm('Safarni admin tomonidan bekor qilasizmi? Mijozlarga to‘liq summa + kompensatsiya qaytariladi, haydovchidan xizmat haqqi ushlanadi.')">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-danger rounded-3">
+                                <i class="fas fa-ban me-1"></i> Safarni bekor qilish
+                            </button>
+                        </form>
+                    @endif
+                </div>
             </div>
 
             {{-- Body: bookings --}}

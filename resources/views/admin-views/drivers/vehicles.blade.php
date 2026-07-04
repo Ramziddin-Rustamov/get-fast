@@ -89,14 +89,19 @@
                     <p class="sec-label"><i class="fas fa-images me-1"></i> Moshina Rasmlari ({{ $images->count() }})</p>
 
                     @if ($images->count())
-                        <form action="{{ route('vehicle.images.deleteAll', $vehicle->id) }}" method="POST">
-                            @csrf
-                            @method('DELETE')
-                            <button class="btn btn-danger btn-sm rounded-3"
-                                    onclick="return confirm('Hamma moshina rasmlari o‘chirilsinmi?')">
-                                O‘chirish
-                            </button>
-                        </form>
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('vehicle.images.download', $vehicle->id) }}" class="btn btn-primary btn-sm rounded-3">
+                                <i class="fas fa-download me-1"></i> Yuklab olish
+                            </a>
+                            <form action="{{ route('vehicle.images.deleteAll', $vehicle->id) }}" method="POST">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-danger btn-sm rounded-3"
+                                        onclick="return confirm('Hamma moshina rasmlari o‘chirilsinmi?')">
+                                    O‘chirish
+                                </button>
+                            </form>
+                        </div>
                     @endif
                 </div>
 

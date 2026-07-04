@@ -32,6 +32,7 @@
         display: grid; place-items: center; font-weight: 700; color: #fff; font-family: 'Sora', sans-serif;
         background: linear-gradient(135deg, var(--k-acc-1), var(--k-acc-2));
     }
+    .k-avatar-img { width: 38px; height: 38px; border-radius: 11px; object-fit: cover; border: 1px solid #eef2f7; }
 
     .filter-btn.active { color: #fff; }
     .search-input { max-width: 320px; }
@@ -93,7 +94,15 @@
                                 <td>{{ $driver->id }}</td>
                                 <td class="text-start">
                                     <div class="d-flex align-items-center gap-2">
-                                        <div class="k-avatar">{{ strtoupper(mb_substr($driver->first_name ?? '?', 0, 1)) }}</div>
+                                        @php
+                                            $img = $driver->image;
+                                            $src = ($img && $img !== 'default.jpg') ? asset('storage/' . $img) : asset('image/default.jpg');
+                                        @endphp
+                                        <img src="{{ $src }}" alt="" class="k-avatar-img avatar-zoom"
+                                             style="cursor: zoom-in;"
+                                             data-bs-toggle="modal" data-bs-target="#avatarModal"
+                                             data-img="{{ $src }}"
+                                             onerror="this.onerror=null;this.src='{{ asset('image/default.jpg') }}'">
                                         <div class="fw-semibold">{{ $driver->first_name }} {{ $driver->last_name }}</div>
                                     </div>
                                 </td>
@@ -144,5 +153,26 @@
         </div>
     @endif
 
+    {{-- Image preview Modal --}}
+    <div class="modal fade" id="avatarModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 bg-transparent shadow-none">
+                <div class="position-relative text-center">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-2"
+                            data-bs-dismiss="modal" style="z-index:2;"></button>
+                    <img id="avatarModalImage" src="" class="img-fluid rounded-4 shadow" alt="">
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+<script>
+    document.addEventListener('click', function (e) {
+        if (e.target.matches('.avatar-zoom')) {
+            document.getElementById('avatarModalImage').src = e.target.dataset.img;
+        }
+    });
+</script>
 @endsection

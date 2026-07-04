@@ -55,6 +55,11 @@
             <h1><i class="fas fa-file-lines me-2"></i> {{ $driver->first_name }} {{ $driver->last_name }} — Hujjatlari</h1>
             <div class="mt-1 opacity-75">Jami: {{ $driverImages->count() }} ta hujjat</div>
         </div>
+        @if($driverImages->count())
+            <a href="{{ route('drivers.documents.download', $driver->id) }}" class="btn btn-light fw-bold rounded-3 px-3">
+                <i class="fas fa-download me-1"></i> Yuklab olish (ZIP)
+            </a>
+        @endif
         <a href="{{ route('drivers.show', $driver->id) }}" class="btn btn-light fw-bold rounded-3 px-3">
             <i class="fas fa-arrow-left me-1"></i> Haydovchiga qaytish
         </a>

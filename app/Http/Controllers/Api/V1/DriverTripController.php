@@ -43,7 +43,7 @@ class DriverTripController extends Controller
         return  $this->driverTripService->cancel($id);
     }
 
-
+ 
     public function getCanceledTrips()
     {
         return $this->driverTripService->getCanceledTrips();
