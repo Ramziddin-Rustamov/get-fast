@@ -50,6 +50,20 @@ return [
         'password' => env('SMS_API_PASSWORD'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Firebase Cloud Messaging (FCM)
+    |--------------------------------------------------------------------------
+    |
+    | Push notification uchun. `credentials` — Firebase service account
+    | JSON faylining to'liq yo'li (masalan storage_path('app/firebase.json')).
+    |
+    */
+    'fcm' => [
+        'project_id'  => env('FCM_PROJECT_ID'),
+        'credentials' => env('FCM_CREDENTIALS_PATH'), // service account JSON fayl yo'li
+    ],
+
     'hamkorbank' => [
         'url' => env('BANK_URL_HAMKORBANK'),
         'key' => env('ACQUIRING_KEY'),

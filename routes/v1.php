@@ -24,7 +24,9 @@ use App\Http\Controllers\Api\V1\WithdrawRequestController;
 Route::middleware('auth:api')->group(function () {
 
 
-
+    // FCM push uchun device token (Flutter app yuboradi)
+    Route::post('/device-token', [\App\Http\Controllers\Api\V1\DeviceTokenController::class, 'store']);
+    Route::delete('/device-token', [\App\Http\Controllers\Api\V1\DeviceTokenController::class, 'destroy']);
 
     Route::post('/withdraw', [WithdrawRequestController::class, 'store']);
     Route::get('/withdraw', [WithdrawRequestController::class, 'index']);

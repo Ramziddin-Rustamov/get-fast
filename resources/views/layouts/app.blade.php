@@ -141,6 +141,9 @@
                                         <a class="dropdown-item {{ request()->routeIs('support.index') ? 'active' : '' }}" href="{{ route('support.index') }}">
                                             <i class="fas fa-headset me-2"></i>{{ __('Support Help') }}
                                         </a>
+                                        <a class="dropdown-item {{ request()->routeIs('broadcasts.*') ? 'active' : '' }}" href="{{ route('broadcasts.index') }}">
+                                            <i class="fas fa-bullhorn me-2"></i>{{ __('E\'lonlar (Push)') }}
+                                        </a>
                                         <div class="dropdown-divider"></div>
                                     @endcan
 

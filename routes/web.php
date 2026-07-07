@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\SupportMessageController;
+use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\Admin\WithdrawRequestController;
 use App\Http\Controllers\WelcomeController;
 
@@ -35,10 +36,6 @@ Route::post('logout', [AuthController::class, 'logout'])->name('auth.logout.post
 
 
 Route::middleware(['can:admin', 'auth'])->group(function () {
-
-
-
-  
     // admin
     Route::get('/get-all/withdraw', [WithdrawRequestController::class, 'indexForAdmin'])->name('admin.withdraw.index');
     Route::post('/withdraw/{id}/approve', [WithdrawRequestController::class, 'approve'])->name('admin.withdraw.approve');
@@ -52,6 +49,15 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
         Route::delete('/{id}', [SupportMessageController::class, 'destroy'])->name('support.destroy');
     });
 
+
+    // BROADCAST (ommaviy e'lonlar / push)
+    Route::prefix('broadcasts')->group(function () {
+        Route::get('/', [BroadcastController::class, 'index'])->name('broadcasts.index');
+        Route::get('/create', [BroadcastController::class, 'create'])->name('broadcasts.create');
+        Route::post('/', [BroadcastController::class, 'store'])->name('broadcasts.store');
+        Route::get('/{id}', [BroadcastController::class, 'show'])->name('broadcasts.show');
+        Route::delete('/{id}', [BroadcastController::class, 'destroy'])->name('broadcasts.destroy');
+    });
 
     // DRIVERS
     Route::get('drivers', [DriverController::class, 'index'])->name('drivers.index');          // List all drivers

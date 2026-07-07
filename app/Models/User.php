@@ -41,7 +41,9 @@ class User  extends Authenticatable implements JWTSubject
         'role',
         'password',
         'is_verified',
-        'verification_code'
+        'verification_code',
+        'device_token',
+        'device_platform',
     ];
 
     protected $hidden = [

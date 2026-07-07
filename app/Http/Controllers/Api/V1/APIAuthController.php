@@ -34,6 +34,7 @@ class APIAuthController extends Controller
 
     public function register(Request $request)
     {
+        
 
         try {
             $language = 'uz';
