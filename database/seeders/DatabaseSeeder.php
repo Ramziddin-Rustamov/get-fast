@@ -11,6 +11,10 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call([
+            ParcelTypeSeeder::class,
+        ]);
+
         User::updateOrCreate(
             ['phone' => '+998993196532'],
             [

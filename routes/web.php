@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\SupportMessageController;
 use App\Http\Controllers\Admin\BroadcastController;
+use App\Http\Controllers\Admin\ParcelTypeController;
 use App\Http\Controllers\Admin\WithdrawRequestController;
 use App\Http\Controllers\WelcomeController;
 
@@ -59,6 +60,16 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
         Route::delete('/{id}', [BroadcastController::class, 'destroy'])->name('broadcasts.destroy');
     });
 
+    // POCHTA TURLARI (parcel types)
+    Route::prefix('parcel-types')->group(function () {
+        Route::get('/', [ParcelTypeController::class, 'index'])->name('parcel-types.index');
+        Route::get('/create', [ParcelTypeController::class, 'create'])->name('parcel-types.create');
+        Route::post('/', [ParcelTypeController::class, 'store'])->name('parcel-types.store');
+        Route::get('/{parcelType}/edit', [ParcelTypeController::class, 'edit'])->name('parcel-types.edit');
+        Route::put('/{parcelType}', [ParcelTypeController::class, 'update'])->name('parcel-types.update');
+        Route::delete('/{parcelType}', [ParcelTypeController::class, 'destroy'])->name('parcel-types.destroy');
+    });
+
     // DRIVERS
     Route::get('drivers', [DriverController::class, 'index'])->name('drivers.index');          // List all drivers
     Route::get('drivers/create', [DriverController::class, 'create'])->name('drivers.create'); // Show form to create a driver
@@ -100,6 +111,10 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
         ->name('drivers.passenger.cancel');
     Route::post('/drivers/trip/{tripId}/cancel', [DriverController::class, 'cancelTrip'])
         ->name('drivers.trip.cancel');
+    Route::delete('/drivers/trip/{tripId}/parcel', [DriverController::class, 'disableParcel'])
+        ->name('drivers.trip.parcel.disable');
+    Route::post('/drivers/trip/{tripId}/parcel/enable', [DriverController::class, 'enableParcel'])
+        ->name('drivers.trip.parcel.enable');
 
         Route::delete('drivers/{driver}/delete-driver', [DriverController::class, 'deleteDriver'])
         ->name('drivers.delete');

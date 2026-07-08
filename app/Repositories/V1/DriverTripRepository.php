@@ -162,6 +162,20 @@ class DriverTripRepository
                 'end_point_id' => $endPoint->id,
             ]);
 
+            // Haydovchi "pochta ham olaman" checkboxini belgilagan bo'lsa —
+            // shu safar uchun parcel yaratamiz va qabul qiladigan turlarni bog'laymiz.
+            if (!empty($data['accepts_parcels'])) {
+                $parcel = $trip->parcels()->create([
+                    'max_weight' => $data['parcel']['max_weight'],
+                    'price_per_kg' => $data['parcel']['price_per_kg'],
+                    'max_length' => $data['parcel']['max_length'] ?? null,
+                    'max_width' => $data['parcel']['max_width'] ?? null,
+                    'max_height' => $data['parcel']['max_height'] ?? null,
+                ]);
+
+                $parcel->types()->sync($data['parcel']['type_ids']);
+            }
+
             DB::commit();
 
             $messages = [

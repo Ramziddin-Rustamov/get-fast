@@ -7,15 +7,31 @@ use App\Models\User;
 
 class ParcelBooking extends Model
 {
+    protected $fillable = [
+        'parcel_id',
+        'trip_id',
+        'parcel_type_id',
+        'user_id',
+        'receiver_phone',
+        'parcel_description',
+        'weight',
+        'length',
+        'width',
+        'height',
+        'total_price',
+        'status',
+        'expired_at',
+    ];
 
-    public $fillable = ['client_id', 'parcel_id', 'trip_id', 'receiver_phone', 
-    'weight', 'total_price', 'receiver_phone', 'parcel_description',
-    'status', 'created_at', 'updated_at'];
+    protected $casts = [
+        'weight' => 'float',
+        'total_price' => 'decimal:2',
+        'expired_at' => 'datetime',
+    ];
 
-
-    public function client()
+    public function user()
     {
-        return $this->belongsTo(User::class)->where('role', 'client');
+        return $this->belongsTo(User::class);
     }
 
     public function parcel()
@@ -26,5 +42,10 @@ class ParcelBooking extends Model
     public function trip()
     {
         return $this->belongsTo(Trip::class);
+    }
+
+    public function type()
+    {
+        return $this->belongsTo(ParcelType::class, 'parcel_type_id');
     }
 }

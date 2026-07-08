@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Carbon\Carbon;
 
+
+
 class PublicTripWithLessInfoResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -45,8 +47,22 @@ class PublicTripWithLessInfoResource extends JsonResource
             'end_lat' => $this->endPoint->lat,
             'end_long' => $this->endPoint->long,
             'status' => $this->status,
+            'accepts_parcels' => (bool) optional($this->parcels->first())->is_active,
+            'parcel' => optional($this->parcels->first())->is_active ? [
+                'id' => $this->parcels->first()->id,
+                'max_weight' => $this->parcels->first()->max_weight,
+                'price_per_kg' => $this->parcels->first()->price_per_kg,
+                'max_length' => $this->parcels->first()->max_length,
+                'max_width' => $this->parcels->first()->max_width,
+                'max_height' => $this->parcels->first()->max_height,
+                'types' => $this->parcels->first()->types->map(fn ($type) => [
+                    'id' => $type->id,
+                    'name' => $type->{'name_' . $lang} ?? $type->name_uz,
+                    'icon' => $type->icon,
+                ])->values(),
+            ] : null,
             'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
-           'driver' => $this->driver ? [
+            'driver' => $this->driver ? [
                 'id' => $this->driver->id,
                 'name' => $this->driver->first_name ?? null,
                 'name' => $this->driver->last_name ?? null,

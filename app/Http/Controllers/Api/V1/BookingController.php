@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendPushNotification;
 use App\Services\V1\BookingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -381,6 +382,13 @@ class BookingController extends Controller
             }
 
             DB::commit();
+
+            // Haydovchiga push xabar
+            SendPushNotification::dispatch($trip->driver_id, 'booking.passenger_added', [
+                'from' => $startQuarterName,
+                'to' => $endQuarterName,
+            ], ['trip_id' => (string) $trip->id, 'booking_id' => (string) $booking->id]);
+
             $messages = [
                 'uz' => 'Yo‘lovchi qo‘shildi va to‘lov amalga oshirildi',
                 'ru' => 'Пассажир добавлен и оплата выполнена',
@@ -625,6 +633,12 @@ class BookingController extends Controller
 
 
             DB::commit();
+
+            // Haydovchiga push xabar
+            SendPushNotification::dispatch($trip->driver_id, 'booking.passenger_removed', [
+                'from' => $startQuarterName,
+                'to' => $endQuarterName,
+            ], ['trip_id' => (string) $trip->id, 'booking_id' => (string) $booking->id]);
 
             $messageToResponse = [
                 'uz' => "Yo‘lovchi olib tashlandi va hisobingizga pul qaytarildi va komissiya olindi",

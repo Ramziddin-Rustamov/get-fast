@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\V1\BookingPassengers;
 use App\Http\Resources\V1\BookingResource;
+use App\Jobs\SendPushNotification;
 use App\Models\BalanceTransaction;
 use Illuminate\Support\Facades\Auth;
 use App\Models\V1\CompanyBalance;
@@ -333,6 +334,13 @@ class BookingRepository
                 $this->smsService->sendQueued($trip->driver->phone, $textSMSForDriver, 'send-sms-to-driver-about-new-booking');
             }
 
+            // Haydovchiga push xabar
+            SendPushNotification::dispatch($trip->driver_id, 'booking.new', [
+                'from' => $trip->startQuarter->name ?? '',
+                'to' => $trip->endQuarter->name ?? '',
+                'seats' => $requestedSeats,
+            ], ['trip_id' => (string) $trip->id, 'booking_id' => (string) $booking->id]);
+
             return response()->json(new BookingResource($booking), 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -593,6 +601,12 @@ class BookingRepository
                 $this->smsService->sendQueued($user->phone, $textSMSMessageToClientAboutCancelation, 'send-sms-to-client-about-order-cancelation');
             }
 
+
+            // Haydovchiga push xabar
+            SendPushNotification::dispatch($trip->driver_id, 'booking.cancelled_by_client', [
+                'from' => $trip->startQuarter->name ?? '',
+                'to' => $trip->endQuarter->name ?? '',
+            ], ['trip_id' => (string) $trip->id]);
 
             $messages = [
                 'uz' => 'Bron bekor qilindi. Mijozga pul qaytarildi, haydovchi kompensatsiya oldi.',

@@ -604,11 +604,78 @@ class DriverController extends Controller
         $driver = User::with([
             'driverTrips.startQuarter.district',
             'driverTrips.endQuarter.district',
+            'driverTrips.startRegion',
+            'driverTrips.endRegion',
+            'driverTrips.startDistrict',
+            'driverTrips.endDistrict',
             'driverTrips.bookings.user',
             'driverTrips.bookings.passengers',
+            'driverTrips.parcel.types',
+            'driverTrips.parcelBookings.type',
+            'driverTrips.parcelBookings.user',
         ])->findOrFail($driverId);
 
         return view('admin-views.drivers.trips', compact('driver'));
+    }
+
+    /**
+     * Admin trip uchun pochta qabul qilishni NOFAOLLASHTIRADI (soft-disable).
+     * Hech narsa o'chirilmaydi — parcel nofaol bo'ladi va mavjud posilkalar
+     * bekor qilinadi (status = cancelled). Tarix bazada saqlanadi.
+     */
+    public function disableParcel($tripId)
+    {
+        $trip = Trip::with('parcel')->findOrFail($tripId);
+
+        if (!$trip->parcel) {
+            return back()->with('error', 'Bu trip pochta qabul qilmaydi.');
+        }
+
+        if (!$trip->parcel->is_active) {
+            return back()->with('error', 'Pochta qabul qilish allaqachon o‘chirilgan.');
+        }
+
+        // Bekor qilinadigan posilka egalarini oldindan yig'amiz (xabar uchun).
+        $affected = $trip->parcelBookings()
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->get(['id', 'user_id']);
+
+        DB::transaction(function () use ($trip) {
+            // Parcelni nofaollashtiramiz (o'chirmaymiz).
+            $trip->parcel->update(['is_active' => false]);
+
+            // Mavjud faol posilkalarni bekor qilamiz (o'chirmaymiz).
+            $trip->parcelBookings()
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->update(['status' => 'cancelled']);
+        });
+
+        // Har bir posilka egasiga o'z tilida xabar
+        $trip->loadMissing('startQuarter', 'endQuarter');
+        foreach ($affected as $b) {
+            \App\Jobs\SendPushNotification::dispatch($b->user_id, 'parcel.disabled', [
+                'from' => $trip->startQuarter->name ?? '',
+                'to' => $trip->endQuarter->name ?? '',
+            ], ['trip_id' => (string) $trip->id]);
+        }
+
+        return back()->with('success', 'Pochta qabul qilish o‘chirildi. Mavjud posilkalar bekor qilindi (tarix saqlandi).');
+    }
+
+    /**
+     * Pochta qabul qilishni qayta yoqadi.
+     */
+    public function enableParcel($tripId)
+    {
+        $trip = Trip::with('parcel')->findOrFail($tripId);
+
+        if (!$trip->parcel) {
+            return back()->with('error', 'Bu tripda pochta sozlamasi mavjud emas.');
+        }
+
+        $trip->parcel->update(['is_active' => true]);
+
+        return back()->with('success', 'Pochta qabul qilish qayta yoqildi.');
     }
 
     public function documents($driverId)
@@ -872,6 +939,12 @@ class DriverController extends Controller
 
             DB::commit();
 
+            // Mijozga push xabar
+            \App\Jobs\SendPushNotification::dispatch($booking->user_id, 'booking.passenger_cancelled_by_admin', [
+                'from' => $trip->startQuarter->name ?? '',
+                'to' => $trip->endQuarter->name ?? '',
+            ], ['trip_id' => (string) $trip->id, 'booking_id' => (string) $booking->id]);
+
             return back()->with('success', "Yo‘lovchi bekor qilindi. Clientga {$return} so‘m qaytarildi, haydovchidan {$driverLoss} so‘m yechib olindi (xizmat haqqi: {$serviceFee} so‘m).");
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -948,6 +1021,13 @@ class DriverController extends Controller
 
             $startName = $trip->startQuarter->name ?? '';
             $endName   = $trip->endQuarter->name ?? '';
+
+            // Xabar yuboriladigan mijozlar (hali bekor qilinmagan buyurtma egalari)
+            $notifyUserIds = $trip->bookings
+                ->where('status', '!=', 'cancelled')
+                ->pluck('user_id')
+                ->unique()
+                ->values();
 
             foreach ($trip->bookings as $booking) {
                 if ($booking->status === 'cancelled') {
@@ -1091,6 +1171,14 @@ class DriverController extends Controller
             }
 
             DB::commit();
+
+            // Har bir mijozga o'z tilida push xabar
+            foreach ($notifyUserIds as $uid) {
+                \App\Jobs\SendPushNotification::dispatch($uid, 'trip.cancelled_by_admin', [
+                    'from' => $startName,
+                    'to' => $endName,
+                ], ['trip_id' => (string) $trip->id]);
+            }
 
             return back()->with('success', 'Safar admin tomonidan bekor qilindi. Mijozlarga to‘liq summa va kompensatsiya qaytarildi, haydovchidan xizmat haqqi ushlab qolindi.');
         } catch (\Throwable $e) {

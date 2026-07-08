@@ -84,11 +84,24 @@
             {{-- Header --}}
             <div class="trip-card-head">
                 <div>
+                    @php $lc = app()->getLocale(); @endphp
                     <div class="trip-route">
                         <i class="fas fa-location-dot text-success"></i>
-                        {{ $trip->startQuarter->name ?? 'N/A' }}
+                        <div>
+                            <div>{{ $trip->startQuarter->name ?? 'N/A' }}</div>
+                            <div class="text-muted small fw-normal">
+                                {{ $trip->startRegion->{'name_' . $lc} ?? $trip->startRegion->name_uz ?? '—' }},
+                                {{ $trip->startDistrict->{'name_' . $lc} ?? $trip->startDistrict->name_uz ?? '—' }}
+                            </div>
+                        </div>
                         <span class="arrow"><i class="fas fa-arrow-right-long"></i></span>
-                        {{ $trip->endQuarter->name ?? 'N/A' }}
+                        <div>
+                            <div>{{ $trip->endQuarter->name ?? 'N/A' }}</div>
+                            <div class="text-muted small fw-normal">
+                                {{ $trip->endRegion->{'name_' . $lc} ?? $trip->endRegion->name_uz ?? '—' }},
+                                {{ $trip->endDistrict->{'name_' . $lc} ?? $trip->endDistrict->name_uz ?? '—' }}
+                            </div>
+                        </div>
                         <i class="fas fa-flag-checkered text-danger"></i>
                     </div>
                     <div class="trip-meta">
@@ -204,6 +217,90 @@
                 @empty
                     <p class="text-muted mb-0">Bu tripda booking yo‘q.</p>
                 @endforelse
+
+                {{-- Pochta (parcel) --}}
+                <hr class="my-4">
+                <p class="sec-label"><i class="fas fa-box me-1"></i> Pochta</p>
+
+                @if($trip->parcel)
+                    {{-- Haydovchi qabul qiladigan shartlar --}}
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                        <div class="booking-tags">
+                            @unless($trip->parcel->is_active)
+                                <span class="pill" style="background:#fee2e2;color:#b91c1c;"><i class="fas fa-ban me-1"></i>Nofaol</span>
+                            @endunless
+                            <span class="pill"><i class="fas fa-weight-hanging me-1"></i>Maks {{ $trip->parcel->max_weight ?? '—' }} kg</span>
+                            <span class="pill"><i class="fas fa-coins me-1"></i>{{ number_format($trip->parcel->price_per_kg ?? 0, 0, '.', ' ') }} so'm/kg</span>
+                            @if($trip->parcel->max_length || $trip->parcel->max_width || $trip->parcel->max_height)
+                                <span class="pill"><i class="fas fa-ruler-combined me-1"></i>{{ $trip->parcel->max_length ?? '?' }}×{{ $trip->parcel->max_width ?? '?' }}×{{ $trip->parcel->max_height ?? '?' }} sm</span>
+                            @endif
+                            @foreach($trip->parcel->types as $type)
+                                <span class="pill" style="background:#e0f2fe;color:#0369a1;">{{ $type->name_uz }}</span>
+                            @endforeach
+                        </div>
+
+                        @if($trip->status !== 'cancelled' && $trip->status !== 'completed')
+                            @if($trip->parcel->is_active)
+                                <form action="{{ route('drivers.trip.parcel.disable', $trip->id) }}" method="POST"
+                                      onsubmit="return confirm('Pochta qabul qilishni o‘chirasizmi? Mavjud posilkalar bekor qilinadi (bazadan o‘chmaydi).')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-3">
+                                        <i class="fas fa-box-open me-1"></i> Pochta olishni o‘chirish
+                                    </button>
+                                </form>
+                            @else
+                                <form action="{{ route('drivers.trip.parcel.enable', $trip->id) }}" method="POST"
+                                      onsubmit="return confirm('Pochta qabul qilishni qayta yoqasizmi?')">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-outline-success rounded-3">
+                                        <i class="fas fa-box me-1"></i> Qayta yoqish
+                                    </button>
+                                </form>
+                            @endif
+                        @endif
+                    </div>
+
+                    {{-- Kelgan posilkalar --}}
+                    <p class="sec-label"><i class="fas fa-inbox me-1"></i> Posilkalar ({{ $trip->parcelBookings->count() }})</p>
+
+                    @forelse($trip->parcelBookings as $pb)
+                        <div class="booking-box">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                                <div>
+                                    <div class="booking-user">
+                                        <i class="fas fa-user me-1 text-muted"></i>
+                                        {{ $pb->user->first_name ?? 'N/A' }} {{ $pb->user->last_name ?? '' }}
+                                    </div>
+                                    <div class="text-muted small"><i class="fas fa-phone me-1"></i>{{ $pb->user->phone ?? 'N/A' }}</div>
+                                    <div class="text-muted small"><i class="fas fa-user-check me-1"></i>Qabul qiluvchi: {{ $pb->receiver_phone ?? '—' }}</div>
+                                </div>
+                                <span class="badge {{ $pb->status == 'cancelled' || $pb->status == 'rejected' ? 'bg-danger' : ($pb->status == 'confirmed' ? 'bg-success' : 'bg-warning text-dark') }} rounded-pill px-3 py-2">
+                                    {{ ucfirst($pb->status) }}
+                                </span>
+                            </div>
+
+                            <div class="booking-tags">
+                                @if($pb->type)
+                                    <span class="pill" style="background:#e0f2fe;color:#0369a1;">{{ $pb->type->name_uz }}</span>
+                                @endif
+                                <span class="pill"><i class="fas fa-weight-hanging me-1"></i>{{ $pb->weight }} kg</span>
+                                @if($pb->length || $pb->width || $pb->height)
+                                    <span class="pill"><i class="fas fa-ruler-combined me-1"></i>{{ $pb->length ?? '?' }}×{{ $pb->width ?? '?' }}×{{ $pb->height ?? '?' }} sm</span>
+                                @endif
+                                <span class="pill"><i class="fas fa-coins me-1"></i>{{ number_format($pb->total_price, 0, '.', ' ') }} so'm</span>
+                            </div>
+
+                            @if($pb->parcel_description)
+                                <div class="text-muted small mt-2"><i class="fas fa-note-sticky me-1"></i>{{ $pb->parcel_description }}</div>
+                            @endif
+                        </div>
+                    @empty
+                        <p class="text-muted mb-0">Bu tripga posilka yuborilmagan.</p>
+                    @endforelse
+                @else
+                    <p class="text-muted mb-0">Bu trip pochta qabul qilmaydi.</p>
+                @endif
             </div>
         </div>
     @empty

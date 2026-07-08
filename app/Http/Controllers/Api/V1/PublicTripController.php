@@ -21,6 +21,7 @@ class PublicTripController extends Controller
     {
         $userLang = $this->getUserLang();
         $trips = Trip::whereIn('status', ['active', 'full'])
+            ->with('parcels.types') // pochta ma'lumoti (N+1 dan qochish)
             ->latest() // created_at bo‘yicha tartiblash
             ->paginate(20);
 
@@ -115,6 +116,12 @@ class PublicTripController extends Controller
             ->paginate(20);
     }
 
+    // Pochta ma'lumotini yuklab olamiz (N+1 dan qochish)
+    $departureTrips->getCollection()->load('parcels.types');
+    if (method_exists($returnTrips, 'getCollection')) {
+        $returnTrips->getCollection()->load('parcels.types');
+    }
+
     $messages = [
         'uz' => 'Qidiruv natijalari muvaffaqiyatli olindi',
         'ru' => 'Результаты поиска успешно получены',
@@ -150,6 +157,7 @@ class PublicTripController extends Controller
                     ->where('end_region_id', $startRegionId);
             })
             ->whereIn('status', ['active', 'full'])
+            ->with('parcels.types')
             ->paginate(20);
 
         $messages = [
@@ -181,6 +189,7 @@ class PublicTripController extends Controller
         // Cache 20 sekund
         $trips = Cache::remember($cacheKey, 20, function () {
             return Trip::whereIn('status', ['active', 'full'])
+                ->with('parcels.types')
                 ->latest('created_at')
                 ->paginate(20);
         });
@@ -208,7 +217,7 @@ class PublicTripController extends Controller
     public function getTripByIdForPublic($id)
     {
         $userLang = $this->getUserLang();
-        $trip = Trip::find($id);
+        $trip = Trip::with('parcels.types')->find($id);
 
         if (is_null($trip)) {
             $messages = [

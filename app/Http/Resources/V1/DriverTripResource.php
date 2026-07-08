@@ -77,6 +77,21 @@ class DriverTripResource extends JsonResource
             'end_lat' => $this->endPoint->lat     ?? null,
             'end_long' => $this->endPoint->long   ?? null,
             'status' => $this->status,
+            'accepts_parcels' => (bool) optional($this->parcels->first())->is_active,
+            'parcel' => $this->parcels->first() ? [
+                'id' => $this->parcels->first()->id,
+                'is_active' => (bool) $this->parcels->first()->is_active,
+                'max_weight' => $this->parcels->first()->max_weight,
+                'price_per_kg' => $this->parcels->first()->price_per_kg,
+                'max_length' => $this->parcels->first()->max_length,
+                'max_width' => $this->parcels->first()->max_width,
+                'max_height' => $this->parcels->first()->max_height,
+                'types' => $this->parcels->first()->types->map(fn ($type) => [
+                    'id' => $type->id,
+                    'name' => $type->{'name_' . $lang} ?? $type->name_uz,
+                    'icon' => $type->icon,
+                ])->values(),
+            ] : null,
             'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
             'updated_at' => $this->updated_at ? Carbon::parse($this->updated_at)->format('Y-m-d H:i:s') : null,
             'driver' => $this->driver ? [

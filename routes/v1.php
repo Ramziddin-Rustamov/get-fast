@@ -40,6 +40,22 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/driver/my-vehicles', [App\Http\Controllers\Api\V1\VehicleController::class, 'getDriverVehicles']);
     });
 
+    Route::get('/parcel-types', [App\Http\Controllers\Api\V1\ParcelTypeController::class, 'index']);
+
+    // Mijoz posilka yuborish so'rovlari
+    Route::prefix('client/parcel-bookings')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\V1\ParcelBookingController::class, 'index']);
+        Route::post('/', [App\Http\Controllers\Api\V1\ParcelBookingController::class, 'store']);
+        Route::get('/{id}', [App\Http\Controllers\Api\V1\ParcelBookingController::class, 'show']);
+        Route::delete('/{id}/cancel', [App\Http\Controllers\Api\V1\ParcelBookingController::class, 'cancel']);
+    });
+
+    // Haydovchi — o'z safarlariga kelgan posilkalarni ko'rish
+    Route::prefix('driver/parcel-bookings')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\V1\DriverParcelBookingController::class, 'index']);
+        Route::get('/trip/{tripId}', [App\Http\Controllers\Api\V1\DriverParcelBookingController::class, 'forTrip']);
+    });
+
     Route::prefix('driver/trips')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\DriverTripController::class, 'index']);
         Route::post('/', [App\Http\Controllers\Api\V1\DriverTripController::class, 'store']);

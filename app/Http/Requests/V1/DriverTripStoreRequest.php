@@ -39,17 +39,29 @@ class DriverTripStoreRequest extends FormRequest
 
 
 
+    protected function prepareForValidation()
+    {
+        if ($this->has('accepts_parcels')) {
+            $this->merge([
+                'accepts_parcels' => filter_var(
+                    $this->input('accepts_parcels'),
+                    FILTER_VALIDATE_BOOLEAN
+                ),
+            ]);
+        }
+    }
+
     public function rules()
     {
         return [
 
             'vehicle_id' => 'required|exists:vehicles,id',
-            'start_quarter_id' => 'required|string|exists:quarters,id',
-            'end_quarter_id' => 'required|string|exists:quarters,id',
-            'start_region_id' => 'required|string|exists:regions,id',
-            'end_region_id' => 'required|string|exists:regions,id',
-            'start_district_id' => 'required|string|exists:districts,id',
-            'end_district_id' => 'required|string|exists:districts,id',
+            'start_quarter_id' => 'required|exists:quarters,id',
+            'end_quarter_id' => 'required|exists:quarters,id',
+            'start_region_id' => 'required|exists:regions,id',
+            'end_region_id' => 'required|exists:regions,id',
+            'start_district_id' => 'required|exists:districts,id',
+            'end_district_id' => 'required|exists:districts,id',
             'end_time' => ['nullable', 'date', function ($attribute, $value, $fail) {
                 if (!request()->has('start_time')) {
                     $fail('Start time is required for validating end time.');
@@ -105,6 +117,19 @@ class DriverTripStoreRequest extends FormRequest
             }],
             'price_per_seat' => 'required|numeric|min:0',
             'available_seats' => 'required|integer',
+
+            // Pochta (parcel) qabul qilish — checkbox
+            'accepts_parcels' => 'required|boolean',
+            'parcel' => 'required_if:accepts_parcels,true|array',
+            'parcel.max_weight' => 'required_if:accepts_parcels,true|numeric|min:0',
+            'parcel.price_per_kg' => 'required_if:accepts_parcels,true|numeric|min:0',
+            // Max o'lchamlar (sm) — ixtiyoriy
+            'parcel.max_length' => 'nullable|integer|min:1',
+            'parcel.max_width' => 'nullable|integer|min:1',
+            'parcel.max_height' => 'nullable|integer|min:1',
+            'parcel.type_ids' => 'required_if:accepts_parcels,true|array|min:1',
+            'parcel.type_ids.*' => 'integer|exists:parcel_types,id',
+
             'start_lat' => 'nullable|numeric|between:-90,90',
             'start_long' => 'nullable|numeric|between:-180,180',
             'end_lat' => 'nullable|numeric|between:-90,90',

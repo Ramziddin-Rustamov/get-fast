@@ -87,6 +87,22 @@ class TripRepository
             $trip->end_point_id = $endPoint->id;
             $trip->save();
 
+            // Haydovchi "pochta ham olaman" ni belgilagan bo'lsa —
+            // shu safar uchun parcel yaratamiz va qabul qiladigan turlarni bog'laymiz.
+            if (!empty($data['accepts_parcels'])) {
+                $parcel = $trip->parcels()->create([
+                    'max_weight' => $data['parcel']['max_weight'] ?? null,
+                    'price_per_kg' => $data['parcel']['price_per_kg'] ?? null,
+                    'max_length' => $data['parcel']['max_length'] ?? null,
+                    'max_width' => $data['parcel']['max_width'] ?? null,
+                    'max_height' => $data['parcel']['max_height'] ?? null,
+                ]);
+
+                if (!empty($data['parcel']['type_ids'])) {
+                    $parcel->types()->sync($data['parcel']['type_ids']);
+                }
+            }
+
             DB::commit();
 
             return response()->json($trip, 200);

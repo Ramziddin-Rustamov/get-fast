@@ -144,6 +144,9 @@
                                         <a class="dropdown-item {{ request()->routeIs('broadcasts.*') ? 'active' : '' }}" href="{{ route('broadcasts.index') }}">
                                             <i class="fas fa-bullhorn me-2"></i>{{ __('E\'lonlar (Push)') }}
                                         </a>
+                                        <a class="dropdown-item {{ request()->routeIs('parcel-types.*') ? 'active' : '' }}" href="{{ route('parcel-types.index') }}">
+                                            <i class="fas fa-box me-2"></i>{{ __('Pochta turlari') }}
+                                        </a>
                                         <div class="dropdown-divider"></div>
                                     @endcan
 

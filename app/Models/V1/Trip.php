@@ -81,6 +81,16 @@ class Trip extends Model
         return $this->hasMany(Parcel::class);
     }
 
+    public function parcel()
+    {
+        return $this->hasOne(Parcel::class);
+    }
+
+    public function parcelBookings()
+    {
+        return $this->hasMany(ParcelBooking::class);
+    }
+
     public function scopeExpired($query)
     {
         return $query->where('end_time', '<', now())->where('status', '!=', 'canceled');

@@ -94,9 +94,7 @@ class BroadcastController extends Controller
             ->with('success', 'E\'lon o\'chirildi.');
     }
 
-
     //  for front end  
-
     public function getAll()
     {
         $broadcasts = BroadcastMessage::latest()->get();
