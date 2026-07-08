@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\Api\V1\APIAuthController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\CardController;
@@ -23,7 +24,6 @@ use App\Http\Controllers\Api\V1\WithdrawRequestController;
 
 Route::middleware('auth:api')->group(function () {
 
-
     // FCM push uchun device token (Flutter app yuboradi)
     Route::post('/device-token', [\App\Http\Controllers\Api\V1\DeviceTokenController::class, 'store']);
     Route::delete('/device-token', [\App\Http\Controllers\Api\V1\DeviceTokenController::class, 'destroy']);
@@ -31,19 +31,12 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/withdraw', [WithdrawRequestController::class, 'store']);
     Route::get('/withdraw', [WithdrawRequestController::class, 'index']);
 
-
-
-
-
-
-
     Route::prefix('vehicles')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'index']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'show']);
         Route::post('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'store']);
         Route::put('/update/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'update']);
         Route::delete('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'destroy']);
-
         Route::get('/driver/my-vehicles', [App\Http\Controllers\Api\V1\VehicleController::class, 'getDriverVehicles']);
     });
 
@@ -91,6 +84,11 @@ Route::middleware('auth:api')->group(function () {
     Route::prefix('driver/expired-trips')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\DriverExpiredTripsControllerApi::class, 'getExpeiredTrips']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\DriverExpiredTripsControllerApi::class, 'getExpiredTrip']);
+    });
+
+    Route::prefix('broadcasts')->group(function () {
+        Route::get('/', [BroadcastController::class, 'getAll']);
+        Route::get('/{id}', [BroadcastController::class, 'getOne']);
     });
 });
 

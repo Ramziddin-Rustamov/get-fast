@@ -93,4 +93,56 @@ class BroadcastController extends Controller
             ->route('broadcasts.index')
             ->with('success', 'E\'lon o\'chirildi.');
     }
+
+
+    //  for front end  
+
+    public function getAll()
+    {
+        $broadcasts = BroadcastMessage::latest()->get();
+        if (!$broadcasts) {
+            $message = [
+                'uz' => 'E\'lon mavjud emas',
+                'en' => 'Broadcast not found',
+                'ru' => 'Новость не найдена',
+            ];
+
+            $userLanguage =  Auth::user()->authLanguage->language ?? 'uz';
+
+            return [
+                'status'  => 'error',
+                'message' => $message[$userLanguage],
+            ];
+        }
+        if ($broadcasts) {
+            return [
+
+                'status' => 'success',
+                'message' => 'Broadcast fetched successfully',
+                'data' => $broadcasts
+            ];
+        }
+    }
+
+    public function getOne($id)
+    {
+        $broadcast = BroadcastMessage::find($id);
+        if ($broadcast) {
+            return $broadcast;
+        }
+        if (!$broadcast) {
+            $message = [
+                'uz' => 'E\'lon mavjud emas',
+                'en' => 'Broadcast not found',
+                'ru' => 'Новость не найдена',
+            ];
+
+            $userLanguage =  Auth::user()->authLanguage->language ?? 'uz';
+
+            return [
+                'status'  => 'error',
+                'message' => $message[$userLanguage],
+            ];
+        }
+    }
 }
