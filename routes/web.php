@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\SupportMessageController;
 use App\Http\Controllers\Admin\BroadcastController;
 use App\Http\Controllers\Admin\ParcelTypeController;
+use App\Http\Controllers\Admin\SearchLogController;
 use App\Http\Controllers\Admin\WithdrawRequestController;
 use App\Http\Controllers\WelcomeController;
 
@@ -69,6 +70,9 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
         Route::put('/{parcelType}', [ParcelTypeController::class, 'update'])->name('parcel-types.update');
         Route::delete('/{parcelType}', [ParcelTypeController::class, 'destroy'])->name('parcel-types.destroy');
     });
+
+    // QIDIRUVLAR (foydalanuvchi qidiruvlari — marketing)
+    Route::get('search-logs', [SearchLogController::class, 'index'])->name('search-logs.index');
 
     // DRIVERS
     Route::get('drivers', [DriverController::class, 'index'])->name('drivers.index');          // List all drivers

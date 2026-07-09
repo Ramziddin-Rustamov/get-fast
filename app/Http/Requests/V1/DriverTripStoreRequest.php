@@ -41,14 +41,13 @@ class DriverTripStoreRequest extends FormRequest
 
     protected function prepareForValidation()
     {
-        if ($this->has('accepts_parcels')) {
-            $this->merge([
-                'accepts_parcels' => filter_var(
-                    $this->input('accepts_parcels'),
-                    FILTER_VALIDATE_BOOLEAN
-                ),
-            ]);
-        }
+        // Yuborilmagan bo'lsa default false bo'lib tursin
+        $this->merge([
+            'accepts_parcels' => filter_var(
+                $this->input('accepts_parcels', false),
+                FILTER_VALIDATE_BOOLEAN
+            ),
+        ]);
     }
 
     public function rules()
@@ -118,8 +117,8 @@ class DriverTripStoreRequest extends FormRequest
             'price_per_seat' => 'required|numeric|min:0',
             'available_seats' => 'required|integer',
 
-            // Pochta (parcel) qabul qilish — checkbox
-            'accepts_parcels' => 'required|boolean',
+            // Pochta (parcel) qabul qilish — checkbox (yuborilmasa default false)
+            'accepts_parcels' => 'boolean',
             'parcel' => 'required_if:accepts_parcels,true|array',
             'parcel.max_weight' => 'required_if:accepts_parcels,true|numeric|min:0',
             'parcel.price_per_kg' => 'required_if:accepts_parcels,true|numeric|min:0',

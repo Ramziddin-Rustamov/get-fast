@@ -5,10 +5,15 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\PublicTripResource;
 use App\Http\Resources\V1\PublicTripWithLessInfoResource;
+use App\Models\SearchLog;
+use App\Models\V1\District;
+use App\Models\V1\Quarter;
+use App\Models\V1\Region;
 use App\Models\V1\Trip;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class PublicTripController extends Controller
 {
@@ -122,6 +127,9 @@ class PublicTripController extends Controller
         $returnTrips->getCollection()->load('parcels.types');
     }
 
+    // Marketing uchun qidiruvni bazaga saqlaymiz (qidiruvni buzmasligi uchun try/catch)
+    $this->logSearch($request, $departureTrips->total());
+
     $messages = [
         'uz' => 'Qidiruv natijalari muvaffaqiyatli olindi',
         'ru' => 'Результаты поиска успешно получены',
@@ -136,6 +144,70 @@ class PublicTripController extends Controller
             'return_trips' => PublicTripResource::collection($returnTrips),
         ]
     ], 200);
+    }
+
+    /**
+     * Foydalanuvchining qidiruvini (qayerdan-qayerga) marketing uchun saqlaydi.
+     */
+    protected function logSearch(Request $request, int $resultsCount): void
+    {
+        try {
+            $startRegion   = $request->query('start_region_id');
+            $endRegion     = $request->query('end_region_id');
+            $startDistrict = $request->query('start_district_id');
+            $endDistrict   = $request->query('end_district_id');
+            $startQuarter  = $request->query('start_quarter_id');
+            $endQuarter    = $request->query('end_quarter_id');
+
+            // Kamida bitta manzil parametri bo'lmasa saqlamaymiz
+            if (! $startRegion && ! $startDistrict && ! $startQuarter
+                && ! $endRegion && ! $endDistrict && ! $endQuarter) {
+                return;
+            }
+
+            $departureDate = $request->query('departure_date');
+            $returnDate    = $request->query('return_date');
+
+            SearchLog::create([
+                'user_id'           => auth()->id(),
+                'start_region_id'   => $startRegion,
+                'start_district_id' => $startDistrict,
+                'start_quarter_id'  => $startQuarter,
+                'end_region_id'     => $endRegion,
+                'end_district_id'   => $endDistrict,
+                'end_quarter_id'    => $endQuarter,
+                'start_location'    => $this->resolveLocationName($startQuarter, $startDistrict, $startRegion),
+                'end_location'      => $this->resolveLocationName($endQuarter, $endDistrict, $endRegion),
+                'departure_date'    => $departureDate ? Carbon::parse($departureDate) : null,
+                'is_round_trip'     => (bool) $request->query('is_round_trip'),
+                'return_date'       => $returnDate ? Carbon::parse($returnDate) : null,
+                'results_count'     => $resultsCount,
+                'ip_address'        => $request->ip(),
+            ]);
+        } catch (\Throwable $e) {
+            // Log saqlash qidiruvni to'xtatmasligi kerak
+            Log::warning('Search log saqlanmadi: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Eng aniq manzil nomini qaytaradi (mahalla > tuman > viloyat).
+     */
+    protected function resolveLocationName($quarterId, $districtId, $regionId): ?string
+    {
+        if ($quarterId && $quarter = Quarter::find($quarterId)) {
+            return $quarter->name;
+        }
+
+        if ($districtId && $district = District::find($districtId)) {
+            return $district->name_uz;
+        }
+
+        if ($regionId && $region = Region::find($regionId)) {
+            return $region->name_uz;
+        }
+
+        return null;
     }
 
 

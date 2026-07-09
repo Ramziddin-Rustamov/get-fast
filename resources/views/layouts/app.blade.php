@@ -147,6 +147,9 @@
                                         <a class="dropdown-item {{ request()->routeIs('parcel-types.*') ? 'active' : '' }}" href="{{ route('parcel-types.index') }}">
                                             <i class="fas fa-box me-2"></i>{{ __('Pochta turlari') }}
                                         </a>
+                                        <a class="dropdown-item {{ request()->routeIs('search-logs.*') ? 'active' : '' }}" href="{{ route('search-logs.index') }}">
+                                            <i class="fas fa-magnifying-glass me-2"></i>{{ __('Qidiruvlar') }}
+                                        </a>
                                         <div class="dropdown-divider"></div>
                                     @endcan
 
