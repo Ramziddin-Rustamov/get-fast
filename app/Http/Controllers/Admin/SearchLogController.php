@@ -15,7 +15,11 @@ class SearchLogController extends Controller
     {
         $search = trim((string) $request->query('q'));
 
-        $logs = SearchLog::with('user')
+        $logs = SearchLog::with([
+                'user',
+                'startRegion', 'startDistrict', 'startQuarter',
+                'endRegion', 'endDistrict', 'endQuarter',
+            ])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('start_location', 'like', "%{$search}%")

@@ -63,7 +63,8 @@
                             </thead>
                             <tbody>
                                 @forelse($logs as $log)
-                                    <tr>
+                                    <tr style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#logModal{{ $log->id }}"
+                                        title="Batafsil ko'rish uchun bosing">
                                         <td class="ps-4 text-muted">{{ $log->id }}</td>
                                         <td>
                                             @if($log->user)
@@ -110,5 +111,113 @@
         </div>
     </div>
 </div>
+
+{{-- Har bir qidiruv uchun batafsil modal --}}
+@foreach($logs as $log)
+    <div class="modal fade" id="logModal{{ $log->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold">
+                        🔍 Qidiruv #{{ $log->id }}
+                        @if($log->is_round_trip)
+                            <span class="badge bg-info text-dark ms-2">↔️ Borib-kelish</span>
+                        @endif
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Yopish"></button>
+                </div>
+                <div class="modal-body">
+
+                    {{-- Foydalanuvchi --}}
+                    <div class="mb-4">
+                        <div class="text-muted small text-uppercase mb-1">Foydalanuvchi</div>
+                        @if($log->user)
+                            <div class="fw-semibold fs-5">{{ $log->user->first_name }} {{ $log->user->last_name }}</div>
+                            <div class="text-muted">📞 {{ $log->user->phone }}</div>
+                        @else
+                            <span class="badge bg-secondary">Mehmon (ro'yxatdan o'tmagan)</span>
+                        @endif
+                    </div>
+
+                    <div class="row g-3">
+                        {{-- QAYERDAN --}}
+                        <div class="col-md-6">
+                            <div class="card border-0 bg-light rounded-4 h-100">
+                                <div class="card-body">
+                                    <div class="fw-bold text-success mb-3">📍 Qayerdan</div>
+                                    <div class="mb-2">
+                                        <div class="text-muted small">Viloyat</div>
+                                        <div class="fw-semibold">{{ optional($log->startRegion)->name_uz ?? '—' }}</div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="text-muted small">Tuman</div>
+                                        <div class="fw-semibold">{{ optional($log->startDistrict)->name_uz ?? '—' }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Mahalla / Qishloq</div>
+                                        <div class="fw-semibold">{{ optional($log->startQuarter)->name ?? '—' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- QAYERGA --}}
+                        <div class="col-md-6">
+                            <div class="card border-0 bg-light rounded-4 h-100">
+                                <div class="card-body">
+                                    <div class="fw-bold text-danger mb-3">🎯 Qayerga</div>
+                                    <div class="mb-2">
+                                        <div class="text-muted small">Viloyat</div>
+                                        <div class="fw-semibold">{{ optional($log->endRegion)->name_uz ?? '—' }}</div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="text-muted small">Tuman</div>
+                                        <div class="fw-semibold">{{ optional($log->endDistrict)->name_uz ?? '—' }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Mahalla / Qishloq</div>
+                                        <div class="fw-semibold">{{ optional($log->endQuarter)->name ?? '—' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Qo'shimcha ma'lumot --}}
+                    <div class="row g-3 mt-1">
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small">Ketish sanasi</div>
+                            <div class="fw-semibold">{{ $log->departure_date ? $log->departure_date->format('d.m.Y') : '—' }}</div>
+                        </div>
+                        @if($log->is_round_trip)
+                            <div class="col-6 col-md-3">
+                                <div class="text-muted small">Qaytish sanasi</div>
+                                <div class="fw-semibold">{{ $log->return_date ? $log->return_date->format('d.m.Y') : '—' }}</div>
+                            </div>
+                        @endif
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small">Topilgan safarlar</div>
+                            <div class="fw-semibold">
+                                @if($log->results_count > 0)
+                                    <span class="text-success">{{ $log->results_count }} ta</span>
+                                @else
+                                    <span class="text-warning">Topilmadi</span>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="text-muted small">Qidirilgan vaqt</div>
+                            <div class="fw-semibold">{{ $log->created_at->format('d.m.Y H:i') }}</div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Yopish</button>
+                </div>
+            </div>
+        </div>
+    </div>
+@endforeach
 
 @endsection
