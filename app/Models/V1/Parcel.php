@@ -11,6 +11,7 @@ class Parcel extends Model
     protected $fillable = [
         'trip_id',
         'max_weight',
+        'available_weight',
         'price_per_kg',
         'is_active',
         'max_length',
@@ -20,6 +21,8 @@ class Parcel extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'max_weight' => 'float',
+        'available_weight' => 'float',
     ];
 
     public function scopeActive($query)

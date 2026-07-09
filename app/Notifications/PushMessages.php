@@ -38,6 +38,20 @@ class PushMessages
             'en' => ['title' => 'Parcel cancelled',      'body' => 'Your parcel was cancelled because the trip stopped accepting parcels ({from} → {to}).'],
         ],
 
+        // Admin posilkani bekor qildi → posilka egasiga (mijozga), to'liq qaytariladi
+        'parcel.cancelled_by_admin' => [
+            'uz' => ['title' => 'Posilka bekor qilindi', 'body' => 'Posilkangiz admin tomonidan bekor qilindi ({from} → {to}). To‘lov to‘liq qaytarildi.'],
+            'ru' => ['title' => 'Посылка отменена',      'body' => 'Ваша посылка отменена администратором ({from} → {to}). Средства полностью возвращены.'],
+            'en' => ['title' => 'Parcel cancelled',      'body' => 'Your parcel was cancelled by an administrator ({from} → {to}). The payment was fully refunded.'],
+        ],
+
+        // Admin posilkani bekor qildi → haydovchiga
+        'parcel.cancelled_by_admin_driver' => [
+            'uz' => ['title' => 'Posilka bekor qilindi', 'body' => 'Safaringizdagi bir posilka admin tomonidan bekor qilindi ({from} → {to}).'],
+            'ru' => ['title' => 'Посылка отменена',      'body' => 'Одна посылка в вашей поездке отменена администратором ({from} → {to}).'],
+            'en' => ['title' => 'Parcel cancelled',      'body' => 'A parcel on your trip was cancelled by an administrator ({from} → {to}).'],
+        ],
+
         // ============ YO'LOVCHI (BOOKING) ============
 
         // Mijoz safarni band qildi → haydovchiga

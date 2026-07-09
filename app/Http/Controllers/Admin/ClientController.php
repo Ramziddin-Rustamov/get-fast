@@ -212,6 +212,8 @@ class ClientController extends Controller
                 'trip.startDistrict', 'trip.endDistrict',
                 'trip.startRegion', 'trip.endRegion',
                 'trip.startPoint', 'trip.endPoint',
+                'trip.parcel.types',
+                'trip.parcelBookings.type', 'trip.parcelBookings.user',
             ])
             ->orderBy('created_at', 'desc')
             ->paginate(10);

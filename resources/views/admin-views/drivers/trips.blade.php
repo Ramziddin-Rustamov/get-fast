@@ -230,6 +230,7 @@
                                 <span class="pill" style="background:#fee2e2;color:#b91c1c;"><i class="fas fa-ban me-1"></i>Nofaol</span>
                             @endunless
                             <span class="pill"><i class="fas fa-weight-hanging me-1"></i>Maks {{ $trip->parcel->max_weight ?? '—' }} kg</span>
+                            <span class="pill" style="background:#dcfce7;color:#166534;"><i class="fas fa-box-open me-1"></i>Bo'sh: {{ $trip->parcel->available_weight ?? $trip->parcel->max_weight ?? '—' }} kg</span>
                             <span class="pill"><i class="fas fa-coins me-1"></i>{{ number_format($trip->parcel->price_per_kg ?? 0, 0, '.', ' ') }} so'm/kg</span>
                             @if($trip->parcel->max_length || $trip->parcel->max_width || $trip->parcel->max_height)
                                 <span class="pill"><i class="fas fa-ruler-combined me-1"></i>{{ $trip->parcel->max_length ?? '?' }}×{{ $trip->parcel->max_width ?? '?' }}×{{ $trip->parcel->max_height ?? '?' }} sm</span>
@@ -293,6 +294,23 @@
 
                             @if($pb->parcel_description)
                                 <div class="text-muted small mt-2"><i class="fas fa-note-sticky me-1"></i>{{ $pb->parcel_description }}</div>
+                            @endif
+
+                            {{-- Admin bekor qilish: ikki taraf ham zarar ko'rmaydi --}}
+                            @if(in_array($pb->status, ['pending', 'confirmed']))
+                                <div class="mt-3 d-flex justify-content-end">
+                                    <form action="{{ route('drivers.parcel.cancel', $pb->id) }}" method="POST"
+                                          onsubmit="return confirm('Posilkani bekor qilasizmi? Mijozga to‘liq summa qaytariladi, haydovchidan olgan daromadi yechiladi — ikki taraf ham zarar ko‘rmaydi.')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-danger rounded-3">
+                                            <i class="fas fa-xmark me-1"></i> Posilkani bekor qilish
+                                        </button>
+                                    </form>
+                                </div>
+                            @else
+                                <div class="mt-2 text-muted small text-end">
+                                    <i class="fas fa-circle-info me-1"></i>{{ ucfirst($pb->status) }} — bekor qilib bo‘lmaydi
+                                </div>
                             @endif
                         </div>
                     @empty

@@ -36,8 +36,7 @@ class SendPushNotification implements ShouldQueue
         public string $event,
         public array $params = [],
         public array $data = [],
-    ) {
-    }
+    ) {}
 
     public function handle(FcmService $fcm): void
     {

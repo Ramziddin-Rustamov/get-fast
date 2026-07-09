@@ -232,9 +232,10 @@
                     </p>
 
                     <div class="acts d-flex flex-wrap gap-3 mt-4 animate__animated animate__fadeInUp">
-                        <a href="#" class="store"><i class="fab fa-apple"></i>
+                        <a href="https://play.google.com/store/apps/details?id=uz.ketamiz.app" class="store ol"><i class="fab fa-google-play"></i>
+                        <a href="https://apps.apple.com/pl/app/ketamiz/id6782315775" class="store"><i class="fab fa-apple"></i>
                             <span class="t"><small>{{ __('welcome.download') }}</small><strong>App Store</strong></span></a>
-                        <a href="#" class="store ol"><i class="fab fa-google-play"></i>
+                        <a href="https://play.google.com/store/apps/details?id=uz.ketamiz.app" class="store ol"><i class="fab fa-google-play"></i>
                             <span class="t"><small>{{ __('welcome.download') }}</small><strong>Google Play</strong></span></a>
                     </div>
 
@@ -534,9 +535,9 @@
                 <h2 class="fw-bold display-5 mt-3 mb-3">ketamiz<span class="grad-text">.com</span> {{ __('welcome.download_title') }}</h2>
                 <p class="fs-5 mx-auto mb-4" style="max-width:620px;color:#aab4c8;">{{ __('welcome.download_sub') }}</p>
                 <div class="d-flex justify-content-center flex-wrap gap-3">
-                    <a href="#" class="store"><i class="fab fa-apple"></i>
+                    <a href="https://apps.apple.com/pl/app/ketamiz/id6782315775" class="store"><i class="fab fa-apple"></i>
                         <span class="t"><small>{{ __('welcome.download') }}</small><strong>App Store</strong></span></a>
-                    <a href="#" class="store"><i class="fab fa-google-play"></i>
+                    <a href="https://play.google.com/store/apps/details?id=uz.ketamiz.app" class="store"><i class="fab fa-google-play"></i>
                         <span class="t"><small>{{ __('welcome.download') }}</small><strong>Google Play</strong></span></a>
                 </div>
             </div>

@@ -635,19 +635,22 @@ class DriverController extends Controller
             return back()->with('error', 'Pochta qabul qilish allaqachon o‘chirilgan.');
         }
 
-        // Bekor qilinadigan posilka egalarini oldindan yig'amiz (xabar uchun).
+        // Bekor qilinadigan posilkalarni oldindan yig'amiz (xabar + qaytarish uchun).
         $affected = $trip->parcelBookings()
             ->whereIn('status', ['pending', 'confirmed'])
-            ->get(['id', 'user_id']);
+            ->get();
 
-        DB::transaction(function () use ($trip) {
+        $trip->loadMissing('startQuarter', 'endQuarter');
+        $parcelRepo = app(\App\Repositories\V1\ParcelBookingRepository::class);
+
+        DB::transaction(function () use ($trip, $affected, $parcelRepo) {
             // Parcelni nofaollashtiramiz (o'chirmaymiz).
             $trip->parcel->update(['is_active' => false]);
 
-            // Mavjud faol posilkalarni bekor qilamiz (o'chirmaymiz).
-            $trip->parcelBookings()
-                ->whereIn('status', ['pending', 'confirmed'])
-                ->update(['status' => 'cancelled']);
+            // Har bir faol posilkani bekor qilib, to'lovni mijozga qaytaramiz.
+            foreach ($affected as $b) {
+                $parcelRepo->forceCancelWithRefund($b, $trip);
+            }
         });
 
         // Har bir posilka egasiga o'z tilida xabar
@@ -676,6 +679,20 @@ class DriverController extends Controller
         $trip->parcel->update(['is_active' => true]);
 
         return back()->with('success', 'Pochta qabul qilish qayta yoqildi.');
+    }
+
+    /**
+     * Admin bitta posilkani (parcel booking) bekor qiladi.
+     * Ikki taraf ham zarar ko'rmaydi: mijozga to'liq summa qaytariladi,
+     * haydovchidan faqat olgan netto daromadi yechiladi (jarima yo'q),
+     * kompaniyadan xizmat haqi yechiladi, safar sig'imi tiklanadi.
+     */
+    public function cancelParcelBooking($parcelBookingId)
+    {
+        $repo = app(\App\Repositories\V1\ParcelBookingRepository::class);
+        $result = $repo->cancelByAdmin($parcelBookingId);
+
+        return back()->with($result['ok'] ? 'success' : 'error', $result['message']);
     }
 
     public function documents($driverId)
@@ -807,6 +824,8 @@ class DriverController extends Controller
                 'trip.startDistrict', 'trip.endDistrict',
                 'trip.startRegion', 'trip.endRegion',
                 'trip.startPoint', 'trip.endPoint',
+                'trip.parcel.types',
+                'trip.parcelBookings.type', 'trip.parcelBookings.user',
             ])
             ->orderBy('created_at', 'desc')
             ->paginate(20);

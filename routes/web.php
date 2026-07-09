@@ -115,6 +115,8 @@ Route::middleware(['can:admin', 'auth'])->group(function () {
         ->name('drivers.trip.parcel.disable');
     Route::post('/drivers/trip/{tripId}/parcel/enable', [DriverController::class, 'enableParcel'])
         ->name('drivers.trip.parcel.enable');
+    Route::post('/drivers/parcel-booking/{parcelBookingId}/cancel', [DriverController::class, 'cancelParcelBooking'])
+        ->name('drivers.parcel.cancel');
 
         Route::delete('drivers/{driver}/delete-driver', [DriverController::class, 'deleteDriver'])
         ->name('drivers.delete');

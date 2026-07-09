@@ -69,6 +69,32 @@
                                             $er = $t->endRegion->name_uz ?? ($t->endRegion->name ?? '');
                                             $from = implode(', ', array_filter([$sq, $sd, $sr]));
                                             $to   = implode(', ', array_filter([$eq, $ed, $er]));
+
+                                            $parcelData = null;
+                                            if ($t->parcel) {
+                                                $parcelData = [
+                                                    'is_active'        => (bool) $t->parcel->is_active,
+                                                    'max_weight'       => $t->parcel->max_weight,
+                                                    'available_weight' => $t->parcel->available_weight ?? $t->parcel->max_weight,
+                                                    'price_per_kg'     => $t->parcel->price_per_kg,
+                                                    'dims'             => ($t->parcel->max_length || $t->parcel->max_width || $t->parcel->max_height)
+                                                        ? [$t->parcel->max_length, $t->parcel->max_width, $t->parcel->max_height] : null,
+                                                    'types'            => $t->parcel->types->pluck('name_uz')->values(),
+                                                    'bookings'         => $t->parcelBookings->map(function ($pb) {
+                                                        return [
+                                                            'sender'      => trim(($pb->user->first_name ?? '') . ' ' . ($pb->user->last_name ?? '')) ?: 'N/A',
+                                                            'phone'       => $pb->user->phone ?? null,
+                                                            'receiver'    => $pb->receiver_phone ?? null,
+                                                            'type'        => $pb->type->name_uz ?? null,
+                                                            'weight'      => $pb->weight,
+                                                            'dims'        => ($pb->length || $pb->width || $pb->height) ? [$pb->length, $pb->width, $pb->height] : null,
+                                                            'price'       => number_format($pb->total_price, 0, '.', ' '),
+                                                            'status'      => $pb->status,
+                                                            'description' => $pb->parcel_description ?? null,
+                                                        ];
+                                                    })->values(),
+                                                ];
+                                            }
                                         @endphp
                                         <button type="button" class="btn btn-sm btn-outline-primary rounded-3 trip-btn"
                                                 data-bs-toggle="modal" data-bs-target="#tripModal"
@@ -81,7 +107,8 @@
                                                 data-start-lat="{{ $t->startPoint->lat ?? '' }}"
                                                 data-start-long="{{ $t->startPoint->long ?? '' }}"
                                                 data-end-lat="{{ $t->endPoint->lat ?? '' }}"
-                                                data-end-long="{{ $t->endPoint->long ?? '' }}">
+                                                data-end-long="{{ $t->endPoint->long ?? '' }}"
+                                                data-parcel="{{ $parcelData ? json_encode($parcelData, JSON_UNESCAPED_UNICODE) : '' }}">
                                             <i class="fas fa-route me-1"></i> {{ $sq ?: 'N/A' }} → {{ $eq ?: 'N/A' }}
                                         </button>
                                     @else
@@ -159,6 +186,12 @@
                         <li class="list-group-item d-flex justify-content-between"><span class="text-muted">O'rinlar</span><strong id="tm-seats" class="text-end"></strong></li>
                         <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Holat</span><strong id="tm-status" class="text-end"></strong></li>
                     </ul>
+
+                    {{-- Pochta (parcel) --}}
+                    <div class="mt-4">
+                        <div class="fw-bold mb-2"><i class="fas fa-box me-1 text-primary"></i> Pochta</div>
+                        <div id="tm-parcel"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -178,6 +211,8 @@
             document.getElementById('tm-seats').textContent  = d.seats;
             document.getElementById('tm-status').textContent = d.status;
 
+            renderParcel(d.parcel);
+
             setupPoint('tm-start-coord', 'tm-start-map', d.startLat, d.startLong);
             setupPoint('tm-end-coord',   'tm-end-map',   d.endLat,   d.endLong);
 
@@ -190,6 +225,76 @@
             }
         });
     });
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c];
+        });
+    }
+
+    function statusBadge(status) {
+        var s = (status || '').toLowerCase();
+        var cls = (s === 'cancelled' || s === 'rejected') ? 'bg-danger'
+                : (s === 'confirmed' ? 'bg-success' : 'bg-warning text-dark');
+        var label = status ? status.charAt(0).toUpperCase() + status.slice(1) : '—';
+        return '<span class="badge ' + cls + '">' + esc(label) + '</span>';
+    }
+
+    function renderParcel(raw) {
+        var box = document.getElementById('tm-parcel');
+        if (!box) return;
+
+        if (!raw) {
+            box.innerHTML = '<div class="text-muted small">Bu trip pochta qabul qilmaydi.</div>';
+            return;
+        }
+
+        var p;
+        try { p = JSON.parse(raw); } catch (e) { box.innerHTML = ''; return; }
+
+        var pills = [];
+        if (!p.is_active) {
+            pills.push('<span class="badge bg-danger"><i class="fas fa-ban me-1"></i>Nofaol</span>');
+        }
+        pills.push('<span class="badge bg-light text-dark border"><i class="fas fa-weight-hanging me-1"></i>Maks ' + esc(p.max_weight ?? '—') + ' kg</span>');
+        pills.push('<span class="badge" style="background:#dcfce7;color:#166534;"><i class="fas fa-box-open me-1"></i>Bo\'sh: ' + esc(p.available_weight ?? '—') + ' kg</span>');
+        pills.push('<span class="badge bg-light text-dark border"><i class="fas fa-coins me-1"></i>' + esc(p.price_per_kg ?? 0) + ' so\'m/kg</span>');
+        if (p.dims) {
+            pills.push('<span class="badge bg-light text-dark border"><i class="fas fa-ruler-combined me-1"></i>' + (p.dims[0] ?? '?') + '×' + (p.dims[1] ?? '?') + '×' + (p.dims[2] ?? '?') + ' sm</span>');
+        }
+        (p.types || []).forEach(function (t) {
+            pills.push('<span class="badge" style="background:#e0f2fe;color:#0369a1;">' + esc(t) + '</span>');
+        });
+
+        var html = '<div class="d-flex flex-wrap gap-2 mb-2">' + pills.join('') + '</div>';
+
+        var bookings = p.bookings || [];
+        html += '<div class="fw-semibold small text-muted mb-2"><i class="fas fa-inbox me-1"></i> Posilkalar (' + bookings.length + ')</div>';
+
+        if (!bookings.length) {
+            html += '<div class="text-muted small">Bu tripga posilka yuborilmagan.</div>';
+        } else {
+            bookings.forEach(function (b) {
+                var tags = [];
+                if (b.type) tags.push('<span class="badge" style="background:#e0f2fe;color:#0369a1;">' + esc(b.type) + '</span>');
+                tags.push('<span class="badge bg-light text-dark border"><i class="fas fa-weight-hanging me-1"></i>' + esc(b.weight) + ' kg</span>');
+                if (b.dims) tags.push('<span class="badge bg-light text-dark border"><i class="fas fa-ruler-combined me-1"></i>' + (b.dims[0] ?? '?') + '×' + (b.dims[1] ?? '?') + '×' + (b.dims[2] ?? '?') + ' sm</span>');
+                tags.push('<span class="badge bg-light text-dark border"><i class="fas fa-coins me-1"></i>' + esc(b.price) + ' so\'m</span>');
+
+                html += '<div class="border rounded-3 p-2 mb-2">'
+                     + '<div class="d-flex justify-content-between align-items-start gap-2">'
+                     + '<div><div class="fw-semibold"><i class="fas fa-user me-1 text-muted"></i>' + esc(b.sender) + '</div>'
+                     + (b.phone ? '<div class="text-muted small"><i class="fas fa-phone me-1"></i>' + esc(b.phone) + '</div>' : '')
+                     + (b.receiver ? '<div class="text-muted small"><i class="fas fa-user-check me-1"></i>Qabul qiluvchi: ' + esc(b.receiver) + '</div>' : '')
+                     + '</div>' + statusBadge(b.status) + '</div>'
+                     + '<div class="d-flex flex-wrap gap-2 mt-2">' + tags.join('') + '</div>'
+                     + (b.description ? '<div class="text-muted small mt-2"><i class="fas fa-note-sticky me-1"></i>' + esc(b.description) + '</div>' : '')
+                     + '</div>';
+            });
+        }
+
+        box.innerHTML = html;
+    }
 
     function setupPoint(coordId, mapId, lat, long) {
         const coordEl = document.getElementById(coordId);

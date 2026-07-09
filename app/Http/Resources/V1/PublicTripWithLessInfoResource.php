@@ -48,9 +48,11 @@ class PublicTripWithLessInfoResource extends JsonResource
             'end_long' => $this->endPoint->long,
             'status' => $this->status,
             'accepts_parcels' => (bool) optional($this->parcels->first())->is_active,
+            'accepts_parcels_info' => ' if accepts_parcels is true, then parcel will be accepted',
             'parcel' => optional($this->parcels->first())->is_active ? [
                 'id' => $this->parcels->first()->id,
                 'max_weight' => $this->parcels->first()->max_weight,
+                'available_weight' => $this->parcels->first()->available_weight,
                 'price_per_kg' => $this->parcels->first()->price_per_kg,
                 'max_length' => $this->parcels->first()->max_length,
                 'max_width' => $this->parcels->first()->max_width,

@@ -167,6 +167,7 @@ class DriverTripRepository
             if (!empty($data['accepts_parcels'])) {
                 $parcel = $trip->parcels()->create([
                     'max_weight' => $data['parcel']['max_weight'],
+                    'available_weight' => $data['parcel']['max_weight'], // boshida to'liq bo'sh
                     'price_per_kg' => $data['parcel']['price_per_kg'],
                     'max_length' => $data['parcel']['max_length'] ?? null,
                     'max_width' => $data['parcel']['max_width'] ?? null,

@@ -4,6 +4,10 @@ namespace App\Repositories\V1;
 
 use App\Models\V1\Trip;
 use App\Models\V1\ParcelBooking;
+use App\Models\UserBalance;
+use App\Models\BalanceTransaction;
+use App\Models\V1\CompanyBalance;
+use App\Models\V1\CompanyBalanceTransaction;
 use App\Http\Resources\V1\ParcelBookingResource;
 use App\Jobs\SendPushNotification;
 use Carbon\Carbon;
@@ -115,13 +119,14 @@ class ParcelBookingRepository
                 ], 422);
             }
 
-            // Og'irlik chegarasi
-            if (!is_null($parcel->max_weight) && $data['weight'] > $parcel->max_weight) {
+            // Sig'im chegarasi — qolgan bo'sh og'irlik (available_weight)
+            $available = $parcel->available_weight ?? $parcel->max_weight;
+            if (!is_null($available) && $data['weight'] > $available) {
                 DB::rollBack();
                 return $this->error([
-                    'uz' => "Og‘irlik chegaradan oshib ketdi (maksimal {$parcel->max_weight} kg)",
-                    'ru' => "Вес превышает лимит (максимум {$parcel->max_weight} кг)",
-                    'en' => "Weight exceeds the limit (max {$parcel->max_weight} kg)",
+                    'uz' => "Safarda faqat {$available} kg bo‘sh joy qoldi",
+                    'ru' => "В поездке осталось только {$available} кг свободного места",
+                    'en' => "Only {$available} kg of free space is left on this trip",
                 ], 422);
             }
 
@@ -138,6 +143,20 @@ class ParcelBookingRepository
             // Narx = og'irlik × kg narxi
             $pricePerKg = $parcel->price_per_kg ?? 0;
             $totalPrice = number_format((float) ($data['weight'] * $pricePerKg), 2, '.', '');
+
+            // Mijoz balansini tekshiramiz
+            $userBalance = UserBalance::where('user_id', auth()->id())
+                ->lockForUpdate()
+                ->firstOrCreate(['user_id' => auth()->id()], ['balance' => 0]);
+
+            if ($userBalance->balance < $totalPrice) {
+                DB::rollBack();
+                return $this->error([
+                    'uz' => 'Posilka uchun balansingiz yetarli emas',
+                    'ru' => 'Недостаточно средств для посылки',
+                    'en' => 'Insufficient balance for the parcel',
+                ], 422);
+            }
 
             $booking = ParcelBooking::create([
                 'parcel_id' => $parcel->id,
@@ -156,6 +175,12 @@ class ParcelBookingRepository
                 'status' => 'confirmed',
                 'expired_at' => $trip->end_time,
             ]);
+
+            // Sig'imni kamaytiramiz (trip lockForUpdate bilan serializatsiya qilingan)
+            $parcel->decrement('available_weight', (float) $data['weight']);
+
+            // Pul harakati: mijozdan yechish, driverga (netto), kompaniyaga (xizmat haqi)
+            $this->applyCharge($userBalance, $trip, $booking, (float) $totalPrice);
 
             DB::commit();
 
@@ -198,6 +223,169 @@ class ParcelBookingRepository
             }
         }
         return false;
+    }
+
+    protected function serviceFeePercent(): float
+    {
+        return (float) (config('services.fees.service_fee_for_compliting_order') ?: 5);
+    }
+
+    /**
+     * Admin/tashqi chaqiruv uchun: posilkani bekor qilib, to'lovni qaytaradi.
+     * DB tranzaksiyasi ichida, $trip bloklangan holda chaqirilishi kerak.
+     * $trip startQuarter/endQuarter bilan yuklangan bo'lishi kerak.
+     */
+    public function forceCancelWithRefund(ParcelBooking $booking, Trip $trip): void
+    {
+        if (!in_array($booking->status, ['pending', 'confirmed'])) {
+            return;
+        }
+
+        $wasConfirmed = $booking->status === 'confirmed';
+        $booking->update(['status' => 'cancelled']);
+
+        if ($wasConfirmed) {
+            $this->applyRefund($trip, $booking);
+        }
+    }
+
+    /**
+     * Posilka to'lovi: mijozdan yechish, driverga (netto), kompaniyaga (xizmat haqi).
+     * Chaqirilishidan oldin balans yetarliligi tekshirilgan bo'lishi kerak.
+     */
+    protected function applyCharge(UserBalance $userBalance, Trip $trip, ParcelBooking $booking, float $totalPrice): void
+    {
+        $serviceFee = round($totalPrice * $this->serviceFeePercent() / 100, 2);
+        $netIncome = round($totalPrice - $serviceFee, 2);
+
+        $from = $trip->startQuarter->name ?? '';
+        $to = $trip->endQuarter->name ?? '';
+
+        // Mijozdan yechish
+        $clientBefore = $userBalance->balance;
+        $userBalance->decrement('balance', $totalPrice);
+        BalanceTransaction::create([
+            'user_id' => $booking->user_id,
+            'type' => 'debit',
+            'amount' => $totalPrice,
+            'balance_before' => $clientBefore,
+            'balance_after' => $clientBefore - $totalPrice,
+            'trip_id' => $trip->id,
+            'reference_id' => $booking->id,
+            'status' => 'success',
+            'currency' => 'UZS',
+            'reason' => "Posilka to'lovi ({$from} → {$to}), {$booking->weight} kg.",
+        ]);
+
+        // Driverga netto
+        $driverBalance = UserBalance::where('user_id', $trip->driver_id)
+            ->lockForUpdate()
+            ->firstOrCreate(['user_id' => $trip->driver_id], ['balance' => 0]);
+        $driverBefore = $driverBalance->balance;
+        $driverBalance->increment('balance', $netIncome);
+        BalanceTransaction::create([
+            'user_id' => $trip->driver_id,
+            'type' => 'credit',
+            'amount' => $netIncome,
+            'balance_before' => $driverBefore,
+            'balance_after' => $driverBefore + $netIncome,
+            'trip_id' => $trip->id,
+            'reference_id' => $booking->id,
+            'status' => 'success',
+            'currency' => 'UZS',
+            'reason' => "Posilka daromadi ({$from} → {$to}), {$booking->weight} kg. Xizmat haqi: {$serviceFee} UZS.",
+        ]);
+
+        // Kompaniyaga xizmat haqi
+        $company = CompanyBalance::lockForUpdate()->first()
+            ?: CompanyBalance::create(['balance' => 0, 'total_income' => 0]);
+        $companyBefore = $company->balance;
+        $company->increment('balance', $serviceFee);
+        $company->increment('total_income', $serviceFee);
+        CompanyBalanceTransaction::create([
+            'company_balance_id' => $company->id,
+            'amount' => $serviceFee,
+            'balance_before' => $companyBefore,
+            'balance_after' => $companyBefore + $serviceFee,
+            'trip_id' => $trip->id,
+            'type' => 'income',
+            'reason' => "Posilka xizmat haqi ({$from} → {$to}).",
+            'currency' => 'UZS',
+        ]);
+    }
+
+    /**
+     * Posilka bekor qilinganda to'lovni qaytarish (to'liq):
+     * mijozga qaytarish, driverdan netto yechish, kompaniyadan xizmat haqi yechish.
+     */
+    protected function applyRefund(Trip $trip, ParcelBooking $booking): void
+    {
+        $totalPrice = (float) $booking->total_price;
+        if ($totalPrice <= 0) {
+            return;
+        }
+
+        $serviceFee = round($totalPrice * $this->serviceFeePercent() / 100, 2);
+        $netIncome = round($totalPrice - $serviceFee, 2);
+
+        $from = $trip->startQuarter->name ?? '';
+        $to = $trip->endQuarter->name ?? '';
+
+        // Mijozga qaytarish
+        $userBalance = UserBalance::where('user_id', $booking->user_id)
+            ->lockForUpdate()
+            ->firstOrCreate(['user_id' => $booking->user_id], ['balance' => 0]);
+        $clientBefore = $userBalance->balance;
+        $userBalance->increment('balance', $totalPrice);
+        BalanceTransaction::create([
+            'user_id' => $booking->user_id,
+            'type' => 'credit',
+            'amount' => $totalPrice,
+            'balance_before' => $clientBefore,
+            'balance_after' => $clientBefore + $totalPrice,
+            'trip_id' => $trip->id,
+            'reference_id' => $booking->id,
+            'status' => 'success',
+            'currency' => 'UZS',
+            'reason' => "Posilka bekor qilindi — qaytarish ({$from} → {$to}).",
+        ]);
+
+        // Driverdan netto yechish
+        $driverBalance = UserBalance::where('user_id', $trip->driver_id)
+            ->lockForUpdate()
+            ->firstOrCreate(['user_id' => $trip->driver_id], ['balance' => 0]);
+        $driverBefore = $driverBalance->balance;
+        $driverBalance->decrement('balance', $netIncome);
+        BalanceTransaction::create([
+            'user_id' => $trip->driver_id,
+            'type' => 'debit',
+            'amount' => $netIncome,
+            'balance_before' => $driverBefore,
+            'balance_after' => $driverBefore - $netIncome,
+            'trip_id' => $trip->id,
+            'reference_id' => $booking->id,
+            'status' => 'success',
+            'currency' => 'UZS',
+            'reason' => "Posilka bekor qilindi — daromad qaytarildi ({$from} → {$to}).",
+        ]);
+
+        // Kompaniyadan xizmat haqi yechish
+        $company = CompanyBalance::lockForUpdate()->first();
+        if ($company) {
+            $companyBefore = $company->balance;
+            $company->decrement('balance', $serviceFee);
+            $company->decrement('total_income', $serviceFee);
+            CompanyBalanceTransaction::create([
+                'company_balance_id' => $company->id,
+                'amount' => $serviceFee,
+                'balance_before' => $companyBefore,
+                'balance_after' => $companyBefore - $serviceFee,
+                'trip_id' => $trip->id,
+                'type' => 'outgoing',
+                'reason' => "Posilka bekor qilindi — xizmat haqi qaytarildi ({$from} → {$to}).",
+                'currency' => 'UZS',
+            ]);
+        }
     }
 
     /**
@@ -269,7 +457,25 @@ class ParcelBookingRepository
                 ], 422);
             }
 
+            // Safarni bloklab olamiz (sig'im/balans bilan ishlash uchun)
+            $trip = Trip::with('startQuarter', 'endQuarter', 'parcel')
+                ->where('id', $booking->trip_id)
+                ->lockForUpdate()
+                ->first();
+
+            $wasConfirmed = $booking->status === 'confirmed';
             $booking->update(['status' => 'cancelled']);
+
+            if ($trip) {
+                // Sig'imni tiklaymiz
+                if ($trip->parcel) {
+                    $trip->parcel->increment('available_weight', (float) $booking->weight);
+                }
+                // To'lovni qaytaramiz
+                if ($wasConfirmed) {
+                    $this->applyRefund($trip, $booking);
+                }
+            }
 
             DB::commit();
 
@@ -297,6 +503,82 @@ class ParcelBookingRepository
                 'status' => 'error',
                 'message' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * Admin bitta posilkani bekor qiladi.
+     * Ikki taraf ham zarar ko'rmaydi — hamma booking oldingi holatiga qaytadi:
+     *  - Mijozga to'liq summa qaytariladi,
+     *  - Haydovchidan faqat olgan netto daromadi yechiladi (jarima yo'q),
+     *  - Kompaniyadan xizmat haqi yechiladi,
+     *  - Safar sig'imi (available_weight) tiklanadi.
+     * Web (admin) uchun mo'ljallangan — ['ok' => bool, 'message' => string] qaytaradi.
+     */
+    public function cancelByAdmin($id): array
+    {
+        try {
+            DB::beginTransaction();
+
+            $booking = ParcelBooking::where('id', $id)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$booking) {
+                DB::rollBack();
+                return ['ok' => false, 'message' => 'Posilka topilmadi.'];
+            }
+
+            if (!in_array($booking->status, ['pending', 'confirmed'])) {
+                DB::rollBack();
+                return ['ok' => false, 'message' => 'Bu posilkani bekor qilib bo‘lmaydi (holat: ' . ucfirst($booking->status) . ').'];
+            }
+
+            // Safarni bloklab olamiz (sig'im/balans bilan ishlash uchun)
+            $trip = Trip::with('startQuarter', 'endQuarter', 'parcel')
+                ->where('id', $booking->trip_id)
+                ->lockForUpdate()
+                ->first();
+
+            $wasConfirmed = $booking->status === 'confirmed';
+            $booking->update(['status' => 'cancelled']);
+
+            if ($trip) {
+                // Sig'imni tiklaymiz
+                if ($trip->parcel) {
+                    $trip->parcel->increment('available_weight', (float) $booking->weight);
+                }
+                // To'lovni to'liq qaytaramiz (ikki taraf ham zarar ko'rmaydi)
+                if ($wasConfirmed) {
+                    $this->applyRefund($trip, $booking);
+                }
+            }
+
+            DB::commit();
+
+            // Mijoz (jo'natuvchi) va haydovchiga xabar
+            if ($trip) {
+                SendPushNotification::dispatch($booking->user_id, 'parcel.cancelled_by_admin', [
+                    'from' => $trip->startQuarter->name ?? '',
+                    'to' => $trip->endQuarter->name ?? '',
+                ], [
+                    'trip_id' => (string) $trip->id,
+                    'parcel_booking_id' => (string) $booking->id,
+                ]);
+
+                SendPushNotification::dispatch($trip->driver_id, 'parcel.cancelled_by_admin_driver', [
+                    'from' => $trip->startQuarter->name ?? '',
+                    'to' => $trip->endQuarter->name ?? '',
+                ], [
+                    'trip_id' => (string) $trip->id,
+                    'parcel_booking_id' => (string) $booking->id,
+                ]);
+            }
+
+            return ['ok' => true, 'message' => 'Posilka bekor qilindi. Mijozga to‘liq qaytarildi, haydovchidan olgan daromadi yechildi — ikki taraf ham zarar ko‘rmadi.'];
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return ['ok' => false, 'message' => 'Xatolik: ' . $e->getMessage()];
         }
     }
 

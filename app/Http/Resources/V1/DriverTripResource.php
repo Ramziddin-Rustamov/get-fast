@@ -81,8 +81,11 @@ class DriverTripResource extends JsonResource
             'parcel' => $this->parcels->first() ? [
                 'id' => $this->parcels->first()->id,
                 'is_active' => (bool) $this->parcels->first()->is_active,
+                'is_active_info' => 'if true, this parcel can be accepted for this trip if not active, it will not be accepted',
                 'max_weight' => $this->parcels->first()->max_weight,
+                'available_weight' => $this->parcels->first()->available_weight,
                 'price_per_kg' => $this->parcels->first()->price_per_kg,
+                'demension_info' => 'height, width, length in cm' ,
                 'max_length' => $this->parcels->first()->max_length,
                 'max_width' => $this->parcels->first()->max_width,
                 'max_height' => $this->parcels->first()->max_height,
@@ -98,7 +101,6 @@ class DriverTripResource extends JsonResource
                 'id' => $this->driver->id,
                 'first_name' => $this->driver->first_name ?? null,
                 'last_name' => $this->driver->last_name ?? null,
-                'email' => $this->driver->email ?? null,
                 'phone' => $this->driver->phone ?? null,
 
                 'role' => $this->driver->role ?? null,

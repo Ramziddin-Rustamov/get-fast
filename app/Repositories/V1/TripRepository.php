@@ -92,6 +92,7 @@ class TripRepository
             if (!empty($data['accepts_parcels'])) {
                 $parcel = $trip->parcels()->create([
                     'max_weight' => $data['parcel']['max_weight'] ?? null,
+                    'available_weight' => $data['parcel']['max_weight'] ?? null,
                     'price_per_kg' => $data['parcel']['price_per_kg'] ?? null,
                     'max_length' => $data['parcel']['max_length'] ?? null,
                     'max_width' => $data['parcel']['max_width'] ?? null,
