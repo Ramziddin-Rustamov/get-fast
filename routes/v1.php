@@ -47,6 +47,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\ParcelBookingController::class, 'index']);
         Route::post('/', [App\Http\Controllers\Api\V1\ParcelBookingController::class, 'store']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\ParcelBookingController::class, 'show']);
+        Route::patch('/{id}/location', [App\Http\Controllers\Api\V1\ParcelBookingController::class, 'updateLocation']);
         Route::delete('/{id}/cancel', [App\Http\Controllers\Api\V1\ParcelBookingController::class, 'cancel']);
     });
 

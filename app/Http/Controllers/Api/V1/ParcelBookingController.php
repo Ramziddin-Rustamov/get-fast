@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\ClientParcelBookingStoreRequest;
+use App\Http\Requests\V1\UpdateParcelBookingLocationRequest;
 use App\Services\V1\ParcelBookingService;
 
 /**
@@ -31,6 +32,11 @@ class ParcelBookingController extends Controller
     public function show($id)
     {
         return $this->service->show($id);
+    }
+
+    public function updateLocation(UpdateParcelBookingLocationRequest $request, $id)
+    {
+        return $this->service->updateLocation($id, $request->validated());
     }
 
     public function cancel($id)

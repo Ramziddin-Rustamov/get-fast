@@ -22,6 +22,10 @@ class ParcelBookingResource extends JsonResource
             'height' => $this->height,
             'total_price' => $this->total_price,
             'receiver_phone' => $this->receiver_phone,
+            'pickup_lat' => $this->pickup_lat,
+            'pickup_long' => $this->pickup_long,
+            'dropoff_lat' => $this->dropoff_lat,
+            'dropoff_long' => $this->dropoff_long,
             'parcel_description' => $this->parcel_description,
             'created_at' => $this->created_at ? Carbon::parse($this->created_at)->format('Y-m-d H:i:s') : null,
 

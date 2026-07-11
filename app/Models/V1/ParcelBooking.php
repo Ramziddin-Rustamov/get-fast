@@ -13,6 +13,10 @@ class ParcelBooking extends Model
         'parcel_type_id',
         'user_id',
         'receiver_phone',
+        'pickup_lat',
+        'pickup_long',
+        'dropoff_lat',
+        'dropoff_long',
         'parcel_description',
         'weight',
         'length',
@@ -27,6 +31,10 @@ class ParcelBooking extends Model
         'weight' => 'float',
         'total_price' => 'decimal:2',
         'expired_at' => 'datetime',
+        'pickup_lat' => 'float',
+        'pickup_long' => 'float',
+        'dropoff_lat' => 'float',
+        'dropoff_long' => 'float',
     ];
 
     public function user()

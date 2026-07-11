@@ -29,6 +29,11 @@ class ParcelBookingService
         return $this->repository->getBookingById($id);
     }
 
+    public function updateLocation($id, array $data)
+    {
+        return $this->repository->updateLocation($id, $data);
+    }
+
     public function cancel($id)
     {
         return $this->repository->cancelByClient($id);

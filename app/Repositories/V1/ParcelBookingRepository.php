@@ -164,6 +164,10 @@ class ParcelBookingRepository
                 'parcel_type_id' => $data['parcel_type_id'],
                 'user_id' => auth()->id(),
                 'receiver_phone' => $data['receiver_phone'],
+                'pickup_lat' => $data['pickup_lat'] ?? null,
+                'pickup_long' => $data['pickup_long'] ?? null,
+                'dropoff_lat' => $data['dropoff_lat'] ?? null,
+                'dropoff_long' => $data['dropoff_long'] ?? null,
                 'parcel_description' => $data['parcel_description'] ?? null,
                 'weight' => $data['weight'],
                 'length' => $data['length'] ?? null,
@@ -388,6 +392,96 @@ class ParcelBookingRepository
         }
     }
 
+    protected function applyClientCancellationCharge(Trip $trip, ParcelBooking $booking): void
+    {
+        $total = (float) $booking->total_price;
+        if ($total <= 0) {
+            return;
+        }
+
+        // Booking paytidagi taqsimot: kompaniya haqi va driver netto
+        $bookingServiceFee = round($total * $this->serviceFeePercent() / 100, 2);
+        $driverNet         = round($total - $bookingServiceFee, 2);
+
+        // Bekor qilish jarimasi (mijozdan) va driver kompensatsiyasi (foizlar .env dan)
+        $cancelationFeePercent   = (float) config('services.fees.service_fee_for_canceling_order', 5);
+        $driverCommissionPercent = (float) config('services.fees.service_fee_for_drivers_for_client_cancel_the_booking', 1);
+
+        $cancelationFee   = round($total * $cancelationFeePercent / 100, 2);   // mijozdan ushlab qolinadi
+        $refundForClient  = round($total - $cancelationFee, 2);                // mijozga qaytadi
+        $driverCommission = round($total * $driverCommissionPercent / 100, 2); // driverga kompensatsiya
+        $companyKept      = round($cancelationFee - $driverCommission, 2);     // kompaniya sof oladi
+
+        $from = $trip->startQuarter->name ?? '';
+        $to   = $trip->endQuarter->name ?? '';
+
+        // === MIJOZGA QAYTARISH (total − cancelation fee) ===
+        $userBalance = UserBalance::where('user_id', $booking->user_id)
+            ->lockForUpdate()
+            ->firstOrCreate(['user_id' => $booking->user_id], ['balance' => 0]);
+        $clientBefore = $userBalance->balance;
+        $userBalance->increment('balance', $refundForClient);
+        BalanceTransaction::create([
+            'user_id' => $booking->user_id,
+            'type' => 'credit',
+            'amount' => $refundForClient,
+            'balance_before' => $clientBefore,
+            'balance_after' => $clientBefore + $refundForClient,
+            'trip_id' => $trip->id,
+            'reference_id' => $booking->id,
+            'status' => 'success',
+            'currency' => 'UZS',
+            'reason' => "Posilka bekor qilindi ({$from} → {$to}). Qaytarilgan: {$refundForClient} UZS, bekor qilish komissiyasi: {$cancelationFee} UZS.",
+        ]);
+
+        // === DRIVER: faqat NET yechiladi, kompensatsiya qo'shiladi ===
+        $driverDelta = round($driverCommission - $driverNet, 2);
+        $driverBalance = UserBalance::where('user_id', $trip->driver_id)
+            ->lockForUpdate()
+            ->firstOrCreate(['user_id' => $trip->driver_id], ['balance' => 0]);
+        $driverBefore = $driverBalance->balance;
+        if ($driverDelta >= 0) {
+            $driverBalance->increment('balance', $driverDelta);
+        } else {
+            $driverBalance->decrement('balance', abs($driverDelta));
+        }
+        BalanceTransaction::create([
+            'user_id' => $trip->driver_id,
+            'type' => $driverDelta >= 0 ? 'credit' : 'debit',
+            'amount' => abs($driverDelta),
+            'balance_before' => $driverBefore,
+            'balance_after' => $driverBefore + $driverDelta,
+            'trip_id' => $trip->id,
+            'reference_id' => $booking->id,
+            'status' => 'success',
+            'currency' => 'UZS',
+            'reason' => "Posilka mijoz tomonidan bekor qilindi ({$from} → {$to}). Sizdan olingan NET: {$driverNet} UZS, kompensatsiya: {$driverCommission} UZS.",
+        ]);
+
+        // === KOMPANIYA: booking haqini qaytaradi, jarimani oladi, kompensatsiyani to'laydi ===
+        $companyDelta = round($cancelationFee - $bookingServiceFee - $driverCommission, 2);
+        $company = CompanyBalance::lockForUpdate()->first()
+            ?: CompanyBalance::create(['balance' => 0, 'total_income' => 0]);
+        $companyBefore = $company->balance;
+        if ($companyDelta >= 0) {
+            $company->increment('balance', $companyDelta);
+            $company->increment('total_income', $companyDelta);
+        } else {
+            $company->decrement('balance', abs($companyDelta));
+            $company->decrement('total_income', abs($companyDelta));
+        }
+        CompanyBalanceTransaction::create([
+            'company_balance_id' => $company->id,
+            'amount' => abs($companyDelta),
+            'balance_before' => $companyBefore,
+            'balance_after' => $companyBefore + $companyDelta,
+            'trip_id' => $trip->id,
+            'type' => $companyDelta >= 0 ? 'income' : 'outgoing',
+            'reason' => "Posilka bekor qilindi ({$from} → {$to}). Kompaniya sof: {$companyKept} UZS (jarima {$cancelationFee} − driver kompensatsiyasi {$driverCommission}).",
+            'currency' => 'UZS',
+        ]);
+    }
+
     /**
      * Mijozning o'z posilka so'rovlari.
      */
@@ -423,6 +517,59 @@ class ParcelBookingRepository
             'uz' => 'Posilka so‘rovi olindi',
             'ru' => 'Запрос на посылку получен',
             'en' => 'Parcel request fetched',
+        ], new ParcelBookingResource($booking));
+    }
+
+    /**
+     * Mijoz o'z posilkasining olib ketish (pickup) va topshirish (dropoff)
+     * nuqtalarini yangilaydi. Faqat safar boshlanishidan oldin va posilka
+     * hali faol (pending/confirmed) bo'lganda mumkin.
+     */
+    public function updateLocation($id, array $data)
+    {
+        $booking = ParcelBooking::where('user_id', auth()->id())
+            ->where('id', $id)
+            ->first();
+
+        if (!$booking) {
+            return $this->error([
+                'uz' => 'Posilka so‘rovi topilmadi',
+                'ru' => 'Запрос на посылку не найден',
+                'en' => 'Parcel request not found',
+            ], 404);
+        }
+
+        if (!in_array($booking->status, ['pending', 'confirmed'])) {
+            return $this->error([
+                'uz' => 'Bu posilka manzilini o‘zgartirib bo‘lmaydi',
+                'ru' => 'Локацию этой посылки нельзя изменить',
+                'en' => 'This parcel location cannot be changed',
+            ], 422);
+        }
+
+        // Faqat safar boshlanishidan oldin
+        $trip = $booking->trip;
+        if ($trip && Carbon::now()->greaterThanOrEqualTo(Carbon::parse($trip->start_time))) {
+            return $this->error([
+                'uz' => 'Safar boshlangani uchun manzilni o‘zgartirib bo‘lmaydi',
+                'ru' => 'Поездка началась, локацию нельзя изменить',
+                'en' => 'The trip has already started, the location cannot be changed',
+            ], 422);
+        }
+
+        $booking->update([
+            'pickup_lat' => $data['pickup_lat'],
+            'pickup_long' => $data['pickup_long'],
+            'dropoff_lat' => $data['dropoff_lat'],
+            'dropoff_long' => $data['dropoff_long'],
+        ]);
+
+        $booking->load('trip', 'type', 'user');
+
+        return $this->ok([
+            'uz' => 'Posilka manzili yangilandi',
+            'ru' => 'Локация посылки обновлена',
+            'en' => 'Parcel location updated',
         ], new ParcelBookingResource($booking));
     }
 
@@ -463,18 +610,40 @@ class ParcelBookingRepository
                 ->lockForUpdate()
                 ->first();
 
+            if (!$trip) {
+                DB::rollBack();
+                return $this->error([
+                    'uz' => 'Safar topilmadi',
+                    'ru' => 'Поездка не найдена',
+                    'en' => 'Trip not found',
+                ], 404);
+            }
+
+            // Faqat safar boshlanishidan oldin bekor qilish mumkin
+            if (Carbon::now()->greaterThanOrEqualTo(Carbon::parse($trip->start_time))) {
+                DB::rollBack();
+                return $this->error([
+                    'uz' => 'Safar boshlangani uchun posilkani bekor qilib bo‘lmaydi',
+                    'ru' => 'Поездка уже началась, посылку нельзя отменить',
+                    'en' => 'The trip has already started, the parcel cannot be cancelled',
+                ], 422);
+            }
+
             $wasConfirmed = $booking->status === 'confirmed';
             $booking->update(['status' => 'cancelled']);
 
-            if ($trip) {
-                // Sig'imni tiklaymiz
-                if ($trip->parcel) {
-                    $trip->parcel->increment('available_weight', (float) $booking->weight);
-                }
-                // To'lovni qaytaramiz
-                if ($wasConfirmed) {
-                    $this->applyRefund($trip, $booking);
-                }
+            // Sig'imni tiklaymiz
+            if ($trip->parcel) {
+                $trip->parcel->increment('available_weight', (float) $booking->weight);
+            }
+
+            // Pul hisob-kitobi (trip/booking bekor qilish logikasi kabi):
+            //  - mijozdan bekor qilish jarimasi ushlab qolinadi,
+            //  - driverdan faqat NET (booking paytida olgan sof daromadi) yechiladi,
+            //  - driverga kompensatsiya to'lanadi,
+            //  - qolgan pul kompaniya hisobida qoladi.
+            if ($wasConfirmed) {
+                $this->applyClientCancellationCharge($trip, $booking);
             }
 
             DB::commit();
@@ -583,7 +752,6 @@ class ParcelBookingRepository
     }
 
     // ============================= DRIVER =============================
-
     /**
      * Haydovchining barcha safarlariga kelgan posilka so'rovlari.
      */

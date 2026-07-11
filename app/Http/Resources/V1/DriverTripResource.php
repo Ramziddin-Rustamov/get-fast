@@ -39,13 +39,33 @@ class DriverTripResource extends JsonResource
             ? $this->endPoint->lat . ',' . $this->endPoint->long
             : null;
 
-        $waypoints = $this->bookings->flatMap(function ($booking) {
+        // Yo'lovchilarni olib olish nuqtalari (tasdiqlangan)
+        $passengerWaypoints = $this->bookings->flatMap(function ($booking) {
             return $booking->passengers
                 ->where('status', 'confirmed')
                 ->map(function ($passenger) {
                     return $passenger->latitude . ',' . $passenger->longitude;
                 });
-        })->filter()->implode('|');
+        });
+
+        // Posilkalarni olib ketish (pickup) va topshirish (dropoff) nuqtalari (tasdiqlangan)
+        $parcelWaypoints = $this->parcelBookings
+            ->where('status', 'confirmed')
+            ->flatMap(function ($parcelBooking) {
+                $points = [];
+                if (!is_null($parcelBooking->pickup_lat) && !is_null($parcelBooking->pickup_long)) {
+                    $points[] = $parcelBooking->pickup_lat . ',' . $parcelBooking->pickup_long;
+                }
+                if (!is_null($parcelBooking->dropoff_lat) && !is_null($parcelBooking->dropoff_long)) {
+                    $points[] = $parcelBooking->dropoff_lat . ',' . $parcelBooking->dropoff_long;
+                }
+                return $points;
+            });
+
+        $waypoints = $passengerWaypoints
+            ->merge($parcelWaypoints)
+            ->filter()
+            ->implode('|');
 
         // final google maps url
         $googleMapUrl = ($origin && $destination)
@@ -163,6 +183,10 @@ class DriverTripResource extends JsonResource
                     'user_id' => $parcelBooking->user_id,
                     'status' => $parcelBooking->status,
                     'receiver_phone' => $parcelBooking->receiver_phone,
+                    'pickup_lat' => $parcelBooking->pickup_lat,
+                    'pickup_long' => $parcelBooking->pickup_long,
+                    'dropoff_lat' => $parcelBooking->dropoff_lat,
+                    'dropoff_long' => $parcelBooking->dropoff_long,
                     'parcel_description' => $parcelBooking->parcel_description,
                     'weight' => $parcelBooking->weight,
                     'length' => $parcelBooking->length,
