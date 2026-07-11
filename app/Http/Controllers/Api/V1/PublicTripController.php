@@ -169,7 +169,7 @@ class PublicTripController extends Controller
             $returnDate    = $request->query('return_date');
 
             SearchLog::create([
-                'user_id'           => auth()->id(),
+                'user_id'           => auth()->user()->id,
                 'start_region_id'   => $startRegion,
                 'start_district_id' => $startDistrict,
                 'start_quarter_id'  => $startQuarter,

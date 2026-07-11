@@ -156,6 +156,35 @@ class DriverTripResource extends JsonResource
                     })
                 ];
             }),
+            'parcel_bookings' => $this->parcelBookings->map(function ($parcelBooking) use ($lang) {
+                return [
+                    'id' => $parcelBooking->id,
+                    'trip_id' => $parcelBooking->trip_id,
+                    'user_id' => $parcelBooking->user_id,
+                    'status' => $parcelBooking->status,
+                    'receiver_phone' => $parcelBooking->receiver_phone,
+                    'parcel_description' => $parcelBooking->parcel_description,
+                    'weight' => $parcelBooking->weight,
+                    'length' => $parcelBooking->length,
+                    'width' => $parcelBooking->width,
+                    'height' => $parcelBooking->height,
+                    'total_price' => $parcelBooking->total_price,
+                    'expired_at' => $parcelBooking->expired_at,
+                    'created_at' => $parcelBooking->created_at,
+                    'type' => $parcelBooking->type ? [
+                        'id' => $parcelBooking->type->id,
+                        'name' => $parcelBooking->type->{'name_' . $lang} ?? $parcelBooking->type->name_uz,
+                        'icon' => $parcelBooking->type->icon,
+                    ] : null,
+                    'sent_by_user' => $parcelBooking->user ? [
+                        'id' => $parcelBooking->user->id,
+                        'first_name' => $parcelBooking->user->first_name,
+                        'last_name' => $parcelBooking->user->last_name,
+                        'phone' => $parcelBooking->user->phone,
+                        'email' => $parcelBooking->user->email,
+                    ] : null,
+                ];
+            }),
         ];
     }
 }

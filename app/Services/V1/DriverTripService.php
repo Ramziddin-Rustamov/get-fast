@@ -48,4 +48,9 @@ class DriverTripService
     {
         return $this->driverTripRepository->getCompletedTrips();
     }
+
+    public function toggleParcelAcceptance($tripId)
+    {
+        return $this->driverTripRepository->toggleParcelAcceptance($tripId);
+    }
 }

@@ -58,4 +58,9 @@ class DriverTripController extends Controller
     {
         return $this->driverTripService->getCompletedTrips();
     }
+
+    public function toggleParcelAcceptance($id)
+    {
+        return $this->driverTripService->toggleParcelAcceptance($id);
+    }
 }

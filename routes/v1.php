@@ -64,6 +64,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/get-canceled-trips/driver', [App\Http\Controllers\Api\V1\DriverTripController::class, 'getCanceledTrips']);
         Route::get('/get-active-trips/driver', [App\Http\Controllers\Api\V1\DriverTripController::class, 'getActiveTrips']);
         Route::get('/get-completed-trips/driver', [App\Http\Controllers\Api\V1\DriverTripController::class, 'getCompletedTrips']);
+        Route::patch('/{id}/toggle-parcel-acceptance', [App\Http\Controllers\Api\V1\DriverTripController::class, 'toggleParcelAcceptance']);
     });
 
     Route::prefix('client/trips')->group(function () {

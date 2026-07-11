@@ -648,4 +648,68 @@ class DriverTripRepository
             ]
         ], 200);
     }
+
+    public function toggleParcelAcceptance($tripId)
+    {
+        $authLang = auth()->user()->authLanguage->language ?? 'uz';
+
+        $trip = Trip::where('id', $tripId)
+            ->where('driver_id', auth()->id())
+            ->first();
+
+        if (!$trip) {
+            $messages = [
+                'uz' => 'Safar topilmadi',
+                'ru' => 'Поездка не найдена',
+                'en' => 'Trip not found',
+            ];
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $messages[$authLang] ?? $messages['uz'],
+                'data' => null,
+            ], 404);
+        }
+
+        $parcel = $trip->parcels()->first();
+
+        if (!$parcel) {
+            $messages = [
+                'uz' => 'Bu safar uchun pochta sozlamasi mavjud emas',
+                'ru' => 'Для этой поездки нет настроек посылок',
+                'en' => 'There is no parcel setting for this trip',
+            ];
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $messages[$authLang] ?? $messages['uz'],
+                'data' => null,
+            ], 404);
+        }
+
+        // Statusni teskarisiga o'zgartiramiz (true <-> false)
+        $parcel->update(['is_active' => !$parcel->is_active]);
+
+        $messages = $parcel->is_active
+            ? [
+                'uz' => 'Endi bu safar uchun pochta qabul qilinadi',
+                'ru' => 'Теперь для этой поездки принимаются посылки',
+                'en' => 'Parcels are now accepted for this trip',
+            ]
+            : [
+                'uz' => 'Endi bu safar uchun pochta qabul qilinmaydi',
+                'ru' => 'Теперь для этой поездки посылки не принимаются',
+                'en' => 'Parcels are no longer accepted for this trip',
+            ];
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $messages[$authLang] ?? $messages['uz'],
+            'data' => [
+                'trip_id' => $trip->id,
+                'parcel_id' => $parcel->id,
+                'accepts_parcels' => (bool) $parcel->is_active,
+            ],
+        ], 200);
+    }
 }
