@@ -232,4 +232,33 @@ class PublicTripController extends Controller
             'data' => new PublicTripResource($trip)
         ], 200);
     }
+
+
+    public function getTripDriver($id)
+    {
+         $trip = Trip::find($id);
+         $userLang = $this->getUserLang();
+         if(is_null($trip)){
+             $messages = [
+                 'uz' => 'Safar topilmadi',
+                 'ru' => 'Поездка не найдена',
+                 'en' => 'Trip not found',
+             ];
+             return response()->json([
+                 'status' => 'error',
+                 'message' => $messages[$userLang] ?? $messages['uz'],
+             ], 404);
+         }
+         $messages = [
+             'uz' => 'driver muvaffaqiyatli olindi',
+             'ru' => 'Водитель успешно получен',
+             'en' => 'Driver fetched successfully',
+          ];
+         return response()->json([
+             'status' => 'success',
+             'message' => $messages[$userLang] ?? $messages['uz'],
+             'data' => $trip->driver
+         ]);
+         
+    }
 }

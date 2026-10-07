@@ -15,6 +15,7 @@ use App\Models\V1\Trip;
 use App\Models\V1\BookingPassengers;
 use App\Models\V1\CompanyBalance;
 use App\Models\V1\CompanyBalanceTransaction;
+use AWS\CRT\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -620,6 +621,154 @@ class BookingController extends Controller
             return response()->json([
                 'error' => 'Internal Server Error',
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updatePassengerAddress( Request $request,int $bookingId,int $passengerId) {
+       
+       
+        DB::beginTransaction();
+        try {
+
+            $lang = auth()->user()->authLanguage->language ?? 'uz';
+
+            if (!$request->filled('latitude')) {
+
+                $message = [
+                    'uz' => 'Latitude maydoni majburiy',
+                    'ru' => 'Поле latitude обязательно',
+                    'en' => 'Latitude field is required',
+                ];
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $message[$lang] ?? $message['uz']
+                ], 422);
+            }
+
+            // if (!is_numeric($request->latitude)) {
+
+            //     $message = [
+            //         'uz' => 'Latitude raqam bo‘lishi kerak',
+            //         'ru' => 'Latitude должен быть числом',
+            //         'en' => 'Latitude must be numeric',
+            //     ];
+
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => $message[$lang] ?? $message['uz']
+            //     ], 422);
+            // }
+
+            if (!$request->filled('longitude')) {
+
+                $message = [
+                    'uz' => 'Longitude maydoni majburiy',
+                    'ru' => 'Поле longitude обязательно',
+                    'en' => 'Longitude field is required',
+                ];
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $message[$lang] ?? $message['uz']
+                ], 422);
+            }
+
+            // if (!is_numeric($request->longitude)) {
+
+            //     $message = [
+            //         'uz' => 'Longitude raqam bo‘lishi kerak',
+            //         'ru' => 'Longitude должен быть числом',
+            //         'en' => 'Longitude must be numeric',
+            //     ];
+
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => $message[$lang] ?? $message['uz']
+            //     ], 422);
+            // }
+
+            $booking = Booking::where('id', $bookingId)
+                ->where('user_id', auth()->user()->id)
+                ->first();
+
+            if (!$booking) {
+
+                $message = [
+                    'uz' => 'Sizda bunday bron mavjud emas',
+                    'ru' => 'У вас нет такого бронирования',
+                    'en' => 'You do not have such booking',
+                ];
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $message[$lang] ?? $message['uz']
+                ], 404);
+            }
+
+            $passenger = BookingPassengers::where('id', $passengerId)->where('booking_id', $booking->id)->first();
+
+            if (!$passenger) {
+
+                $message = [
+                    'uz' => 'Yo‘lovchi topilmadi',
+                    'ru' => 'Пассажир не найден',
+                    'en' => 'Passenger not found',
+                ];
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $message[$lang] ?? $message['uz']
+                ], 404);
+            }
+
+            if ($passenger->booking_id != $booking->id) {
+
+                $message = [
+                    'uz' => 'Ushbu yo‘lovchi sizning broningizga tegishli emas',
+                    'ru' => 'Этот пассажир не относится к вашему бронированию',
+                    'en' => 'This passenger does not belong to your booking',
+                ];
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $message[$lang] ?? $message['uz']
+                ], 403);
+            }
+
+            $passenger->update([
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+            ]);
+
+            DB::commit();
+
+            $message = [
+                'uz' => 'Yo‘lovchi manzili muvaffaqiyatli yangilandi',
+                'ru' => 'Адрес пассажира успешно обновлен',
+                'en' => 'Passenger address updated successfully',
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => $message[$lang] ?? $message['uz'],
+                'data' => $passenger
+            ]);
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+
+            $message = [
+                'uz' => 'Serverda xatolik yuz berdi',
+                'ru' => 'Произошла ошибка сервера',
+                'en' => 'Server error occurred',
+            ];
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

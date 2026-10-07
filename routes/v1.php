@@ -29,11 +29,6 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/withdraw', [WithdrawRequestController::class, 'index']);
 
 
-
-
-
-
-
     Route::prefix('vehicles')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\VehicleController::class, 'index']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\VehicleController::class, 'show']);
@@ -72,6 +67,10 @@ Route::middleware('auth:api')->group(function () {
         Route::delete('/cancel/{id}', [App\Http\Controllers\Api\V1\BookingController::class, 'cancelBooking']);
         Route::post('/{id}/add-passenger', [App\Http\Controllers\Api\V1\BookingController::class, 'addPassengerToBooking']);
         Route::post('/{bookingId}/remove-passenger/{passengerId}', [App\Http\Controllers\Api\V1\BookingController::class, 'removePassengerFromBooking']);
+        Route::put(
+            '/{bookingId}/passengers/{passengerId}/address',
+            [App\Http\Controllers\Api\V1\BookingController::class, 'updatePassengerAddress']
+        );
     });
 
     Route::prefix('/user/balance-transactions')->group(function () {
@@ -80,11 +79,12 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/pdf/{id}', [App\Http\Controllers\Api\V1\BalanceTransactionController::class, 'downloadOnePdfTransaction']);
     });
 
-
     Route::prefix('driver/expired-trips')->group(function () {
         Route::get('/', [App\Http\Controllers\Api\V1\DriverExpiredTripsControllerApi::class, 'getExpeiredTrips']);
         Route::get('/{id}', [App\Http\Controllers\Api\V1\DriverExpiredTripsControllerApi::class, 'getExpiredTrip']);
     });
+
+
 });
 
 
@@ -95,6 +95,7 @@ Route::prefix('public/trips')->group(function () {
     Route::post('/search/trip-by-region-to-region', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripByRegionToRegion']);
     Route::get('/view', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getAllTripsForPublic']);
     Route::get('/view/{id}', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripByIdForPublic']);
+    Route::get('/view/trip-driver/by/trip/{id}', [App\Http\Controllers\Api\V1\PublicTripController::class, 'getTripDriver']);
 });
 
 Route::get('regions', [App\Http\Controllers\Api\V1\RegionController::class, 'index']);
