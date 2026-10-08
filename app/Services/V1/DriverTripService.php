@@ -48,4 +48,9 @@ class DriverTripService
     {
         return $this->driverTripRepository->getCompletedTrips();
     }
+
+    public function updateTrip($request, $tripId)
+    {
+        return $this->driverTripRepository->updateTrip($request, $tripId);
+    }
 }

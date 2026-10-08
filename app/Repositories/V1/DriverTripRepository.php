@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\V1\CompanyBalance;
 use App\Models\V1\CompanyBalanceTransaction;
+use App\Models\V1\Vehicle;
 
 class DriverTripRepository
 {
@@ -104,7 +105,7 @@ class DriverTripRepository
                 ], 409);
             }
 
-        
+
             $conflictTrip = Trip::where('driver_id', auth()->id())
                 ->whereIn('status', ['pending', 'active'])
                 ->where(function ($query) use ($data) {
@@ -259,7 +260,7 @@ class DriverTripRepository
 
             $driver = $trip->driver;
             $companyBalance = CompanyBalance::lockForUpdate()->first();
-            if(is_null($companyBalance)){
+            if (is_null($companyBalance)) {
                 $companyBalance = CompanyBalance::create([
                     'balance' => 0,
                 ]);
@@ -632,5 +633,391 @@ class DriverTripRepository
                 'total' => $completedTrips->total(),
             ]
         ], 200);
+    }
+
+
+
+    public function updateTrip($request, $tripId)
+    {
+        try {
+            DB::beginTransaction();
+
+            $authUser = auth()->user();
+            $authLang = $authUser->authLanguage->language ?? 'uz';
+
+            $data = $request->validated();
+
+            /*
+        |--------------------------------------------------------------------------
+        | Get Trip
+        |--------------------------------------------------------------------------
+        */
+
+            $trip = Trip::where('id', $tripId)
+                ->where('driver_id', $authUser->id)
+                ->with('vehicle')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$trip) {
+
+                $messages = [
+                    'uz' => 'Trip topilmadi',
+                    'ru' => 'Поездка не найдена',
+                    'en' => 'Trip not found',
+                ];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$authLang] ?? $messages['uz'],
+                    'data' => null
+                ], 404);
+            }
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Check Trip Status
+        |--------------------------------------------------------------------------
+        */
+
+            if (in_array($trip->status, [
+                'completed',
+                'cancelled',
+                'expired'
+            ])) {
+
+                $messages = [
+                    'uz' => 'Bu tripni o‘zgartirib bo‘lmaydi',
+                    'ru' => 'Эту поездку нельзя изменить',
+                    'en' => 'This trip cannot be edited',
+                ];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$authLang] ?? $messages['uz'],
+                    'data' => null
+                ], 422);
+            }
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Get Online Booked Seats
+        |--------------------------------------------------------------------------
+        |
+        | bookings table:
+        | seats_booked
+        |
+        */
+
+            $bookedSeats = $trip->bookings()
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->sum('seats_booked');
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Vehicle
+        |--------------------------------------------------------------------------
+        */
+
+            $vehicle = $trip->vehicle;
+
+            if (!$vehicle) {
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Vehicle topilmadi',
+                    'data' => null
+                ], 404);
+            }
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Change Vehicle
+        |--------------------------------------------------------------------------
+        */
+
+            if (
+                isset($data['vehicle_id']) &&
+                (int) $data['vehicle_id'] !== (int) $trip->vehicle_id
+            ) {
+
+                /*
+             * Agar online booking bor bo'lsa,
+             * vehicle almashtirish mumkin emas.
+             */
+
+                if ($bookedSeats > 0) {
+
+                    $messages = [
+                        'uz' => 'Online booking mavjud bo‘lgan tripda transportni almashtirib bo‘lmaydi',
+                        'ru' => 'Нельзя изменить транспорт при наличии бронирований',
+                        'en' => 'Vehicle cannot be changed when bookings exist',
+                    ];
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $messages[$authLang] ?? $messages['uz'],
+                        'data' => null
+                    ], 422);
+                }
+
+                $newVehicle = Vehicle::find($data['vehicle_id']);
+
+                if (!$newVehicle) {
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Vehicle topilmadi',
+                        'data' => null
+                    ], 404);
+                }
+
+                $vehicle = $newVehicle;
+                $trip->vehicle_id = $newVehicle->id;
+            }
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Available Seats
+        |--------------------------------------------------------------------------
+        |
+        | Misol:
+        |
+        | Vehicle = 4
+        | Online booking = 1
+        | Max available = 3
+        |
+        | Driver offline odam olsa:
+        |
+        | 3 -> 2
+        |
+        */
+
+            if (isset($data['available_seats'])) {
+
+                $availableSeats = (int) $data['available_seats'];
+
+                /*
+             * 0 dan kichik bo'lmasligi kerak
+             */
+
+                if ($availableSeats < 0) {
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Available seats 0 dan kichik bo‘lishi mumkin emas',
+                        'data' => null
+                    ], 422);
+                }
+
+
+                /*
+             * Vehicle seatsdan ko'p bo'lmasligi kerak
+             */
+
+                if ($availableSeats > $vehicle->seats) {
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "Available seats {$vehicle->seats} tadan ko‘p bo‘lishi mumkin emas",
+                        'data' => null
+                    ], 422);
+                }
+
+
+                /*
+             * Online bookinglar band qilgan joylar
+             * qayta available qilib ko'rsatilmasligi kerak.
+             *
+             * Example:
+             *
+             * Vehicle = 4
+             * Online booking = 2
+             *
+             * Max available = 2
+             */
+
+                $maxAvailableSeats = $vehicle->seats - $bookedSeats;
+
+                if ($availableSeats > $maxAvailableSeats) {
+
+                    $messages = [
+                        'uz' => "Online bookinglar sababli maksimal {$maxAvailableSeats} ta bo‘sh o‘rin mavjud",
+                        'ru' => "Из-за онлайн-бронирований доступно максимум {$maxAvailableSeats} мест",
+                        'en' => "Due to online bookings, maximum {$maxAvailableSeats} seats are available",
+                    ];
+
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => $messages[$authLang] ?? $messages['uz'],
+                        'data' => null
+                    ], 422);
+                }
+
+
+                /*
+             * Real available seats
+             *
+             * Bu qiymat online + offline
+             * passengerlarni hisobga oladi.
+             */
+
+                $trip->available_seats = $availableSeats;
+            }
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Trip Information
+        |--------------------------------------------------------------------------
+        */
+
+            $trip->start_region_id =
+                $data['start_region_id'] ?? $trip->start_region_id;
+
+            $trip->end_region_id =
+                $data['end_region_id'] ?? $trip->end_region_id;
+
+            $trip->start_district_id =
+                $data['start_district_id'] ?? $trip->start_district_id;
+
+            $trip->end_district_id =
+                $data['end_district_id'] ?? $trip->end_district_id;
+
+            $trip->start_quarter_id =
+                $data['start_quarter_id'] ?? $trip->start_quarter_id;
+
+            $trip->end_quarter_id =
+                $data['end_quarter_id'] ?? $trip->end_quarter_id;
+
+            $trip->start_time =
+                $data['start_time'] ?? $trip->start_time;
+
+            $trip->end_time =
+                $data['end_time'] ?? $trip->end_time;
+
+            $trip->price_per_seat =
+                $data['price_per_seat'] ?? $trip->price_per_seat;
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Validate Time
+        |--------------------------------------------------------------------------
+        */
+
+            if ($trip->start_time >= $trip->end_time) {
+
+                $messages = [
+                    'uz' => 'Start time end timedan oldin bo‘lishi kerak',
+                    'ru' => 'Время начала должно быть раньше времени окончания',
+                    'en' => 'Start time must be before end time',
+                ];
+
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $messages[$authLang] ?? $messages['uz'],
+                    'data' => null
+                ], 422);
+            }
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Update Start Point
+        |--------------------------------------------------------------------------
+        */
+
+            if (
+                isset($data['start_lat']) &&
+                isset($data['start_long'])
+            ) {
+
+                $trip->startPoint()->update([
+                    'lat' => $data['start_lat'],
+                    'long' => $data['start_long'],
+                ]);
+            }
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Update End Point
+        |--------------------------------------------------------------------------
+        */
+
+            if (
+                isset($data['end_lat']) &&
+                isset($data['end_long'])
+            ) {
+
+                $trip->endPoint()->update([
+                    'lat' => $data['end_lat'],
+                    'long' => $data['end_long'],
+                ]);
+            }
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Expired At
+        |--------------------------------------------------------------------------
+        */
+
+            $trip->expired_at = $trip->end_time;
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Save
+        |--------------------------------------------------------------------------
+        */
+
+            $trip->save();
+
+            DB::commit();
+
+
+            /*
+        |--------------------------------------------------------------------------
+        | Response
+        |--------------------------------------------------------------------------
+        */
+
+            $messages = [
+                'uz' => 'Trip muvaffaqiyatli yangilandi',
+                'ru' => 'Поездка успешно обновлена',
+                'en' => 'Trip successfully updated',
+            ];
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $messages[$authLang] ?? $messages['uz'],
+                'data' => new DriverTripResource(
+                    $trip->fresh()
+                )
+            ], 200);
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            $messages = [
+                'uz' => 'Tripni yangilashda xatolik yuz berdi.',
+                'ru' => 'Ошибка при обновлении поездки.',
+                'en' => 'Error occurred while updating the trip.',
+            ];
+
+            return response()->json([
+                'status' => 'error',
+                'message' => $messages[$authLang] ?? $messages['uz'],
+                'data' => null,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

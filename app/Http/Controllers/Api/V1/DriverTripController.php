@@ -37,6 +37,11 @@ class DriverTripController extends Controller
         return $this->driverTripService->createTrip($request);
     }
 
+    public function update(DriverTripUpdate $request, $id)
+    {
+        return $this->driverTripService->updateTrip($request, $id);
+    }
+
 
     public function cancel($id)
     {
